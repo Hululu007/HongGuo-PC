@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import brandIcon from '../../build/icon.ico';
 import './TitleBar.css';
 
+const QQ_GROUP_URL = 'https://qm.qq.com/q/tGVzo8p2Ba';
+
 // Windows 无边框窗口的自定义标题栏。macOS 由 App 不渲染本组件（保留 hiddenInset 原生交通灯）。
-// 拖动由独立的 .titlebar-drag 层承担，该层在按钮区域之前终止（inset right 138px），
+// 拖动由独立的 .titlebar-drag 层承担，该层在按钮区域之前终止（inset right 184px），
 // 与按钮零重叠——避免依赖嵌套 no-drag 区域的抵扣计算；双击最大化用显式事件兜底。
 export default function TitleBar({ appName = '红果短剧', onWindowState }) {
   const [maximized, setMaximized] = useState(false);
@@ -51,6 +53,10 @@ export default function TitleBar({ appName = '红果短剧', onWindowState }) {
   const toggleMaximize = useCallback(() => deferRun(() => window.electronAPI?.windowToggleMaximize?.()), [deferRun]);
   const minimizeWindow = useCallback(() => deferRun(() => window.electronAPI?.windowMinimize?.()), [deferRun]);
   const closeWindow = useCallback(() => deferRun(() => window.electronAPI?.windowClose?.()), [deferRun]);
+  const openCommunity = useCallback(() => {
+    const request = window.electronAPI?.openExternalUrl?.(QQ_GROUP_URL);
+    request?.catch?.(() => {});
+  }, []);
 
   return (
     <header className={`titlebar ${maximized ? 'is-maximized' : ''}`} aria-label="窗口标题栏">
@@ -61,6 +67,10 @@ export default function TitleBar({ appName = '红果短剧', onWindowState }) {
       </div>
       <div className="titlebar-space" aria-hidden="true" />
       <div className="titlebar-controls">
+        <button type="button" className="titlebar-btn titlebar-community" aria-label="加入 QQ 群：冷漠网络科技交流群①"
+          title="加入 QQ 群：冷漠网络科技交流群①" onClick={openCommunity}>
+          <span aria-hidden="true">QQ群</span>
+        </button>
         <button type="button" className="titlebar-btn" aria-label="最小化" title="最小化"
           onClick={minimizeWindow}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10" /></svg>

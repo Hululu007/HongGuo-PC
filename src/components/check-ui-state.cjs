@@ -1767,9 +1767,11 @@ async function mount(file, api, props = {}, storage = null) {
   });
   await test('custom title bar wires window controls and follows maximize state changes', async () => {
     const calls = [], states = [];
+    const externalUrls = [];
     let notifyMaximized = null;
     const ui = await mount('TitleBar', {
       windowIsMaximized: async () => false,
+      openExternalUrl: async url => { externalUrls.push(url); return { success: true }; },
       windowMinimize: async () => calls.push('minimize'),
       windowToggleMaximize: async () => calls.push('toggle'),
       windowClose: async () => calls.push('close'),
@@ -1778,6 +1780,10 @@ async function mount(file, api, props = {}, storage = null) {
     await ui.flush();
     assert.ok(ui.find(n => n.props.className?.startsWith('titlebar') && n.props['aria-label'] === '窗口标题栏'), 'title bar renders its drag region');
     assert.ok(ui.text().includes('红果短剧'), 'brand name is visible');
+    const community = ui.find(n => n.props['aria-label'] === '加入 QQ 群：冷漠网络科技交流群①');
+    assert.ok(community, 'QQ group button exists');
+    await community.props.onClick();
+    assert.deepEqual(externalUrls, ['https://qm.qq.com/q/tGVzo8p2Ba'], 'QQ group button opens the configured invite page');
     for (const label of ['最小化', '关闭']) assert.equal(ui.nodes().filter(n => n.props['aria-label'] === label).length, 1, `${label} button exists once`);
     const maxBtn = () => ui.find(n => n.props.className === 'titlebar-btn titlebar-max');
     assert.equal(maxBtn().props['aria-label'], '最大化');

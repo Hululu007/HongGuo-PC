@@ -17,11 +17,11 @@
   animation: titlebar-in .5s var(--ease-out) both;
 }
 
-/* 拖动层：独立于按钮的兄弟节点，几何上在按钮区之前终止（右侧留出 3×46px 按钮区），
+/* 拖动层：独立于按钮的兄弟节点，几何上在按钮区之前终止（右侧留出 4×46px 按钮区），
    不依赖 no-drag 嵌套抵扣——Electron Windows 下嵌套区域抵扣在本机实测不可靠 */
 .titlebar-drag {
   position: absolute;
-  inset: 0 138px 0 0;
+  inset: 0 184px 0 0;
   -webkit-app-region: drag;
 }
 
@@ -115,6 +115,19 @@
 .titlebar-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 .titlebar-btn:active { filter: brightness(.82); }
 .titlebar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.titlebar-community {
+  cursor: pointer;
+  color: #4da3ff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: -.04em;
+}
+
+.titlebar-community:hover {
+  color: #8bc7ff;
+  background: rgba(77, 163, 255, .14);
+}
 
 /* 最大化 / 还原图标：双图标叠放，旋转缩放交叉过渡 */
 .titlebar-max svg {

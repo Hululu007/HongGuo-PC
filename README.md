@@ -23,12 +23,12 @@
 
 ## 📦 下载
 
-当前正式版 **6.10**（内部 `6.10.0`，标签 `v6.10`），只发布 Windows x64；详见 [GitHub Release v6.10](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.10) 与 [发行记录](docs/release-6.10.md)。
+当前正式版 **6.11**（内部 `6.11.0`，标签 `v6.11`），只发布 Windows x64；详见 [GitHub Release v6.11](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.11) 与 [发行记录](docs/release-6.11.md)。
 
 | | |
 |---|---|
 | **下载地址** | [GitHub Releases 最新版](https://github.com/yuchen0x1/HongGuo-PC/releases/latest) |
-| **文件** | `hongguo-downloader-6.10-win-x64-setup.exe` |
+| **文件** | `hongguo-downloader-6.11-win-x64-setup.exe` |
 | **安装** | 双击运行，向导式安装，可自选安装目录 |
 
 安装包**未做代码签名**。首次运行若弹出 SmartScreen 提示，点「更多信息 → 仍要运行」。
@@ -43,18 +43,10 @@
 
 ## 最新更新
 
-**6.10 · 2026-11-16**
+**6.11 · 2026-11-16**
 
-- 修复红果播放源接口切换后返回空响应，改用当前 `video_tab` 取源协议和五段播放器签名。
-- 播放请求失败时自动轮换匿名设备身份，并保留旧接口的一次受控回退，减少短时鉴权失效导致的播放报错。
-- 增加当前接口、空响应恢复和真实取源诊断覆盖，避免错误地把预览片源当成完整分集。
-
-**6.9 · 2026-11-13**
-
-- 优化退出与更新安装：删除任务、清理缓存或导出文字资料时，等待处理完成再退出，减少文件与记录不同步。
-- 修复分集列表缺失：来源临时只返回部分分集时，保留剧库中已知的分集。
-- 修复 Ctrl+K 面板悬停选项后，回车打开错误页面的问题。
-- 修复来源加载期间，全局搜索未自动执行的问题。
+- 在 Windows 自定义标题栏加入“QQ群”入口，点击即可打开“冷漠网络科技交流群①”的 QQ 加群页面。
+- 保留现有窗口拖动、最小化、最大化和关闭按钮的独立点击区域。
 
 [完整更新记录](docs/releases/release-notes.md)
 
@@ -257,7 +249,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.10.md](docs/release-6.10.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.11.md](docs/release-6.11.md)。
 
 </details>
 
