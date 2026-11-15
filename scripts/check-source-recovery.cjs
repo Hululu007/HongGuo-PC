@@ -32,6 +32,10 @@ function appFixture(rows) {
   const calls = [];
   const app = load('app-source.js', { axios: async config => {
     calls.push(config);
+    if (config.method === 'GET' && config.url.includes('/reading/bookapi/video_tab/')) {
+      return { status: 200, headers: {}, data: JSON.stringify({ code: 0,
+        data: { video_model_data: { '11': { video_model: { video_list: Object.values(rows) } } } } }) };
+    }
     return { status: 200, headers: {}, data: JSON.stringify(config.method === 'POST'
       ? { data: { '11': { video_model: { fallback_api: 'https://vod.snssdk.com/info' } } } }
       : { video_info: { data: { video_list: rows } } }) };
@@ -368,23 +372,25 @@ const checks = [
     const key1 = '01'.repeat(16), key2 = '02'.repeat(16);
     const f = appFixture({ first: { main_url: media('main'), backup_url: media('backup'), backup_url_list: [media('extra'), media('backup'), 'https://127.0.0.1/private'], codec_type: 'h264', width: 1080, height: 1920, spade_a: encodedKey(key1) },
       second: { main_url: media('hevc'), codec_type: 'hevc', width: 1080, height: 1920, spade_a: encodedKey(key2) },
-      listOnly: { backup_url_list: [media('list')], codec_type: 'hevc', width: 1080, height: 1920 } });
+      listOnly: { backup_url_list: [media('list')], codec_type: 'hevc', width: 1080, height: 1920, encrypt_info: { encrypt: false } } });
     const result = await f.fetchAppPlayUrl('11');
     assert.ok(Array.isArray(result.variants), 'media candidates must survive address lookup');
     assert.deepEqual(Array.from(result.variants, v => v.url), ['main', 'backup', 'extra', 'hevc', 'list'].map(media));
     for (const candidate of result.variants) {
       assert.equal(candidate.source, 'app'); assert.equal(candidate.vid, '11');
-      assert.equal(candidate.userAgent, f.calls[1].headers['User-Agent']);
+      assert.match(candidate.userAgent, /^com\.phoenix\.read\/71532 /,
+        'inline App media keeps the playback user agent separate from the signed model request');
       assert.equal(candidate.referer, undefined, 'App media must not start with the rejected website Referer');
       assert.equal(candidate.variants, undefined);
     }
     assert.equal(result.variants[2].contentKey, key1); assert.equal(result.variants[3].contentKey, key2);
-    assert.equal(result.variants[4].contentKey, null); assert.equal(f.calls.length, 2, 'no media preflight');
+    assert.equal(result.variants[4].contentKey, null); assert.equal(f.calls.length, 1, 'no media preflight');
   }],
   ['Strict quality alternatives never include smaller or unknown-size streams', async () => {
     const f = appFixture({ low: { main_url: media('low'), codec_type: 'h264', width: 720, height: 1280 },
       unknown: { main_url: media('unknown'), codec_type: 'h264' },
-      high: { main_url: media('high'), backup_url_list: [media('high2')], codec_type: 'hevc', width: 1080, height: 1920 } });
+      high: { main_url: media('high'), backup_url_list: [media('high2')], codec_type: 'hevc', width: 1080, height: 1920,
+        encrypt_info: { encrypt: false } } });
     const result = await f.fetchAppPlayUrl('11', { quality: '1080p' });
     assert.ok(result.variants, 'strict-quality candidate list missing');
     assert.deepEqual(Array.from(result.variants, v => v.url), ['high', 'high2'].map(media));

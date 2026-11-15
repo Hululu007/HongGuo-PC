@@ -25,8 +25,9 @@ function encodedKey() {
   raw[0] = 48 ^ raw[1] ^ raw[2];
   return raw.toString('base64');
 }
-function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', media = 'https://v3-reading.qznovelvod.com/video.mp4', redirect = '', malformedKey = false, videoList = null, encrypted = true } = {}) {
+function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', media = 'https://v3-reading.qznovelvod.com/video.mp4', redirect = '', malformedKey = false, videoList = null, encrypted = true, tabEmpty = false } = {}) {
   const calls = [];
+  let registrations = 0;
   const seed = Buffer.alloc(16, 7);
   const constants = Buffer.from('4dd4c2e6b83162090e52b3c7a6733ba41cb2462b829ab58a196b39db57177524f49baf7f08e8d68d26a72e37c1a95a2f1f05a51892aef2949732b62a38aadd58', 'hex');
   const material = crypto.createHash('sha512').update(Buffer.concat([crypto.createHash('sha512').update(seed).digest(), constants])).digest();
@@ -38,6 +39,25 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
     assert.ok(config.timeout > 0 && config.timeout <= 12000);
     assert.ok(config.signal);
     assert.equal(config.responseType, 'text');
+    if (config.method === 'GET' && config.url.includes('/reading/bookapi/video_tab/')) {
+      assert.match(config.headers['User-Agent'], /^com\.phoenix\.read\/73532 /);
+      const query = new URL(config.url).searchParams;
+      assert.equal(query.get('video_id'), '11');
+      assert.equal(query.get('video_id_type'), '0');
+      assert.equal(query.get('version_code'), '73532');
+      assert.equal(query.get('ts'), null, 'the current player route must not carry legacy ts');
+      assert.equal(query.get('_rticket'), config.headers['x-ss-req-ticket']);
+      assert.equal(config.headers['x-xs-from-web'], '0');
+      assert.equal(config.headers['sdk-version'], '2');
+      assert.match(config.headers['x-gorgon'], /^8404401c0000[0-9a-f]{40}$/);
+      for (const name of ['x-argus', 'x-ladon']) assert.ok(Buffer.from(config.headers[name], 'base64').length > 0);
+      for (const name of ['x-medusa', 'x-helios']) assert.equal(config.headers[name], undefined);
+      if (tabEmpty) return { status: 200, headers: {}, data: '' };
+      const model = { video_model: JSON.stringify({ fallback_api: fallback }) };
+      return { status: 200, headers: {}, data: JSON.stringify({ code: 0, data: { video_model_data: {
+        '999': model, ...(wrongVid ? {} : { '11': model }),
+      } } }) };
+    }
     if (config.method === 'POST') {
       assert.match(config.headers['User-Agent'], /^com\.phoenix\.read\/71532 /);
       const query = new URL(config.url).searchParams;
@@ -69,6 +89,7 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
       if (name === 'axios') return axios;
       if (name === './playback-device') return { registerPlaybackDevice: async requestJson => {
         assert.equal(typeof requestJson, 'function');
+        registrations += 1;
         return playbackDevice;
       } };
       if (name === './sm3') return require(path.join(nativeDir, 'sm3'));
@@ -81,7 +102,7 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
     },
   };
   vm.runInNewContext(fs.readFileSync(path.join(nativeDir, 'app-source.js'), 'utf8'), context);
-  return { fetch: context.module.exports.fetchAppPlayUrl, calls };
+  return { fetch: context.module.exports.fetchAppPlayUrl, calls, get registrations() { return registrations; } };
 }
 
 function nativeFixture() {
@@ -108,8 +129,8 @@ const checks = [
     await f.fetch('11');
     await f.fetch('11');
     await Promise.all([f.fetch('11'), f.fetch('11'), f.fetch('11')]);
-    const requests = f.calls.filter(call => call.method === 'POST');
-    assert.equal(requests.length, 5, 'one model request per lookup; no retry loop');
+    const requests = f.calls.filter(call => call.url.includes('/reading/bookapi/video_tab/'));
+    assert.equal(requests.length, 5, 'one current model request per lookup; no retry loop');
     for (const field of ['iid', 'device_id']) {
       const ids = requests.map(call => new URL(call.url).searchParams.get(field));
       assert.ok(ids.every(id => /^[1-9]\d{15,29}$/.test(id)), `${field} must stay a valid device identifier`);
@@ -203,22 +224,30 @@ const checks = [
     assert.equal(result.quality, '720P');
     assert.equal(calls.length, 2);
   }],
+  ['empty current route rotates the anonymous device before legacy fallback', async () => {
+    const f = fixture({ tabEmpty: true });
+    const result = await f.fetch('11');
+    assert.equal(result.source, 'app');
+    assert.equal(f.registrations, 2, 'a blank response window must renew the playback identity once');
+    assert.equal(f.calls.filter(call => call.url.includes('/reading/bookapi/video_tab/')).length, 4,
+      'both current clusters are retried after the identity rotation');
+  }],
   ['no wrong-episode fallback', async () => {
     assert.ok(fs.existsSync(path.join(nativeDir, 'app-source.js')), 'app source missing');
     const { fetch, calls } = fixture({ wrongVid: true });
     await assert.rejects(fetch('11'));
-    assert.equal(calls.length, 1);
+    assert.equal(calls.length, 3);
   }],
   ['URL boundary and redirect validation', async () => {
     assert.ok(fs.existsSync(path.join(nativeDir, 'app-source.js')), 'app source missing');
     for (const fallback of ['http://vod.snssdk.com/info', 'https://127.0.0.1/info', 'https://vod.snssdk.com.attacker.test/info', 'https://user:pass@vod.snssdk.com/info']) {
       const { fetch, calls } = fixture({ fallback });
       await assert.rejects(fetch('11'));
-      assert.equal(calls.length, 1);
+      assert.equal(calls.length, 1, 'unsafe fallback must be rejected before another network request');
     }
     const { fetch, calls } = fixture({ redirect: 'https://127.0.0.1/private' });
     await assert.rejects(fetch('11'));
-    assert.equal(calls.length, 2);
+    assert.equal(calls.length, 2, 'redirect validation must stop before the legacy route');
     await assert.rejects(fixture({ media: 'https://127.0.0.1/video' }).fetch('11'));
   }],
   ['invalid input and invalid key rejected', async () => {

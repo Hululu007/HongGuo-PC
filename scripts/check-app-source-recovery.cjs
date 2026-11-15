@@ -42,6 +42,7 @@ function load(axios, { realDevice = false, getPlaybackDevice, registerPlaybackDe
 }
 
 function modelResponse(rows) {
+  const model = { fallback_api: 'https://api5-normal-sinfonlineb.fqnovel.com/fallback' };
   return {
     status: 200,
     headers: { 'content-type': 'application/json' },
@@ -49,10 +50,9 @@ function modelResponse(rows) {
       code: 0,
       data: {
         [vid]: {
-          video_model: {
-            fallback_api: 'https://api5-normal-sinfonlineb.fqnovel.com/fallback',
-          },
+          video_model: model,
         },
+        video_model_data: { [vid]: { video_model: model } },
       },
     }),
   };
@@ -100,8 +100,11 @@ function row(definition, width, height, suffix) {
   assert.equal(selected.variants.length, 2, 'main and backup URLs for the best rendition only');
   assert.ok(selected.variants.every(item => item.url.includes('best')), 'auto must not silently fall through to 720p');
 
-  const inlineResponse = (rows, id = vid) => ({ status: 200, headers: {}, data: JSON.stringify({ code: 0,
-    data: { [id]: { video_model: { video_list: rows, fallback_api: 'https://vod.snssdk.com/must-not-fetch' } } } }) });
+  const inlineResponse = (rows, id = vid) => {
+    const model = { video_list: rows, fallback_api: 'https://vod.snssdk.com/must-not-fetch' };
+    return { status: 200, headers: {}, data: JSON.stringify({ code: 0,
+      data: { [id]: { video_model: model }, video_model_data: { [id]: { video_model: model } } } }) };
+  };
   const plain = { ...row('1080p', 1080, 1920, 'inline'), encrypt_info: { encrypt: false } };
   const identities = [{ device_id: '11', iid: '12', cdid: 'fixture' }, { device_id: '21', iid: '22', cdid: 'fixture' }];
   let recoverCalls = 0, renewals = 0, recoveryRegistrations = 0;
@@ -115,24 +118,24 @@ function row(definition, width, height, suffix) {
     return identities[recoveryRegistrations - 1];
   } });
   assert.equal((await recovery.fetchAppPlayUrl(vid)).url, plain.main_url, 'empty model response renews the device and recovers');
-  assert.equal(recoverCalls, 2);
+  assert.equal(recoverCalls, 3);
   assert.equal(renewals, 1);
   for (const status of [200, 403, 404]) {
     let calls = 0, registrations = 0;
     const unavailable = load(async () => { calls++; return { status, headers: {}, data: '' }; },
       { registerPlaybackDevice: async () => identities[registrations++] });
     await assert.rejects(unavailable.fetchAppPlayUrl(vid), error => status === 200 ? error.code === 'EMPTY_RESPONSE' : error.status === status);
-    assert.equal(calls, status === 200 ? 2 : 1, 'one recovery only; HTTP rejection must not retry the model request');
-    assert.equal(registrations, status === 200 ? 2 : 1);
+    assert.equal(calls, status === 200 ? 6 : 3, 'current clusters and legacy fallback stay bounded');
+    assert.equal(registrations, status === 200 ? 3 : 1, `registration count for HTTP ${status}`);
   }
   let cooldownCalls = 0;
   await assert.rejects(load(async () => { cooldownCalls++; return { status: 200, headers: {}, data: '' }; },
     { getPlaybackDevice: async () => identities[0] }).fetchAppPlayUrl(vid), error => error.code === 'EMPTY_RESPONSE');
-  assert.equal(cooldownCalls, 2, 'empty response permits one fresh-device alternate route');
+  assert.equal(cooldownCalls, 6, 'empty response permits one fresh-device alternate route before legacy fallback');
   let clock = Date.now(), slowCalls = 0;
   const slowRegistration = load(async config => {
     slowCalls++;
-    assert.ok(config.timeout > 11000, 'slow initial registration must not consume the model budget');
+    assert.ok(config.timeout > 5000, 'the model request keeps its own bounded budget');
     return inlineResponse([plain]);
   }, { now: () => clock, getPlaybackDevice: async () => { clock += 7900; return identities[0]; } });
   assert.equal((await slowRegistration.fetchAppPlayUrl(vid)).url, plain.main_url);
@@ -141,16 +144,15 @@ function row(definition, width, height, suffix) {
   const alternate = load(async config => {
     hosts.push(new URL(config.url).hostname);
     if (hosts.length === 1) return { status: 200, headers: {}, data: '' };
-    assert.equal(config.headers.Connection, 'close');
     return inlineResponse([plain]);
   }, { getPlaybackDevice: async () => identities[0] });
   assert.equal((await alternate.fetchAppPlayUrl(vid)).url, plain.main_url);
-  assert.deepEqual(hosts, ['api5-normal-sinfonlineb.fqnovel.com', 'api5-normal-hl.fqnovel.com']);
+  assert.deepEqual(hosts, ['api5-normal-sinfonlineb.fqnovel.com', 'reading.snssdk.com']);
   let inlineCalls = 0;
   const direct = load(async config => {
     inlineCalls++;
     assert.equal(new URL(config.url).searchParams.get('device_id'), '1000000000000001');
-    assert.ok(config.headers['x-medusa']);
+    assert.equal(config.headers['x-medusa'], undefined);
     assert.ok(config.headers['x-gorgon']);
     assert.equal(config.headers.Cookie, undefined);
     return inlineResponse([plain]);
