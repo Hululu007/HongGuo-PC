@@ -100,7 +100,7 @@ async function check(name, fn) { try { await fn(); } catch (error) { failures.pu
       assert.equal((await handlers['open-external-url'](event, url)).success, false, url);
     }
     assert.equal(opened.length, 0);
-    assert.equal((await handlers['open-external-url'](event, 'https://example.com/')).success, true);
+    assert.equal((await handlers['open-external-url'](event, 'https://github.com/yuchen0x1/HongGuo-PC/releases')).success, true);
   });
   await check('production CSP denies inline and eval scripts', () => {
     const html = fs.readFileSync(path.join(path.dirname(file), 'index.html'), 'utf8');

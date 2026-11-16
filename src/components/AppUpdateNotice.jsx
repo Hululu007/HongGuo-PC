@@ -147,13 +147,14 @@ export default function AppUpdateNotice() {
   const version = (downloading || downloaded || installing || state.status === 'error') ? state.version || release?.version : release?.version;
   const updateError = error || state.error;
   const percent = Math.max(0, Math.min(100, Math.round(state.percent || 0)));
+  const installerSize = release?.installer?.size ?? release?.assets?.find(asset => /setup\.exe$/i.test(asset.name))?.size ?? 0;
   const title = checking ? '正在检查更新…' : installing ? '正在重启安装…' : downloaded ? `新版 v${version} 已下载` : downloading ? `正在下载 v${version}` : version ? `发现新版本 v${version}` : '检查更新';
   return <section className="app-update-notice" role="dialog" aria-label="软件更新" aria-describedby="app-update-description" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } }}>
     <button type="button" className="icon-btn app-update-close" aria-label="关闭更新提醒" title="关闭更新提醒" onClick={close}><X size={18} /></button>
     <h2 aria-live="polite">{title}</h2>
     <p id="app-update-description">{checking ? '正在查询正式新版，请稍候。' : installing ? '应用即将退出并安装新版。' : downloaded ? '点击后退出应用并安装新版。忙碌任务会阻止安装，稍后可在设置中找回此提醒。' : downloading ? '正在下载并校验安装包；关闭提醒不会中断下载。' : version ? (state.supported ? '在应用内下载新版，完成后由你决定何时重启安装。' : state.reason) : updateError ? '可稍后重新检查。' : '已是最新版本。'}</p>
     {release?.releaseDate && <p className="app-update-meta">发布时间：{new Date(release.releaseDate).toLocaleString()}</p>}
-    {release?.assets?.[0]?.size && <p className="app-update-meta">安装包大小：{formatBytes(release.assets[0].size)}</p>}
+    {installerSize > 0 && <p className="app-update-meta">安装包大小：{formatBytes(installerSize)}</p>}
     {release?.releaseNotes && <details className="app-update-notes"><summary>查看更新说明</summary><p>{release.releaseNotes}</p></details>}
     {downloading && <div className="app-update-progress"><progress max="100" value={percent} aria-label="更新下载进度" /><span>{percent}%</span></div>}
     <div className="app-update-actions">

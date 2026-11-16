@@ -33,10 +33,11 @@ const ipc = (name, ...args) => handlers[name]({}, ...args);
     response={tag_name:tag,draft:false,prerelease:false};assert.equal((await ipc('check-app-update')).release,null,tag);
   }
   for(const flags of [{draft:true},{prerelease:true}]){response={tag_name:'v2.0',...flags};assert.equal((await ipc('check-app-update')).release,null);}
-  response={tag_name:'v1.2.1',html_url:'https://evil.invalid/download', body:'Fixes', published_at:'2026-11-12T00:00:00Z', assets:[{name:'setup.exe',size:1234}]};
+  response={tag_name:'v1.2.1',html_url:'https://evil.invalid/download', body:'Fixes', published_at:'2026-11-12T00:00:00Z', assets:[{name:'Source code.zip',size:99},{name:'hongguo-downloader-1.2-win-x64-setup.exe',size:1234},{name:'latest.yml',size:88}]};
   let result=await ipc('check-app-update');assert.equal(result.release.version,'1.2.1');
   assert.equal(result.release.channel, 'stable'); assert.equal(result.release.releaseNotes, 'Fixes');
-  assert.equal(result.release.assets[0].size, 1234); assert.match(result.release.releaseDate, /^2026-11-12T/);
+  assert.equal(result.release.assets[0].size, 99); assert.equal(result.release.installer.name, 'hongguo-downloader-1.2-win-x64-setup.exe');
+  assert.equal(result.release.installer.size, 1234); assert.equal(result.release.metadata.name, 'latest.yml'); assert.match(result.release.releaseDate, /^2026-11-12T/);
   assert.equal(result.release.url,'https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v1.2.1');
   await ipc('open-app-update');assert.equal(opened[0],'https://github.com/yuchen0x1/HongGuo-PC/releases/latest');
   assert.equal(requestOptions.url,'https://api.github.com/repos/yuchen0x1/HongGuo-PC/releases/latest');

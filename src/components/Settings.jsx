@@ -78,6 +78,8 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   const [pictureModeError, setPictureModeError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
+  const [diagnosticsNotice, setDiagnosticsNotice] = useState('');
   const testVersion = useRef(0);
   const savingRef = useRef(false);
   const pictureModeRequest = useRef({ pending: false, version: 0 });
@@ -196,6 +198,22 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
     }
   };
   const save = () => persist(settings);
+
+  const exportDiagnostics = async () => {
+    if (diagnosticsBusy) return;
+    setDiagnosticsBusy(true);
+    setDiagnosticsNotice('');
+    try {
+      const result = await window.electronAPI.exportDiagnostics();
+      if (result?.cancelled) return;
+      if (!result?.success) throw new Error(result?.error || '诊断信息导出失败，请重试');
+      setDiagnosticsNotice(`已导出 ${result.fileName || '诊断文件'}`);
+    } catch (error) {
+      setDiagnosticsNotice(error.message || '诊断信息导出失败，请重试');
+    } finally {
+      setDiagnosticsBusy(false);
+    }
+  };
 
   const scrollToSection = (id) => {
     const el = document.getElementById(`settings-anchor-${id}`);
@@ -468,6 +486,13 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
             : <p className="settings-hint">{appInfo?.configMode === 'portable'
               ? '便携版：设置、下载记录与界面数据保存在程序目录的 data 文件夹；从旧版本切换时，原系统目录里的搜索历史不会自动带入。移动或备份程序时请连同该文件夹一起保留。'
               : '设置、下载记录与界面数据保存在系统用户目录；更换电脑时可复制这个文件夹。'}</p>}
+          <div className="settings-inline-save">
+            <button type="button" className="btn btn-outline btn-sm" onClick={exportDiagnostics} disabled={diagnosticsBusy}>
+              {diagnosticsBusy ? '正在导出…' : '导出诊断信息'}
+            </button>
+            <span className="settings-hint" role="status">仅包含版本、运行状态、任务统计和工具可用性，不包含密码、媒体地址或本地路径。</span>
+          </div>
+          {diagnosticsNotice && <p className="settings-hint" role="status">{diagnosticsNotice}</p>}
         </div>
 
         {preview && <div className="settings-group">

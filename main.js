@@ -54,6 +54,8 @@ const { searchHongguo } = require('./src/native/hongguo-search');
 const { fitWindowBounds, getWindowScale, saveWindowZoom, restoreMainWindowBounds, rememberMainWindowBounds } = require('./src/native/window-layout');
 const { createEpisodePanelController } = require('./src/native/episode-panel');
 const { availableRelease } = require('./src/native/app-update');
+const { buildDiagnostics } = require('./src/native/diagnostics');
+const { parseExternalUrl } = require('./src/native/external-links');
 const { createReleaseNotesService } = require('./src/native/release-notes');
 const { fetchPublicDetails } = require('./src/native/public-details');
 const { fetchEpisodeComments } = require('./src/native/episode-comments');
@@ -2157,6 +2159,50 @@ ipcMain.handle('get-ffmpeg-status', async () => {
   const ff = resolveFfmpeg('ffmpeg');
   const fp = resolveFfmpeg('ffprobe');
   return { success: true, ffmpeg: ff, ffprobe: fp, available: !!ff && !!fp };
+});
+
+function diagnosticsSnapshot() {
+  const settings = getCurrentSettings();
+  const ffmpeg = resolveFfmpeg('ffmpeg');
+  const ffprobe = resolveFfmpeg('ffprobe');
+  return buildDiagnostics({
+    app: {
+      version: APP_VERSION,
+      platform: process.platform,
+      arch: process.arch,
+      electron: process.versions.electron,
+      chrome: process.versions.chrome,
+      node: process.versions.node,
+      preview: IS_PREVIEW,
+      configMode: portableConfig.mode,
+    },
+    processInfo: { uptime: process.uptime(), pid: process.pid },
+    settings,
+    tasks: store.getTasks(),
+    series: store.getSeries(),
+    playback: store.getPlayback(),
+    mergeTasks: store.getMergeTasks(),
+    storageError,
+    updaterState: appUpdateState(),
+    ffmpeg,
+    ffprobe,
+    downloadRoot: settings.root || app.getPath('downloads'),
+  });
+}
+
+ipcMain.handle('get-diagnostics', async () => ({ success: true, report: diagnosticsSnapshot() }));
+ipcMain.handle('export-diagnostics', async () => {
+  const report = diagnosticsSnapshot();
+  const stamp = report.generatedAt.replace(/[:.]/g, '-').replace(/Z$/, 'Z');
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: '导出诊断信息',
+    defaultPath: path.join(app.getPath('downloads'), `hongguo-diagnostics-${stamp}.json`),
+    filters: [{ name: 'JSON 文件', extensions: ['json'] }],
+    properties: ['showOverwriteConfirmation'],
+  });
+  if (result.canceled || !result.filePath) return { success: false, cancelled: true };
+  fs.writeFileSync(result.filePath, `${JSON.stringify(report, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  return { success: true, fileName: path.basename(result.filePath) };
 });
 
 function pathInside(root, target) {
@@ -5389,8 +5435,8 @@ ipcMain.handle('window-close', () => withMainWindow(win => win.close()));
 ipcMain.handle('open-external-url', async (event, url) => {
   if (!url) return { success: false, error: '缺少链接' };
   try {
-    const target = new URL(url);
-    if (!['http:', 'https:'].includes(target.protocol) || target.username || target.password) {
+    const target = parseExternalUrl(url);
+    if (!target) {
       return { success: false, error: '仅支持打开网页链接' };
     }
     await shell.openExternal(target.href);

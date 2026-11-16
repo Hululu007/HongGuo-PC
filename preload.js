@@ -221,6 +221,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setEpisodePanelOpen: (value) => ipcRenderer.invoke('set-episode-panel-open', value),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  getDiagnostics: () => ipcRenderer.invoke('get-diagnostics'),
+  exportDiagnostics: () => ipcRenderer.invoke('export-diagnostics'),
   onStorageError: (cb) => {
     const listener = (_e, data) => cb(data);
     ipcRenderer.on('storage-error', listener);

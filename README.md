@@ -23,12 +23,12 @@
 
 ## 📦 下载
 
-当前正式版 **6.11**（内部 `6.11.0`，标签 `v6.11`），只发布 Windows x64；详见 [GitHub Release v6.11](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.11) 与 [发行记录](docs/release-6.11.md)。
+当前正式版 **6.12**（内部 `6.12.0`，标签 `v6.12`），只发布 Windows x64；详见 [GitHub Release v6.12](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.12) 与 [发行记录](docs/release-6.12.md)。
 
 | | |
 |---|---|
 | **下载地址** | [GitHub Releases 最新版](https://github.com/yuchen0x1/HongGuo-PC/releases/latest) |
-| **文件** | `hongguo-downloader-6.11-win-x64-setup.exe` |
+| **文件** | `hongguo-downloader-6.12-win-x64-setup.exe` |
 | **安装** | 双击运行，向导式安装，可自选安装目录 |
 
 安装包**未做代码签名**。首次运行若弹出 SmartScreen 提示，点「更多信息 → 仍要运行」。
@@ -43,12 +43,22 @@
 
 ## 最新更新
 
-**6.11 · 2026-11-16**
+**6.12 · 2026-11-16**
 
-- 在 Windows 自定义标题栏加入“QQ群”入口，点击即可打开“冷漠网络科技交流群①”的 QQ 加群页面。
-- 保留现有窗口拖动、最小化、最大化和关闭按钮的独立点击区域。
+- 设置页新增“导出诊断信息”，可提交版本、运行状态、任务统计、存储状态、代理模式和 FFmpeg 可用性。
+- 诊断文件省略代理密码、签名媒体地址、Release 正文和本地绝对路径。
+- 更新提示按 Windows x64 安装包和 `latest.yml` 识别发布资产，不再把源码快照大小当作安装包大小。
+- 产品外链限制到 GitHub 和 QQ 群受信主机，继续保留更新、来源与加群入口。
 
 [完整更新记录](docs/releases/release-notes.md)
+
+### 故障排查
+
+设置 → 配置文件位置中提供“导出诊断信息”。导出的 JSON 只包含版本、运行状态、任务统计、存储状态、代理模式和 FFmpeg 可用性；不会包含代理密码、签名媒体地址或本地绝对路径。提交前仍请检查文件内容并移除你不希望分享的业务信息。
+
+项目审计、竞品研究和持续升级记录见 [`PROJECT_AUDIT.md`](PROJECT_AUDIT.md)、[`COMPETITOR_ANALYSIS.md`](COMPETITOR_ANALYSIS.md)、[`UPGRADE_ROADMAP.md`](UPGRADE_ROADMAP.md) 和 [`UPGRADE_REPORT.md`](UPGRADE_REPORT.md)。
+
+常见代理、更新、FFmpeg 和真实媒体验收边界见 [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)。
 
 ---
 
@@ -249,7 +259,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.11.md](docs/release-6.11.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.12.md](docs/release-6.12.md)。
 
 </details>
 
