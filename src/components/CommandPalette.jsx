@@ -11,7 +11,7 @@ const PAGES = [
   ['history', '观看记录', Clock],
   ['calendar', '收藏与上新', Bookmark],
   ['manager', '下载管理', Download],
-  ['account', '红果账号', User],
+  ['account', '登录账号', User],
   ['announcements', '更新日志', Megaphone],
   ['settings', '设置', Settings],
 ];

@@ -83,7 +83,7 @@ const MENU = [
   { id: 'history', label: '观看记录', icon: Clock },
   { id: 'calendar', label: '收藏与上新', icon: Clock },
   { id: 'manager', label: '下载管理', icon: Download },
-  { id: 'account', label: '红果账号', icon: User },
+  { id: 'account', label: '登录账号', icon: User },
   { id: 'announcements', label: '更新日志', icon: Megaphone },
   { id: 'settings', label: '设置', icon: Settings },
 ];

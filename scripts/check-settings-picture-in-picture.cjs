@@ -17,12 +17,12 @@ const text = node => typeof node === 'string' || typeof node === 'number' ? Stri
   const pictureModeIndex = settingsSource.indexOf('aria-label="画中画小窗设置"');
   const builtinIndex = settingsSource.indexOf('<BuiltinSources');
   assert.ok(shortcutIndex >= 0 && shortcutIndex < pictureModeIndex && pictureModeIndex < builtinIndex, 'picture-in-picture setting must sit between shortcuts and built-in sources');
-  assert.match(appSource, /label: '红果账号'/);
-  assert.match(appSource, /id: 'manager'[^\n]+\n\s*\{ id: 'account', label: '红果账号'/, 'account follows download management');
+  assert.match(appSource, /label: '登录账号'/);
+  assert.match(appSource, /id: 'manager'[^\n]+\n\s*\{ id: 'account', label: '登录账号'/, 'account follows download management');
   const sidebarMenu = appSource.split('<nav className="sidebar-menu">')[1].split('</nav>')[0];
   assert.match(sidebarMenu, /MENU\.filter\(\(item\) => item\.id !== 'settings'\)\.map/, 'main navigation includes the account entry');
   const sidebarFooter = appSource.split('<div className="sidebar-footer">')[1].split('</aside>')[0];
-  assert.doesNotMatch(sidebarFooter, /account|红果账号/, 'footer must not duplicate the account entry');
+  assert.doesNotMatch(sidebarFooter, /account|登录账号|红果账号/, 'footer must not duplicate the account entry');
   assert.match(sidebarFooter, /navigate\('settings'\)/, 'settings stays in the footer');
   assert.doesNotMatch(appSource, /登录管理/);
   assert.doesNotMatch(accountSource, /登录管理/);
@@ -106,16 +106,24 @@ const text = node => typeof node === 'string' || typeof node === 'number' ? Stri
     } finally { ui.unmount(); }
   }
 
+  const externalUrls = [];
   const accountUi = mount({
     getAccountStatus: async () => ({ success: true, signedIn: false }),
+    openExternalUrl: async url => { externalUrls.push(url); return { success: true }; },
   }, 'AccountManagement');
   try {
     await accountUi.flush();
-    assert.ok(accountUi.find(node => node.type === 'h2' && text(node) === '红果账号'), 'account page heading uses the product name');
+    assert.ok(accountUi.find(node => node.type === 'h2' && text(node) === '登录账号'), 'account page heading uses the shared account label');
+    const hemaTab = accountUi.find(node => node.props?.role === 'tab' && text(node) === '河马账号');
+    assert.ok(hemaTab, 'account page exposes a Hema account tab');
+    await hemaTab.props.onClick(); await accountUi.flush();
+    assert.ok(accountUi.text().includes('当前未接入河马账号二维码登录'), 'Hema tab copy explains the unsupported QR flow');
+    await accountUi.button('打开河马官方平台').props.onClick(); await accountUi.flush();
+    assert.deepEqual(externalUrls, ['https://www.kuaikaw.cn/'], 'Hema card opens only the official source host');
     assert.ok(!accountUi.text().includes('登录管理'));
   } finally {
     accountUi.unmount();
   }
 
-  console.log('PASS settings picture-in-picture mode; 红果账号 follows 下载管理, 设置 stays in footer, account page opens');
+  console.log('PASS settings picture-in-picture mode; 登录账号 follows 下载管理, 设置 stays in footer, Red Fruit and Hema account tabs are available');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -9,7 +9,7 @@
 | 项目 | 结果 |
 |---|---|
 | 产品 | 红果短剧桌面版：搜索、播放、下载、观看记录、来源管理、弹幕、NAS 导出和更新 |
-| 当前版本 | `6.12.0`，README 与 `docs/release-6.12.md` 记录本轮发行范围；冻结提交以发行文档和 GitHub Release 为准 |
+| 当前版本 | `6.13.0`，README 与 `docs/release-6.13.md` 记录本轮发行范围；冻结提交以发行文档和 GitHub Release 为准 |
 | 分支 | `main`，6.12 冻结提交 `9442801`；远端为 `origin` 与 `upstream` |
 | 目标平台 | 正式发行 Windows x64；源码仍保留 macOS 相关路径 |
 | 技术栈 | Electron 44、React 18、Vite 6、Node 22、electron-builder、axios、electron-updater |

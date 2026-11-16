@@ -1,4 +1,4 @@
-const ALLOWED_EXTERNAL_HOSTS = new Set(['github.com', 'qm.qq.com']);
+const ALLOWED_EXTERNAL_HOSTS = new Set(['github.com', 'qm.qq.com', 'www.kuaikaw.cn']);
 
 function parseExternalUrl(value) {
   if (!value) return null;

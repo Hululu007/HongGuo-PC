@@ -23,12 +23,12 @@
 
 ## 📦 下载
 
-当前正式版 **6.12**（内部 `6.12.0`，标签 `v6.12`），只发布 Windows x64；详见 [GitHub Release v6.12](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.12) 与 [发行记录](docs/release-6.12.md)。
+当前正式版 **6.13**（内部 `6.13.0`，标签 `v6.13`），只发布 Windows x64；详见 [GitHub Release v6.13](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.13) 与 [发行记录](docs/release-6.13.md)。
 
 | | |
 |---|---|
 | **下载地址** | [GitHub Releases 最新版](https://github.com/yuchen0x1/HongGuo-PC/releases/latest) |
-| **文件** | `hongguo-downloader-6.12-win-x64-setup.exe` |
+| **文件** | `hongguo-downloader-6.13-win-x64-setup.exe` |
 | **安装** | 双击运行，向导式安装，可自选安装目录 |
 
 安装包**未做代码签名**。首次运行若弹出 SmartScreen 提示，点「更多信息 → 仍要运行」。
@@ -43,12 +43,11 @@
 
 ## 最新更新
 
-**6.12 · 2026-11-16**
+**6.13 · 2026-11-16**
 
-- 设置页新增“导出诊断信息”，可提交版本、运行状态、任务统计、存储状态、代理模式和 FFmpeg 可用性。
-- 诊断文件省略代理密码、签名媒体地址、Release 正文和本地绝对路径。
-- 更新提示按 Windows x64 安装包和 `latest.yml` 识别发布资产，不再把源码快照大小当作安装包大小。
-- 产品外链限制到 GitHub 和 QQ 群受信主机，继续保留更新、来源与加群入口。
+- 侧栏账号入口改为“登录账号”，页面区分红果账号和河马账号。
+- 红果账号继续支持网页扫码、官网登录和 APP 观看记录；河马卡片提供官方平台入口并说明收费或会员权益边界。
+- 产品外链白名单加入河马官方站点；不伪造河马二维码，也不把登录状态当成全集解锁权限。
 
 [完整更新记录](docs/releases/release-notes.md)
 
@@ -166,7 +165,7 @@
 
 - 观看记录：逐条选择、全选当前列表、跨筛选保留选择、批量移除（只清记录，不删视频）
 - 本机收藏、收藏与上新页追踪更新
-- 「红果账号」页集中管理登录与 APP 观看记录
+- 「登录账号」页集中管理红果扫码登录与 APP 观看记录，并显示河马账号接入状态；河马锁定集仍由官方看点、VIP 或其他来源权益决定
 
 </details>
 
@@ -259,7 +258,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.12.md](docs/release-6.12.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.13.md](docs/release-6.13.md)。
 
 </details>
 
