@@ -1,1 +1,62 @@
-# 开源竞品与相关技术对标\n\n研究日期：2026-11-16（Asia/Shanghai）\n研究数量：16 个开源项目。\n研究方式：读取项目主页/README、仓库目录、可访问的核心源码文件或源码目录、许可证文件入口，并读取 `commits/HEAD.atom` 的最近提交。所有结论只采用可观察证据；本轮没有复制代码或引入第三方实现。\n\n## 1. 证据边界\n\n- 主要证据来自各项目 GitHub 仓库、原始 README、源码文件和提交 Atom：例如 yt-dlp 的 `yt_dlp/__init__.py`、aria2 的 `src/DownloadEngine.cc`、Jellyfin 的 `Jellyfin.Server/Program.cs`、mpv 的 `player/main.c`、VLC 的 `src/libvlc.c`、rclone 的 `fs/operations/operations.go`、Syncthing 的 `cmd/syncthing/main.go`、Sonarr/Radarr 的下载服务和 electron-builder 的 `packages/app-builder-lib/src/packager.ts`。\n- 最近提交时间按 2026-11-16 抓取时观察到的仓库 HEAD Atom 记录填写；这反映仓库活动，不等同于“最近 Release 已发布”。\n- GitHub 匿名 API 在本轮返回 403 rate limit，因此 Issues、PR、Release 资产和依赖告警没有统一 API 快照。报告对这部分标为“待人工复核”，没有把 README 宣称当作已验证运行结果。\n\n## 2. 项目清单\n\n| 项目 / 许可证 | 最近观察到的提交（UTC） | 读取的源码/目录证据 | 对 HongGuo-PC 的可借鉴点 | 采用决定 |\n|---|---|---|---|---|\n| [yt-dlp](https://github.com/yt-dlp/yt-dlp) · Unlicense | `fcfd814` · 2026-11-15 · post-live stream 修复 | `README.md`、`yt_dlp/__init__.py`、下载器/提取器目录 | 提取器插件边界、来源变化时的快速修复、错误分类 | 借鉴“来源适配器 + 明确错误”思想，不移植代码 |\n| [aria2](https://github.com/aria2/aria2) · GPL-2.0+ | `9e72735` · 2026-06-25 · 依赖更新合并 | `README.rst`、`src/DownloadEngine.cc` | 任务队列、并发、RPC 和断点续传的长期运行模型 | 保持现有队列；后续评估可观测队列指标 |\n| [qBittorrent](https://github.com/qbittorrent/qBittorrent) · GPL-2.0+ | `015fc30` · 2026-11-15 · Qt 兼容修复 | `README.md`、仓库 `src/`、`COPYING` | 任务列表批量操作、状态过滤、长任务 UI | 已有下载管理可继续吸收批量筛选和可见失败原因 |\n| [Motrix](https://github.com/agalwood/Motrix) · MIT | `c601dcf` · 2026-11-16 · 自定义访问密码 | `README.md`、`src/main/index.js`、`LICENSE` | 简洁下载器的信息密度、服务访问保护 | 只借鉴信息层级；不引入其 Electron 依赖链 |\n| [Streamlink](https://github.com/streamlink/streamlink) · BSD-2-Clause | `5896d42` · 2026-11-14 · Python 文档依赖更新 | `README.md`、`src/`、`LICENSE` | 流媒体插件协议、来源降级和错误可读性 | 采用来源失败分类；不复制插件代码 |\n| [Jellyfin](https://github.com/jellyfin/jellyfin) · GPL-2.0 | `2953ed6` · 2026-11-14 · 翻译更新 | `README.md`、`Jellyfin.Server/Program.cs`、服务器目录 | 媒体库元数据、扫描/刷新、服务与 UI 分层 | 采用“媒体身份与资料分离”原则，保留本地单机定位 |\n| [mpv](https://github.com/mpv-player/mpv) · GPL-2.0 | `543a8c2` · 2026-11-15 · MinGW 依赖更新 | `README.md`、`player/main.c` | 播放器状态机、硬件/软件解码分层、脚本扩展 | 继续保持主进程媒体控制；不替换 Electron 播放链 |\n| [VLC](https://github.com/videolan/vlc) · GPL-2.0+ | `493793a` · 2026-11-16 · MP4 demux 回退 | `README.md`、`src/libvlc.c` | 容错播放、输入/解码/输出分层 | 借鉴错误恢复和媒体能力提示 |\n| [Kodi](https://github.com/xbmc/xbmc) · GPL-2.0+ | `a7f8f4a` · 2026-11-16 · DTS 修复合并 | `README.md`、`xbmc/` 目录、`LICENSE.md` | 观看记录、媒体扫描、插件生态 | 借鉴资料索引与观看状态；不引入 Kodi 插件模型 |\n| [rclone](https://github.com/rclone/rclone) · MIT | `b0ef5f6` · 2026-11-12 · 关闭自动 remote usage 检查 | `README.md`、`fs/operations/operations.go` | 文件系统抽象、远端不可用时的错误与重试 | 借鉴 NAS/远端失败可诊断性；保留本地路径校验 |\n| [Syncthing](https://github.com/syncthing/syncthing) · MPL-2.0 | `b0df103` · 2026-11-16 · 文档/翻译维护 | `README.md`、`cmd/syncthing/main.go`、`LICENSE` | 状态面板、冲突/恢复、可观测性和隐私边界 | 借鉴脱敏诊断和状态摘要；不引入同步协议 |\n| [Sonarr](https://github.com/Sonarr/Sonarr) · GPL-3.0 | `c018578` · 2026-11-03 · 数据库迁移日志脱敏修复 | `README.md`、`src/NzbDrone.Core/Download/DownloadService.cs` | 自动追更、失败重试、日志不泄漏数据库密码 | 借鉴追更状态和日志脱敏；本项目继续使用红果身份规则 |\n| [Radarr](https://github.com/Radarr/Radarr) · GPL-3.0 | `19edd43` · 2026-11-15 · 翻译更新 | `README.md`、`src/NzbDrone.Core/Download/DownloadService.cs` | 任务状态、可重复导入和媒体资料维护 | 借鉴任务状态可解释性；不复制服务端架构 |\n| [Bazarr](https://github.com/morpheus65535/bazarr) · GPL-3.0 | `bfe4593` · 2026-10-11 · 外部调度调整 | `README.md`、`bazarr/app/app.py` | 辅助资料任务、失败项重试和独立调度 | 借鉴资料任务失败展示；不引入 GPL 代码 |\n| [Prowlarr](https://github.com/Prowlarr/Prowlarr) · GPL-3.0 | `847d487` · 2026-11-15 · 翻译更新 | `README.md`、`src/`、`LICENSE` | 多索引来源管理、来源健康状态和统一配置 | 借鉴来源健康/启停状态；保持 HongGuo 现有来源契约 |\n| [electron-builder](https://github.com/electron-userland/electron-builder) · MIT | `b5a4e64` · 2026-11-11 · 文档与 schema 修复 | `README.md`、`packages/app-builder-lib/src/packager.ts` | 构建目标、工件命名、更新元数据和平台分离 | 继续使用现有 electron-builder；修复只在本项目配置内完成 |\n\n## 3. 维度对比\n\n| 维度 | 领先项目的可验证做法 | HongGuo-PC 现状 | 差距与取舍 |\n|---|---|---|---|\n| 核心功能 | yt-dlp/Streamlink 的来源适配；Jellyfin/Kodi 的媒体资料索引；Sonarr/Radarr 的追更 | 红果取源、多个来源、下载/播放/NAS/追更已经形成闭环 | HongGuo 的优势是针对红果短剧的完整单机闭环；继续加强来源失败分类和更新资料 |\n| UX/UI | Motrix、qBittorrent 的队列状态密度；Jellyfin/Kodi 的媒体库层级 | Cyber HUD 桌面布局、发现/下载/播放器分区、设置搜索和批量操作 | 仍可加强错误聚合、任务筛选和诊断入口；避免照搬 Web 媒体库的复杂层级 |\n| 播放稳定性 | mpv/VLC 的解码回退和错误提示 | HLS 缓存、兼容转码、清晰度有界尝试、切集首帧保护 | 需要更多真实机器/编码器数据；不能仅凭单元测试宣称兼容所有编码 |\n| 架构 | aria2/rclone 的任务/文件系统抽象；Jellyfin 的服务层 | 主进程仍集中在 `main.js`，但 IPC 与 native 模块已有边界 | 适合小步拆分，不能为追求“架构像竞品”而改写数据格式 |\n| 性能 | qBittorrent/aria2 的并发队列；Syncthing 的后台状态模型 | 并发下载、队列、缓存和退避已存在 | 缺少稳定的启动/内存/长任务基准；列为 P2 |\n| 安全 | Sonarr 日志脱敏修复；Syncthing 的隐私边界；electron-builder 的固定工件流程 | IPC 信任、CSP、代理密码安全存储、更新源固定、路径校验 | 新增诊断报告进一步省略密码、媒体地址和本地路径；代码签名仍待发布环境 |\n| 稳定性 | Sonarr/Radarr 的失败状态、重试与迁移检查；VLC/mpv 的输入容错 | 下载失败分类、自动/手动重试、存储回滚、更新安装阻塞 | 可继续增加可视化诊断和长任务恢复证据 |\n| 工程生态 | electron-builder 的跨平台工件；各项目的 CI/贡献指南 | Windows x64 CI 候选、`latest.yml` 校验、真实媒体检查 | 匿名 GitHub API 限流阻碍本轮统一抓取 Issues/PR；发布仍需签名和干净机 |\n\n## 4. 许可证与移植决策\n\n- 本轮没有复制代码，也没有新增竞品依赖。\n- GPL/AGPL 项目只作为行为和架构参考；不把其源码片段或派生实现直接放入本项目。\n- MIT/BSD/Unlicense 项目的许可证并不自动解决 API、商标、媒体内容和维护成本问题；若未来引入代码，必须单独保留版权和 NOTICE，并通过依赖审查。\n- electron-builder、现有 FFmpeg/x264 许可和项目 GPL-3.0 之间的边界继续由 `NOTICE`、`THIRD-PARTY-NOTICES.md` 和发行目录维护。\n\n## 5. 最值得借鉴的结论\n\n1. **来源适配器**：把每个来源的响应/访问失败映射为稳定的错误类别，减少 UI 只显示“失败”。\n2. **任务可解释性**：任务列表同时展示状态、下一次重试、质量降级和目标路径冲突原因。\n3. **媒体资料分离**：视频身份、剧集资料和观看进度分开存储，避免资料刷新覆盖用户进度。\n4. **诊断脱敏**：导出能帮助维护者定位环境问题的摘要，但不包含密码、签名 URL 或绝对路径。\n5. **发行证据链**：候选构建、`latest.yml`、安装器、提交 SHA 和真实安装回归必须分开记录。\n\n以上结论已进入 `UPGRADE_ROADMAP.md`；只有本轮实际改动的诊断导出和更新资产识别标记为完成，其余保持规划状态。\n
+# 开源竞品与相关技术对标
+
+研究日期：2026-11-16（Asia/Shanghai）
+研究数量：16 个开源项目。
+研究方式：读取项目主页/README、仓库目录、可访问的核心源码文件或源码目录、许可证文件入口，并读取 `commits/HEAD.atom` 的最近提交。所有结论只采用可观察证据；本轮没有复制代码或引入第三方实现。
+
+## 1. 证据边界
+
+- 主要证据来自各项目 GitHub 仓库、原始 README、源码文件和提交 Atom：例如 yt-dlp 的 `yt_dlp/__init__.py`、aria2 的 `src/DownloadEngine.cc`、Jellyfin 的 `Jellyfin.Server/Program.cs`、mpv 的 `player/main.c`、VLC 的 `src/libvlc.c`、rclone 的 `fs/operations/operations.go`、Syncthing 的 `cmd/syncthing/main.go`、Sonarr/Radarr 的下载服务和 electron-builder 的 `packages/app-builder-lib/src/packager.ts`。
+- 最近提交时间按 2026-11-16 抓取时观察到的仓库 HEAD Atom 记录填写；这反映仓库活动，不等同于“最近 Release 已发布”。
+- GitHub 匿名 API 在本轮返回 403 rate limit，因此 Issues、PR、Release 资产和依赖告警没有统一 API 快照。报告对这部分标为“待人工复核”，没有把 README 宣称当作已验证运行结果。
+
+## 2. 项目清单
+
+| 项目 / 许可证 | 最近观察到的提交（UTC） | 读取的源码/目录证据 | 对 HongGuo-PC 的可借鉴点 | 采用决定 |
+|---|---|---|---|---|
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) · Unlicense | `fcfd814` · 2026-11-15 · post-live stream 修复 | `README.md`、`yt_dlp/__init__.py`、下载器/提取器目录 | 提取器插件边界、来源变化时的快速修复、错误分类 | 借鉴“来源适配器 + 明确错误”思想，不移植代码 |
+| [aria2](https://github.com/aria2/aria2) · GPL-2.0+ | `9e72735` · 2026-06-25 · 依赖更新合并 | `README.rst`、`src/DownloadEngine.cc` | 任务队列、并发、RPC 和断点续传的长期运行模型 | 保持现有队列；后续评估可观测队列指标 |
+| [qBittorrent](https://github.com/qbittorrent/qBittorrent) · GPL-2.0+ | `015fc30` · 2026-11-15 · Qt 兼容修复 | `README.md`、仓库 `src/`、`COPYING` | 任务列表批量操作、状态过滤、长任务 UI | 已有下载管理可继续吸收批量筛选和可见失败原因 |
+| [Motrix](https://github.com/agalwood/Motrix) · MIT | `c601dcf` · 2026-11-16 · 自定义访问密码 | `README.md`、`src/main/index.js`、`LICENSE` | 简洁下载器的信息密度、服务访问保护 | 只借鉴信息层级；不引入其 Electron 依赖链 |
+| [Streamlink](https://github.com/streamlink/streamlink) · BSD-2-Clause | `5896d42` · 2026-11-14 · Python 文档依赖更新 | `README.md`、`src/`、`LICENSE` | 流媒体插件协议、来源降级和错误可读性 | 采用来源失败分类；不复制插件代码 |
+| [Jellyfin](https://github.com/jellyfin/jellyfin) · GPL-2.0 | `2953ed6` · 2026-11-14 · 翻译更新 | `README.md`、`Jellyfin.Server/Program.cs`、服务器目录 | 媒体库元数据、扫描/刷新、服务与 UI 分层 | 采用“媒体身份与资料分离”原则，保留本地单机定位 |
+| [mpv](https://github.com/mpv-player/mpv) · GPL-2.0 | `543a8c2` · 2026-11-15 · MinGW 依赖更新 | `README.md`、`player/main.c` | 播放器状态机、硬件/软件解码分层、脚本扩展 | 继续保持主进程媒体控制；不替换 Electron 播放链 |
+| [VLC](https://github.com/videolan/vlc) · GPL-2.0+ | `493793a` · 2026-11-16 · MP4 demux 回退 | `README.md`、`src/libvlc.c` | 容错播放、输入/解码/输出分层 | 借鉴错误恢复和媒体能力提示 |
+| [Kodi](https://github.com/xbmc/xbmc) · GPL-2.0+ | `a7f8f4a` · 2026-11-16 · DTS 修复合并 | `README.md`、`xbmc/` 目录、`LICENSE.md` | 观看记录、媒体扫描、插件生态 | 借鉴资料索引与观看状态；不引入 Kodi 插件模型 |
+| [rclone](https://github.com/rclone/rclone) · MIT | `b0ef5f6` · 2026-11-12 · 关闭自动 remote usage 检查 | `README.md`、`fs/operations/operations.go` | 文件系统抽象、远端不可用时的错误与重试 | 借鉴 NAS/远端失败可诊断性；保留本地路径校验 |
+| [Syncthing](https://github.com/syncthing/syncthing) · MPL-2.0 | `b0df103` · 2026-11-16 · 文档/翻译维护 | `README.md`、`cmd/syncthing/main.go`、`LICENSE` | 状态面板、冲突/恢复、可观测性和隐私边界 | 借鉴脱敏诊断和状态摘要；不引入同步协议 |
+| [Sonarr](https://github.com/Sonarr/Sonarr) · GPL-3.0 | `c018578` · 2026-11-03 · 数据库迁移日志脱敏修复 | `README.md`、`src/NzbDrone.Core/Download/DownloadService.cs` | 自动追更、失败重试、日志不泄漏数据库密码 | 借鉴追更状态和日志脱敏；本项目继续使用红果身份规则 |
+| [Radarr](https://github.com/Radarr/Radarr) · GPL-3.0 | `19edd43` · 2026-11-15 · 翻译更新 | `README.md`、`src/NzbDrone.Core/Download/DownloadService.cs` | 任务状态、可重复导入和媒体资料维护 | 借鉴任务状态可解释性；不复制服务端架构 |
+| [Bazarr](https://github.com/morpheus65535/bazarr) · GPL-3.0 | `bfe4593` · 2026-10-11 · 外部调度调整 | `README.md`、`bazarr/app/app.py` | 辅助资料任务、失败项重试和独立调度 | 借鉴资料任务失败展示；不引入 GPL 代码 |
+| [Prowlarr](https://github.com/Prowlarr/Prowlarr) · GPL-3.0 | `847d487` · 2026-11-15 · 翻译更新 | `README.md`、`src/`、`LICENSE` | 多索引来源管理、来源健康状态和统一配置 | 借鉴来源健康/启停状态；保持 HongGuo 现有来源契约 |
+| [electron-builder](https://github.com/electron-userland/electron-builder) · MIT | `b5a4e64` · 2026-11-11 · 文档与 schema 修复 | `README.md`、`packages/app-builder-lib/src/packager.ts` | 构建目标、工件命名、更新元数据和平台分离 | 继续使用现有 electron-builder；修复只在本项目配置内完成 |
+
+## 3. 维度对比
+
+| 维度 | 领先项目的可验证做法 | HongGuo-PC 现状 | 差距与取舍 |
+|---|---|---|---|
+| 核心功能 | yt-dlp/Streamlink 的来源适配；Jellyfin/Kodi 的媒体资料索引；Sonarr/Radarr 的追更 | 红果取源、多个来源、下载/播放/NAS/追更已经形成闭环 | HongGuo 的优势是针对红果短剧的完整单机闭环；继续加强来源失败分类和更新资料 |
+| UX/UI | Motrix、qBittorrent 的队列状态密度；Jellyfin/Kodi 的媒体库层级 | Cyber HUD 桌面布局、发现/下载/播放器分区、设置搜索和批量操作 | 仍可加强错误聚合、任务筛选和诊断入口；避免照搬 Web 媒体库的复杂层级 |
+| 播放稳定性 | mpv/VLC 的解码回退和错误提示 | HLS 缓存、兼容转码、清晰度有界尝试、切集首帧保护 | 需要更多真实机器/编码器数据；不能仅凭单元测试宣称兼容所有编码 |
+| 架构 | aria2/rclone 的任务/文件系统抽象；Jellyfin 的服务层 | 主进程仍集中在 `main.js`，但 IPC 与 native 模块已有边界 | 适合小步拆分，不能为追求“架构像竞品”而改写数据格式 |
+| 性能 | qBittorrent/aria2 的并发队列；Syncthing 的后台状态模型 | 并发下载、队列、缓存和退避已存在 | 缺少稳定的启动/内存/长任务基准；列为 P2 |
+| 安全 | Sonarr 日志脱敏修复；Syncthing 的隐私边界；electron-builder 的固定工件流程 | IPC 信任、CSP、代理密码安全存储、更新源固定、路径校验 | 新增诊断报告进一步省略密码、媒体地址和本地路径；代码签名仍待发布环境 |
+| 稳定性 | Sonarr/Radarr 的失败状态、重试与迁移检查；VLC/mpv 的输入容错 | 下载失败分类、自动/手动重试、存储回滚、更新安装阻塞 | 可继续增加可视化诊断和长任务恢复证据 |
+| 工程生态 | electron-builder 的跨平台工件；各项目的 CI/贡献指南 | Windows x64 CI 候选、`latest.yml` 校验、真实媒体检查 | 匿名 GitHub API 限流阻碍本轮统一抓取 Issues/PR；发布仍需签名和干净机 |
+
+## 4. 许可证与移植决策
+
+- 本轮没有复制代码，也没有新增竞品依赖。
+- GPL/AGPL 项目只作为行为和架构参考；不把其源码片段或派生实现直接放入本项目。
+- MIT/BSD/Unlicense 项目的许可证并不自动解决 API、商标、媒体内容和维护成本问题；若未来引入代码，必须单独保留版权和 NOTICE，并通过依赖审查。
+- electron-builder、现有 FFmpeg/x264 许可和项目 GPL-3.0 之间的边界继续由 `NOTICE`、`THIRD-PARTY-NOTICES.md` 和发行目录维护。
+
+## 5. 最值得借鉴的结论
+
+1. **来源适配器**：把每个来源的响应/访问失败映射为稳定的错误类别，减少 UI 只显示“失败”。
+2. **任务可解释性**：任务列表同时展示状态、下一次重试、质量降级和目标路径冲突原因。
+3. **媒体资料分离**：视频身份、剧集资料和观看进度分开存储，避免资料刷新覆盖用户进度。
+4. **诊断脱敏**：导出能帮助维护者定位环境问题的摘要，但不包含密码、签名 URL 或绝对路径。
+5. **发行证据链**：候选构建、`latest.yml`、安装器、提交 SHA 和真实安装回归必须分开记录。
+
+以上结论已进入 `UPGRADE_ROADMAP.md`；只有本轮实际改动的诊断导出和更新资产识别标记为完成，其余保持规划状态。
