@@ -1,6 +1,6 @@
 # 红果短剧 6.13
 
-状态：发行准备（内部版本 `6.13.0`，目标标签 `v6.13`）。正式发行只面向 Windows x64，公开资产只包含安装 EXE 与 `latest.yml`；本文件会在 GitHub Actions 和公开 Release 校验完成后补充冻结提交、运行编号与资产摘要。
+状态：已正式发布（内部版本 `6.13.0`，标签 `v6.13`）。冻结提交 `5f861357f6f4f2f837a60a21249c4494c1f11e58`；于 2026-11-16 23:08:47（Asia/Shanghai）公开。仅 Windows x64。[GitHub Release v6.13](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.13)。本轮不改写历史版本资产或正式用户资料。
 
 ## 本轮更新
 
@@ -27,6 +27,20 @@
 - PASS：`node scripts/check-source-integration.cjs`
 - PASS：`git diff --check`
 - BLOCKED：本机 `npm run build:react` 受工作区原有的 `build/icon.ico` 与 `build/icon.png` 删除状态影响；未恢复或覆盖这些用户现有删除项。干净 CI 工作区仍需完成 React 构建、真实媒体工具、安装器和 Windows x64 验收。
+
+## CI 与公开 Release 回执
+
+- PASS：[源码 Test `43890514332`](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/43890514332)，提交 `5f861357f6f4f2f837a60a21249c4494c1f11e58`，完整 `npm test` 通过。
+- PASS：[标签 Test `43891064791`](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/43891064791)，与冻结提交一致。
+- PASS：[Windows x64 candidate `43891064771`](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/43891064771)，FFmpeg 对应源码、React 构建、Windows x64 安装器与安装验收通过。
+- PASS：[正式发布 `43893165137`](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/43893165137)，校验标签、两项 CI 提交、安装包与 `latest.yml` 后公开 Release。
+
+## 公开资产
+
+- `hongguo-downloader-6.13-win-x64-setup.exe`：146,483,822 字节；GitHub 资产 SHA-256 `c5ef50edf2e2efca4d55b254e17883efe5c6e8788963b40628717c11bac131da`。
+- `latest.yml`：380 字节；GitHub 资产 SHA-256 `d28a14998b956d291ff73861da035b0847332a2f679f591529c051208ac3d737`。
+- `latest.yml` 安装包 SHA-512：`+9HkaXrOBiNC6SsGhd1A4U5Vo1OI6VUMbLCrqn0WK342kcRN4qsIQYUyQxdj4kG4sOnKMg7XQpTbXKQhL1IDgg==`，大小与公开安装包一致。
+- 公开 Release 只包含安装 EXE 与 `latest.yml`；安装包未配置代码签名，GPL FFmpeg/x264 对应源码随安装目录附带。
 
 ## 发行边界
 
