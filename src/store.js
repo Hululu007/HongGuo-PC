@@ -147,7 +147,7 @@ function loadCache() {
   }
   if (!Array.isArray(cache.tasks)) cache.tasks = [];
   if (!cache.settings || typeof cache.settings !== 'object') cache.settings = {};
-  if (!['auto', 'zh-CN', 'en-US'].includes(cache.settings.locale)) cache.settings.locale = 'auto';
+  if (!readError && !['auto', 'zh-CN', 'en-US'].includes(cache.settings.locale)) cache.settings.locale = 'auto';
   secretsChanged = hydrateProxyPassword(cache.settings);
   durable = JSON.stringify(serializableCache());
   if (secretsChanged && !readError) flush();

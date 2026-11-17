@@ -20,6 +20,7 @@ import TitleBar from './components/TitleBar';
 import UpdateCheckSettings from './components/UpdateCheckSettings';
 import ReleaseNotesList from './components/ReleaseNotesList';
 import brandIcon from '../build/icon.ico';
+import { useI18n } from './i18n.js';
 
 const SIDEBAR_COLLAPSED_KEY = 'hongguo:sidebar-collapsed';
 function readSidebarCollapsed() {
@@ -76,19 +77,21 @@ function ToolbarMore({ children }) {
 }
 
 const MENU = [
-  { id: 'browse', label: '发现短剧', icon: Home },
-  { id: 'feed', label: '热播推荐', icon: Film },
-  { id: 'download', label: '搜索与下载', icon: Search },
-  { id: 'player', label: '我的剧库', icon: Play },
-  { id: 'history', label: '观看记录', icon: Clock },
-  { id: 'calendar', label: '收藏与上新', icon: Clock },
-  { id: 'manager', label: '下载管理', icon: Download },
-  { id: 'account', label: '登录账号', icon: User },
-  { id: 'announcements', label: '更新日志', icon: Megaphone },
-  { id: 'settings', label: '设置', icon: Settings },
+  { id: 'browse', label: '发现短剧', labelKey: 'nav.browse', icon: Home },
+  { id: 'feed', label: '热播推荐', labelKey: 'nav.feed', icon: Film },
+  { id: 'download', label: '搜索与下载', labelKey: 'nav.download', icon: Search },
+  { id: 'player', label: '我的剧库', labelKey: 'nav.player', icon: Play },
+  { id: 'history', label: '观看记录', labelKey: 'nav.history', icon: Clock },
+  { id: 'calendar', label: '收藏与上新', labelKey: 'nav.calendar', icon: Clock },
+  { id: 'manager', label: '下载管理', labelKey: 'nav.manager', icon: Download },
+  { id: 'account', label: '登录账号', labelKey: 'nav.account', icon: User },
+  { id: 'announcements', label: '更新日志', labelKey: 'nav.announcements', icon: Megaphone },
+  { id: 'settings', label: '设置', labelKey: 'nav.settings', icon: Settings },
 ];
 
 export default function App() {
+  const localeApi = typeof useI18n === 'function' ? useI18n() : { locale: 'zh-CN', t: (_key, fallback) => fallback };
+  const { t } = localeApi;
   const { stealthMode, toggleStealth, stealthError } = useStealthWindow();
   useLayoutEffect(() => initializeTheme(), []);
   const [layout, setLayout] = useState('landscape');
@@ -219,9 +222,9 @@ export default function App() {
         return <DownloadManager active={page === id} onNavigate={navigate} />;
       case 'announcements':
         return <div className="settings-container">
-          <div className="settings-header"><Megaphone size={22} /><div><h2>更新日志</h2><p className="page-description">检查新版本，查看每个版本更新了什么。</p></div></div>
-          <section className="settings-card" aria-label="检测更新设置">
-            {appInfo?.preview ? <p className="settings-hint">功能预览版不接收正式版更新。</p> : <UpdateCheckSettings />}
+          <div className="settings-header"><Megaphone size={22} /><div><h2>{t('announcements.title', '更新日志')}</h2><p className="page-description">{t('announcements.subtitle', '检查新版本，查看每个版本更新了什么。')}</p></div></div>
+          <section className="settings-card" aria-label={t('announcements.title', '检测更新设置')}>
+            {appInfo?.preview ? <p className="settings-hint">{t('nav.preview', '功能预览')} {t('announcements.subtitle', '不接收正式版更新。')}</p> : <UpdateCheckSettings />}
           </section>
           <section className="settings-card" aria-label="版本更新日志">
             <ReleaseNotesList />
@@ -263,20 +266,20 @@ export default function App() {
       style={windowState.maximized && windowState.comp ? { '--titlebar-comp-x': `${windowState.comp.x}px`, '--titlebar-comp-y': `${windowState.comp.y}px` } : undefined}>
       {!isMac && <TitleBar appName={appInfo?.appName || '红果短剧'} onWindowState={handleWindowState} />}
       <div className={`app-layout ${stealthMode ? 'stealth-mode' : ''} ${isMac ? 'platform-mac' : ''} layout-${layout} ${page === 'player' ? 'player-focused' : ''} ${borderless && page === 'player' && layout === 'portrait' ? 'player-borderless' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`} aria-label="主导航">
+      <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`} aria-label={t('nav.main', '主导航')}>
         <div className="sidebar-window-drag" aria-hidden="true" />
         <div className="sidebar-brand">
           <div className="logo"><img src={brandIcon} alt="" /></div>
-          <div><div className="brand-text">{appInfo?.appName || '红果短剧'}</div><div className="brand-sub">{appInfo?.preview ? '独立体验 · 本机保存' : '每一集，都值得期待'}</div></div>
+          <div><div className="brand-text">{appInfo?.appName || '红果短剧'}</div><div className="brand-sub">{appInfo?.preview ? '独立体验 · 本机保存' : t('nav.brandSub', '每一集，都值得期待')}</div></div>
         </div>
         <nav className="sidebar-menu">
-          <div className="sidebar-group-label">内容</div>
+          <div className="sidebar-group-label">{t('nav.content', '内容')}</div>
           {MENU.filter((item) => item.id !== 'settings').map((item) => {
             const Icon = item.icon;
             return (
               <button key={item.id} className={`sidebar-item ${page === item.id ? 'active' : ''}`}
                 aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>
-                <Icon size={19} /><span>{item.label}</span>
+                <Icon size={19} /><span>{t(item.labelKey, item.label)}</span>
               </button>
             );
           })}
@@ -284,25 +287,25 @@ export default function App() {
         <div className="sidebar-footer">
           <button className={`sidebar-item ${page === 'settings' ? 'active' : ''}`}
             aria-current={page === 'settings' ? 'page' : undefined} onClick={() => navigate('settings')}>
-            <Settings size={19} /><span>设置</span>
+            <Settings size={19} /><span>{t('nav.settings', '设置')}</span>
           </button>
           <button className="sidebar-collapse-btn" onClick={toggleSidebarCollapsed}
-            aria-label={sidebarCollapsed ? '展开侧栏' : '收起侧栏'} aria-expanded={!sidebarCollapsed}
-            title={sidebarCollapsed ? '展开侧栏' : '收起侧栏'}>
-            <PanelLeftIcon size={15} /><span>收起</span>
+            aria-label={sidebarCollapsed ? t('nav.expand', '展开侧栏') : t('nav.collapse', '收起侧栏')} aria-expanded={!sidebarCollapsed}
+            title={sidebarCollapsed ? t('nav.expand', '展开侧栏') : t('nav.collapse', '收起侧栏')}>
+            <PanelLeftIcon size={15} /><span>{t('nav.collapse', '收起')}</span>
           </button>
           <div className="footer-note"><span>{appInfo?.preview ? '功能预览' : '红果短剧'}</span><span>{appInfo?.version ? `v${appInfo.version.replace(/^(\d+\.\d+)\.0$/, '$1')}` : ''}</span></div>
         </div>
       </aside>
       <div className="main-wrapper">
         <header className="window-toolbar">
-          <span className="toolbar-location">{currentPage?.label}</span>
+          <span className="toolbar-location">{currentPage ? t(currentPage.labelKey, currentPage.label) : ''}</span>
           {page === 'player' && layout === 'portrait' && <PageMenu items={MENU} page={page} onNavigate={navigate} />}
           <button className="toolbar-search" onClick={() => setPaletteOpen(true)} title="全局搜索（Ctrl+K）" aria-label="全局搜索" aria-keyshortcuts="Control+K">
-            <Search size={14} /><span>搜索页面、剧集…</span><kbd>Ctrl K</kbd>
+            <Search size={14} /><span>{t('nav.search', '搜索页面、剧集…')}</span><kbd>Ctrl K</kbd>
           </button>
           <div className="toolbar-actions">
-            <span className="toolbar-caption">{appInfo?.preview ? '功能预览' : '红果短剧'}</span>
+            <span className="toolbar-caption">{appInfo?.preview ? t('nav.preview', '功能预览') : '红果短剧'}</span>
             {page === 'player' && <ToolbarMore>
               <button className="btn btn-outline btn-sm" onClick={() => { setEpisodesOpen(false); toggleStealth(true); }} title="小窗置顶播放并在支持的系统上跨虚拟桌面可见；鼠标移开时暂停隐藏，移回继续；Esc 退出">小窗模式</button>
               {layout === 'portrait' && <button className="btn btn-outline btn-sm portrait-episodes-toggle" aria-expanded={episodesOpen}
@@ -330,7 +333,7 @@ export default function App() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
                 {layout === 'portrait' ? <rect x="3" y="6" width="18" height="12" rx="2" /> : <rect x="6" y="3" width="12" height="18" rx="2" />}
               </svg>
-              {layoutBusy ? '切换中…' : layout === 'portrait' ? '横屏版' : '竖屏版'}
+              {layoutBusy ? t('nav.switching', '切换中…') : layout === 'portrait' ? t('nav.landscape', '横屏版') : t('nav.portrait', '竖屏版')}
             </button>
           </div>
         </header>
@@ -338,7 +341,7 @@ export default function App() {
           {MENU.map((item) => {
             const Icon = item.icon;
             return <button key={item.id} aria-current={page === item.id ? 'page' : undefined}
-              onClick={() => navigate(item.id)} title={item.label}><Icon size={18} /><span>{item.label}</span></button>;
+              onClick={() => navigate(item.id)} title={t(item.labelKey, item.label)}><Icon size={18} /><span>{t(item.labelKey, item.label)}</span></button>;
           })}
         </nav>
         {!appInfo?.preview && <AppUpdateNotice />}

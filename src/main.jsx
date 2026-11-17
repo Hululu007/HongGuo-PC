@@ -6,13 +6,14 @@ import ErrorBoundary from './components/ErrorBoundary';
 import SplashScreen, { shouldPlaySplash } from './components/SplashScreen';
 import './index.css';
 import { initializePosterSize } from './theme';
+import { LocaleProvider } from './i18n.js';
 
 initializePosterSize();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <LocaleProvider><App /></LocaleProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
