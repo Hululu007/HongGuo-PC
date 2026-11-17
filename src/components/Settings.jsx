@@ -7,6 +7,7 @@ import ShortcutSettings from './ShortcutSettings';
 import CustomSources from './CustomSources';
 import BuiltinSources from './BuiltinSources';
 import { Settings, Folder, Check, Globe, X, RefreshCw, AlertCircle, Search } from './icons';
+import { resolveLocale } from '../i18n.js';
 
 
 const FORMAT_PRESETS = [
@@ -175,7 +176,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
     setSaveError('');
     try {
       // Submit only edited fields; the main process merges newer playback options.
-      const editable = ['root', 'name_format', 'download_quality', 'download_metadata', 'cache_next_episode', 'compat_mode', 'auto_delete_watched', 'show_danmaku_controls', 'max_concurrent', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'app_updates_enabled'];
+      const editable = ['locale', 'root', 'name_format', 'download_quality', 'download_metadata', 'cache_next_episode', 'compat_mode', 'auto_delete_watched', 'show_danmaku_controls', 'max_concurrent', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'app_updates_enabled'];
       const submitted = {};
       for (const key of editable) {
         if (Object.hasOwn(next, key) && (editedKeys.current.has(key) || isProxy && key.startsWith('proxy_'))) submitted[key] = next[key];
@@ -327,6 +328,17 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
       </nav>
 
       <section className="settings-card" id="settings-anchor-appearance" aria-label="外观设置"><AppearanceSettings active={active} /></section>
+      <section className="settings-card" aria-label="语言设置">
+        <div className="settings-group">
+          <label className="settings-label" htmlFor="ui-locale">语言 / Language</label>
+          <select id="ui-locale" className="input-field select-field" value={settings.locale || 'auto'} onChange={event => update('locale', event.target.value)}>
+            <option value="auto">自动（当前：{resolveLocale(settings.locale, navigator.languages || [navigator.language])}）</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="en-US">English</option>
+          </select>
+          <p className="settings-hint">自动模式按浏览器或系统语言选择界面，无法识别时保留中文默认；视频、剧名和来源内容保持原文。</p>
+        </div>
+      </section>
       <div id="settings-anchor-shortcuts"><ShortcutSettings active={active} /></div>
       <section className="settings-card" id="settings-anchor-pip" aria-label="画中画小窗设置">
         <div className="settings-group">
