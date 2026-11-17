@@ -23,12 +23,12 @@
 
 ## 📦 下载
 
-当前正式版 **6.13**（内部 `6.13.0`，标签 `v6.13`），只发布 Windows x64；详见 [GitHub Release v6.13](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.13) 与 [发行记录](docs/release-6.13.md)。
+当前正式版 **6.14**（内部 `6.14.0`，标签 `v6.14`），只发布 Windows x64；详见 [GitHub Release v6.14](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.14) 与 [发行记录](docs/release-6.14.md)。
 
 | | |
 |---|---|
 | **下载地址** | [GitHub Releases 最新版](https://github.com/yuchen0x1/HongGuo-PC/releases/latest) |
-| **文件** | `hongguo-downloader-6.13-win-x64-setup.exe` |
+| **文件** | `hongguo-downloader-6.14-win-x64-setup.exe` |
 | **安装** | 双击运行，向导式安装，可自选安装目录 |
 
 安装包**未做代码签名**。首次运行若弹出 SmartScreen 提示，点「更多信息 → 仍要运行」。
