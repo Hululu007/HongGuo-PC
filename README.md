@@ -23,12 +23,12 @@
 
 ## 📦 下载
 
-当前正式版 **6.15**（内部 `6.15.0`，标签 `v6.15`），只发布 Windows x64；详见 [GitHub Release v6.15](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.15) 与 [发行记录](docs/release-6.15.md)。
+从[最新正式版](https://github.com/yuchen0x1/HongGuo-PC/releases/latest) 下载 Windows x64 安装包。
 
 | | |
 |---|---|
 | **下载地址** | [GitHub Releases 最新版](https://github.com/yuchen0x1/HongGuo-PC/releases/latest) |
-| **文件** | `hongguo-downloader-6.15-win-x64-setup.exe` |
+| **文件** | `hongguo-downloader-<版本>-win-x64-setup.exe` |
 | **安装** | 双击运行，向导式安装，可自选安装目录 |
 
 安装包**未做代码签名**。首次运行若弹出 SmartScreen 提示，点「更多信息 → 仍要运行」。
@@ -43,10 +43,15 @@
 
 ## 最新更新
 
-**v6.15 · 2026-11-18**
+<!-- github-release:start -->
 
-- 修复红果短剧在 App 来源下无法播放的问题。
-- 切换分集或取消播放时，及时停止上一集尚未完成的加载。
+**[v6.15](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.15)** · 2026-11-18
+
+修复红果短剧在 App 来源下无法播放的问题。
+
+[全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
+
+<!-- github-release:end -->
 
 [完整更新记录](docs/releases/release-notes.md)
 
