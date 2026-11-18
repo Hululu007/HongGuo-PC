@@ -3,16 +3,28 @@ import { X } from './icons';
 import './AppUpdateNotice.css';
 
 const ACTIVE_STATUSES = new Set(['checking', 'downloading', 'installing']);
+const DEFER_KEY = 'hongguo.app-update.defer';
+const DEFER_MS = 24 * 60 * 60 * 1000;
+
+function loadDeferral() {
+  try {
+    return JSON.parse(window.localStorage.getItem(DEFER_KEY));
+  } catch {
+    return null;
+  }
+}
 
 function formatBytes(bytes) {
   const value = Number(bytes);
   if (!Number.isFinite(value) || value <= 0) return '';
+  if (value < 1024) return `${Math.round(value)} B`;
   if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`;
   return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function AppUpdateNotice() {
   const [release, setRelease] = useState(null);
+  const [currentVersion, setCurrentVersion] = useState('');
   const [visible, setVisible] = useState(false);
   const [checking, setChecking] = useState(false);
   const [pending, setPending] = useState(false);
@@ -24,12 +36,13 @@ export default function AppUpdateNotice() {
   const actionGeneration = useRef(0);
   const openingRelease = useRef(false);
   const checkPending = useRef(false);
-  const dismissed = useRef(new Set());
+  const deferred = useRef(null);
   const checkNow = useRef(null);
   const closedAt = useRef(0);
 
   useEffect(() => {
     let generation = 0, stateRevision = 0, active = true;
+    deferred.current = loadDeferral();
     const receiveState = next => {
       if (!active || !next) return;
       stateRevision++;
@@ -37,7 +50,7 @@ export default function AppUpdateNotice() {
       setState(next);
     };
     const check = async (manual = false) => {
-      if (manual) { setVisible(true); setError(''); dismissed.current.clear(); }
+      if (manual) { setVisible(true); setError(''); }
       if (checkPending.current || ACTIVE_STATUSES.has(currentState.current.status)) return;
       checkPending.current = true;
       const request = ++generation;
@@ -60,10 +73,12 @@ export default function AppUpdateNotice() {
           return;
         }
         setError('');
+        setCurrentVersion(result.currentVersion || '');
         setRelease(result.release || null);
         if (result.release) {
-          if (closed !== closedAt.current) dismissed.current.add(result.release.version);
-          else if (!dismissed.current.has(result.release.version)) setVisible(true);
+          const version = result.release.version;
+          if (closed !== closedAt.current) deferRelease(version);
+          else if (manual || deferred.current?.version !== version || Date.now() >= deferred.current.until) setVisible(true);
         } else if (manual) setVisible(true);
       } catch {
         if (active && request === generation) { setRelease(null); setError('检查更新失败，请确认网络连接后重试。'); setVisible(true); }
@@ -100,9 +115,14 @@ export default function AppUpdateNotice() {
     };
   }, []);
 
+  function deferRelease(version) {
+    deferred.current = { version, until: Date.now() + DEFER_MS };
+    try { window.localStorage.setItem(DEFER_KEY, JSON.stringify(deferred.current)); } catch {}
+  }
+
   const close = () => {
     closedAt.current++;
-    if (release) dismissed.current.add(release.version);
+    if (release) deferRelease(release.version);
     setVisible(false);
     setError('');
   };
@@ -147,16 +167,18 @@ export default function AppUpdateNotice() {
   const version = (downloading || downloaded || installing || state.status === 'error') ? state.version || release?.version : release?.version;
   const updateError = error || state.error;
   const percent = Math.max(0, Math.min(100, Math.round(state.percent || 0)));
+  const transferSpeed = formatBytes(state.bytesPerSecond);
   const installerSize = release?.installer?.size ?? release?.assets?.find(asset => /setup\.exe$/i.test(asset.name))?.size ?? 0;
   const title = checking ? '正在检查更新…' : installing ? '正在重启安装…' : downloaded ? `新版 v${version} 已下载` : downloading ? `正在下载 v${version}` : version ? `发现新版本 v${version}` : '检查更新';
   return <section className="app-update-notice" role="dialog" aria-label="软件更新" aria-describedby="app-update-description" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } }}>
     <button type="button" className="icon-btn app-update-close" aria-label="关闭更新提醒" title="关闭更新提醒" onClick={close}><X size={18} /></button>
     <h2 aria-live="polite">{title}</h2>
     <p id="app-update-description">{checking ? '正在查询正式新版，请稍候。' : installing ? '应用即将退出并安装新版。' : downloaded ? '点击后退出应用并安装新版。忙碌任务会阻止安装，稍后可在设置中找回此提醒。' : downloading ? '正在下载并校验安装包；关闭提醒不会中断下载。' : version ? (state.supported ? '在应用内下载新版，完成后由你决定何时重启安装。' : state.reason) : updateError ? '可稍后重新检查。' : '已是最新版本。'}</p>
+    {currentVersion && <p className="app-update-meta">当前版本：v{currentVersion}</p>}
     {release?.releaseDate && <p className="app-update-meta">发布时间：{new Date(release.releaseDate).toLocaleString()}</p>}
     {installerSize > 0 && <p className="app-update-meta">安装包大小：{formatBytes(installerSize)}</p>}
     {release?.releaseNotes && <details className="app-update-notes"><summary>查看更新说明</summary><p>{release.releaseNotes}</p></details>}
-    {downloading && <div className="app-update-progress"><progress max="100" value={percent} aria-label="更新下载进度" /><span>{percent}%</span></div>}
+    {downloading && <div className="app-update-progress"><progress max="100" value={percent} aria-label="更新下载进度" /><span>{percent}%{transferSpeed ? ` · ${transferSpeed}/s` : ''}</span></div>}
     <div className="app-update-actions">
       {(version || downloaded) && <button type="button" className="btn btn-primary" disabled={busy || !enabled.current} onClick={() => act(downloaded ? 'installAppUpdate' : state.supported ? 'downloadAppUpdate' : 'openAppUpdate')}>
         {installing ? '正在重启…' : downloading ? '正在下载…' : pending ? '请稍候…' : downloaded ? '重启并安装' : state.supported ? '下载更新' : '前往 GitHub 下载'}
@@ -164,6 +186,7 @@ export default function AppUpdateNotice() {
       {(!version || updateError) && !busy && <button type="button" className="btn btn-outline" onClick={() => checkNow.current?.(true)}>重新检查</button>}
       {(downloading || state.status === 'checking' || pending && actionPending.current === 'downloadAppUpdate') && <button type="button" className="btn btn-outline" disabled={actionPending.current === 'cancelAppUpdate' || !enabled.current} onClick={() => act('cancelAppUpdate')}>取消下载</button>}
       {(state.supported || !version) && <button type="button" className="btn btn-outline" disabled={!enabled.current} onClick={() => act('openAppUpdate')}>前往发布页手动下载</button>}
+      {version && !busy && <button type="button" className="btn btn-outline" onClick={close}>稍后提醒</button>}
     </div>
     {updateError && <p role="alert">{updateError}</p>}
   </section>;
