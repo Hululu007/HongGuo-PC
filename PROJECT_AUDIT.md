@@ -89,3 +89,27 @@ Electron main.js
 ## 7. 结论
 
 HongGuo-PC 已具备可发行桌面下载器的核心链路，历史版本文档和回归边界较完整。当前最需要继续投入的是可诊断性、外部依赖可观测性、干净构建/安装验收和大模块拆分。首批代码升级已落地为脱敏诊断导出与更新资产识别；其他升级项按路线图登记，未把建议误标成完成。
+## 2026-11-18 审计与改造
+
+基线为干净的 `main`，提交 `22db328` 与 `origin/main` 一致，唯一远端为 `origin`，指向公开仓库 `yuchen0x1/HongGuo-PC`。原正式版为 6.15。目录审查覆盖 Electron 主进程及 preload、`src/native`、React 组件与样式、JSON 存储、构建资源、验证脚本、发布文档及工作流。
+
+| 范围 | 架构与功能 |
+|---|---|
+| 应用和 UI | `main.js` 管理窗口、退出、原生对话框、代理、协议、更新和任务；`preload.js` 暴露受限 IPC；React 提供发现、热播、搜索下载、剧库、记录、收藏、更新和设置 |
+| 媒体与来源 | `src/native` 管理目录、来源差异、存储和媒体能力；主进程提供下载队列、HLS、FFmpeg/x264、解码兼容、画中画、投屏、资料导出和 NAS |
+| 状态与迁移 | 本机 JSON 保存剧集、设置和下载状态。使用原子写入、失败保护与旧记录兼容读取。账号与代理秘密使用安全存储。暂无独立服务器或数据库 |
+| 安全边界 | IPC sender/frame 校验、renderer 隔离、生产 CSP、外链白名单、文件归属与媒体路径保护、固定 GitHub 更新源 |
+| 依赖与许可 | GPL-3.0 项目，Electron 44、React 18、Vite 6、Node 22.12+。FFmpeg/x264 对应源码随安装包分发，依赖许可见 NOTICE 和第三方声明 |
+| GitHub | 公开 Issues。Discussions 和 Pages 未启用。Topics 和主页已有产品信息；Secret Scanning、推送保护、Dependabot 安全更新和私密报告已启用 |
+
+本机基线 `npm ci`、Vite 构建通过，`npm test` 有一条命令失败，本机 PATH 初次检查缺少 FFmpeg 和 ffprobe。GitHub 6.16 的源码、Windows 安装验收均成功。本轮单独对 6.16 标签运行源码、随机公开红果素材解码及 Windows 验收，见 [6.16 回执](docs/release-6.16.md)。应用内更新器跨版本验收仍待执行。
+
+### 发行与静态暴露面
+
+1. **总览**。构建渲染目录经扫描未发现 source map 或工具识别的明文秘密。扫描范围为渲染目录的 5 个文件，原生安装器、ASAR 和运行时不计入该扫描结论。
+2. **发现**。原发布脚本按工作流名称和 SHA 验证，允许同名工件来自仅构建任务，且存在覆盖既有资产的路径。Windows 依旧没有 Authenticode 签名。npm 官方审计生产依赖 0 条，完整树 10 个 high 受影响节点沿构建期依赖传播。
+3. **证据与修复**。候选通过安装回执与 SHA-256 绑定实际 EXE，发布于草稿阶段核对 GitHub 摘要并用 SHA-512 校验清单。不可变发行锁定新版本资产。签名需合法 Windows 发布身份、受限 Secrets 和干净机验收。完整构建依赖报告和 CycloneDX SBOM 由 Test 保存。跟踪 [picomatch 公告](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)。
+4. **客户端边界**。ASAR 内容可读，固定来源和摘要校验不能提供 Windows 发布者身份。账号权限由服务提供方决定，渲染层与诊断禁止暴露运行凭据。
+5. **后续顺序**。优先签名、实际更新验证、构建依赖修复及媒体设备回归。继续沿既有 IPC 契约拆分下载、持久化和系统能力。
+
+平台见 [评估矩阵](docs/platform-assessment.md)，维护状态见 [看板](docs/maintenance.md)。
