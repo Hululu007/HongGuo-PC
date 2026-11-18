@@ -18,8 +18,10 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Install real-media test tools
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Check real-media test tools
+        run: |
+          command -v ffmpeg
+          ffmpeg -version | head -n 1
       - run: npm test
       - run: npm run build:react
       - name: Audit production dependencies and retain the complete build dependency report
