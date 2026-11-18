@@ -32,12 +32,10 @@ function appFixture(rows) {
   const calls = [];
   const app = load('app-source.js', { axios: async config => {
     calls.push(config);
-    if (config.method === 'GET' && config.url.includes('/reading/bookapi/video_tab/')) {
-      return { status: 200, headers: {}, data: JSON.stringify({ code: 0,
-        data: { video_model_data: { '11': { video_model: { video_list: Object.values(rows) } } } } }) };
-    }
     return { status: 200, headers: {}, data: JSON.stringify(config.method === 'POST'
-      ? { data: { '11': { video_model: { fallback_api: 'https://vod.snssdk.com/info' } } } }
+      ? { code: 0, data: { '11': { video_model: {
+        video_list: Object.values(rows), fallback_api: 'https://vod.snssdk.com/info',
+      } } } }
       : { video_info: { data: { video_list: rows } } }) };
   } });
   return { ...app, calls };

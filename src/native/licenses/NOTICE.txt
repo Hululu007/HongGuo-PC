@@ -29,3 +29,13 @@ persistent identity or retained device_token. The same in-memory identity is
 shared by all playback requests in one process. Search/catalogue signatures
 remain unchanged. app-source.js also accepts the current inline video_list
 without requesting the legacy fallback endpoint.
+
+V5 playback requests and the legacy 551 compatibility signer were split into
+playback-v5.js and playback-signature.js on 2026-11-18. The V5 implementation
+adapts the Signer.kt, AesV3.kt and V5Constants.kt routines from
+N3urda/hongguoTV commit 18c37c2afd0567520135abcae312352542f09083 and the
+underlying drpys commit 22261ad (GPL-3.0). The 551 Argus/Ladon compatibility
+signer adapts N3urda/hongguoTV commit 7444bb01aec7b0420740103e551c45f1f66101c9
+and the referenced ch6vip/fqapp Rust signing routines (GPL-3.0-only). Only
+public protocol constants and ephemeral request data are included; no account
+credentials, session tokens or captured media URLs are included.

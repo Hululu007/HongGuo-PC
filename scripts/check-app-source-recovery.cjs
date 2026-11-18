@@ -16,8 +16,13 @@ function load(axios, { realDevice = false, getPlaybackDevice, registerPlaybackDe
     exports: module.exports,
     require(name) {
       if (name === 'node:crypto') return crypto;
+      if (name === 'node:zlib') return require('node:zlib');
+      if (name === 'node:timers/promises') return require('node:timers/promises');
       if (name === './sm3') return require('../src/native/sm3');
       if (name === './download-quality') return require('../src/native/download-quality');
+      if (name === './playback-signature') return require('../src/native/playback-signature');
+      if (name === './playback-v5') return require('../src/native/playback-v5');
+      if (name === './request-signal') return require('../src/native/request-signal');
       if (name === './playback-device') return getPlaybackDevice || registerPlaybackDevice ? {
         getPlaybackDevice: getPlaybackDevice || (async () => ({ device_id: '1000000000000001', iid: '1000000000000002', cdid: 'fixture' })),
         registerPlaybackDevice: registerPlaybackDevice || (async () => ({ device_id: '1000000000000001', iid: '1000000000000002', cdid: 'fixture' })),
@@ -52,7 +57,6 @@ function modelResponse(rows) {
         [vid]: {
           video_model: model,
         },
-        video_model_data: { [vid]: { video_model: model } },
       },
     }),
   };
@@ -103,7 +107,7 @@ function row(definition, width, height, suffix) {
   const inlineResponse = (rows, id = vid) => {
     const model = { video_list: rows, fallback_api: 'https://vod.snssdk.com/must-not-fetch' };
     return { status: 200, headers: {}, data: JSON.stringify({ code: 0,
-      data: { [id]: { video_model: model }, video_model_data: { [id]: { video_model: model } } } }) };
+      data: { [id]: { video_model: model } } }) };
   };
   const plain = { ...row('1080p', 1080, 1920, 'inline'), encrypt_info: { encrypt: false } };
   const identities = [{ device_id: '11', iid: '12', cdid: 'fixture' }, { device_id: '21', iid: '22', cdid: 'fixture' }];
@@ -125,13 +129,13 @@ function row(definition, width, height, suffix) {
     const unavailable = load(async () => { calls++; return { status, headers: {}, data: '' }; },
       { registerPlaybackDevice: async () => identities[registrations++] });
     await assert.rejects(unavailable.fetchAppPlayUrl(vid), error => status === 200 ? error.code === 'EMPTY_RESPONSE' : error.status === status);
-    assert.equal(calls, status === 200 ? 6 : 3, 'current clusters and legacy fallback stay bounded');
-    assert.equal(registrations, status === 200 ? 3 : 1, `registration count for HTTP ${status}`);
+    assert.equal(calls, status === 200 ? 3 : 1, 'current clusters and legacy fallback stay bounded');
+    assert.equal(registrations, status === 200 ? 2 : 1, `registration count for HTTP ${status}`);
   }
   let cooldownCalls = 0;
   await assert.rejects(load(async () => { cooldownCalls++; return { status: 200, headers: {}, data: '' }; },
     { getPlaybackDevice: async () => identities[0] }).fetchAppPlayUrl(vid), error => error.code === 'EMPTY_RESPONSE');
-  assert.equal(cooldownCalls, 6, 'empty response permits one fresh-device alternate route before legacy fallback');
+  assert.equal(cooldownCalls, 3, 'empty response permits one fresh-device alternate route before legacy fallback');
   let clock = Date.now(), slowCalls = 0;
   const slowRegistration = load(async config => {
     slowCalls++;
@@ -147,13 +151,18 @@ function row(definition, width, height, suffix) {
     return inlineResponse([plain]);
   }, { getPlaybackDevice: async () => identities[0] });
   assert.equal((await alternate.fetchAppPlayUrl(vid)).url, plain.main_url);
-  assert.deepEqual(hosts, ['api5-normal-sinfonlineb.fqnovel.com', 'reading.snssdk.com']);
+  assert.deepEqual(hosts, ['api5-normal-sinfonlineb.fqnovel.com', 'api5-normal-sinfonlinea.fqnovel.com']);
   let inlineCalls = 0;
   const direct = load(async config => {
     inlineCalls++;
     assert.equal(new URL(config.url).searchParams.get('device_id'), '1000000000000001');
-    assert.equal(config.headers['x-medusa'], undefined);
-    assert.ok(config.headers['x-gorgon']);
+    assert.equal(config.method, 'POST');
+    assert.equal(config.headers['Content-Encoding'], 'gzip');
+    assert.ok(config.headers['x-medusa']);
+    assert.ok(config.headers['x-helios']);
+    assert.ok(config.headers['x-khronos']);
+    assert.ok(config.headers['x-ss-stub']);
+    assert.equal(config.headers['x-gorgon'], undefined);
     assert.equal(config.headers.Cookie, undefined);
     return inlineResponse([plain]);
   });

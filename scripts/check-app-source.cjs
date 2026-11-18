@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { gunzipSync } = require('node:zlib');
 const nativeDir = path.join(__dirname, '../src/native');
 const playbackDevice = Object.freeze({ device_id: '7000000000000000001', iid: '7000000000000000002', cdid: '00000000-0000-4000-8000-000000000003' });
 
@@ -39,44 +40,38 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
     assert.ok(config.timeout > 0 && config.timeout <= 12000);
     assert.ok(config.signal);
     assert.equal(config.responseType, 'text');
-    if (config.method === 'GET' && config.url.includes('/reading/bookapi/video_tab/')) {
-      assert.match(config.headers['User-Agent'], /^com\.phoenix\.read\/73532 /);
-      const query = new URL(config.url).searchParams;
-      assert.equal(query.get('video_id'), '11');
-      assert.equal(query.get('video_id_type'), '0');
-      assert.equal(query.get('version_code'), '73532');
-      assert.equal(query.get('ts'), null, 'the current player route must not carry legacy ts');
-      assert.equal(query.get('_rticket'), config.headers['x-ss-req-ticket']);
-      assert.equal(config.headers['x-xs-from-web'], '0');
-      assert.equal(config.headers['sdk-version'], '2');
-      assert.match(config.headers['x-gorgon'], /^8404401c0000[0-9a-f]{40}$/);
-      for (const name of ['x-argus', 'x-ladon']) assert.ok(Buffer.from(config.headers[name], 'base64').length > 0);
-      for (const name of ['x-medusa', 'x-helios']) assert.equal(config.headers[name], undefined);
-      if (tabEmpty) return { status: 200, headers: {}, data: '' };
-      const model = { video_model: JSON.stringify({ fallback_api: fallback }) };
-      return { status: 200, headers: {}, data: JSON.stringify({ code: 0, data: { video_model_data: {
-        '999': model, ...(wrongVid ? {} : { '11': model }),
-      } } }) };
-    }
     if (config.method === 'POST') {
-      assert.match(config.headers['User-Agent'], /^com\.phoenix\.read\/71532 /);
+      const isV5 = config.url.includes('/novel/player/multi_video_model/player/v1?');
+      assert.ok(isV5 || config.url.includes('/novel/player/multi_video_model/v1/?'), 'unexpected playback endpoint');
+      assert.match(config.headers['User-Agent'], isV5 ? /^com\.phoenix\.read\/73932 / : /^com\.phoenix\.read\/71532 /);
       const query = new URL(config.url).searchParams;
       const timestamp = Number(config.headers['x-khronos']);
-      assert.equal(query.get('ts'), String(timestamp));
+      assert.equal(query.get('ts'), isV5 ? null : String(timestamp));
       assert.equal(query.get('_rticket'), config.headers['x-ss-req-ticket']);
       assert.ok(Buffer.isBuffer(config.data));
-      assert.deepEqual(JSON.parse(config.data).mixed_video_id_map['1004'], ['11']);
-      assert.equal(context.branchOf(config.url, config.data, timestamp), 0);
-      const raw = Buffer.from(config.headers['x-gorgon'], 'hex');
-      assert.equal(raw.length, 26);
-      const random = raw[2] | (raw[3] << 8);
-      assert.equal(config.headers['x-gorgon'], context.xGorgon(new URL(config.url).search.slice(1), config.data, timestamp, random));
-      assert.notEqual(config.headers['x-gorgon'], context.xGorgon(new URL(config.url).search.slice(1), Buffer.from('altered body'), timestamp, random));
-      for (const name of ['x-medusa', 'x-helios', 'x-ladon', 'x-argus']) assert.ok(Buffer.from(config.headers[name], 'base64').length > 0);
+      const body = isV5
+        ? JSON.parse(gunzipSync(config.data).toString('utf8'))
+        : JSON.parse(config.data.toString('utf8'));
+      assert.equal(body.dr_scene, 'player');
+      assert.equal(body.biz_param.disable_video_relate_book, false);
+      assert.deepEqual(body.mixed_video_id_map['1004'], ['11']);
+      if (isV5) {
+        for (const name of ['x-medusa', 'x-helios', 'x-khronos', 'x-ss-stub']) assert.ok(typeof config.headers[name] === 'string' && config.headers[name]);
+        for (const name of ['x-ladon', 'x-argus', 'x-gorgon']) assert.equal(config.headers[name], undefined);
+        assert.equal(config.headers['Content-Encoding'], 'gzip');
+      } else {
+        assert.match(config.headers['x-gorgon'], /^[0-9a-f]{52}$/i);
+        for (const name of ['x-ladon', 'x-argus']) assert.ok(Buffer.from(config.headers[name], 'base64').length > 0);
+        assert.match(config.headers['x-ss-stub'], /^[0-9a-f]{32}$/i);
+        assert.equal(config.headers['Content-Encoding'], undefined);
+      }
       assert.equal(config.headers.Cookie, undefined);
       assert.equal(config.headers.Authorization, undefined);
+      if (tabEmpty && isV5) return { status: 200, headers: {}, data: '' };
       const model = { video_model: JSON.stringify({ fallback_api: fallback }) };
-      return { status: 200, headers: {}, data: JSON.stringify({ code: 0, data: { '999': model, ...(wrongVid ? {} : { '11': model }) } }) };
+      return { status: 200, headers: {}, data: JSON.stringify({ code: 0, data: {
+        '999': model, ...(wrongVid ? {} : { '11': model }),
+      } }) };
     }
     if (redirect) return { status: 302, headers: { location: redirect }, data: '' };
     return { status: 200, headers: {}, data: JSON.stringify({ video_info: { data: { key_seed: encrypted ? seed.toString('base64') : null, video_list: videoList || {
@@ -94,6 +89,11 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
       } };
       if (name === './sm3') return require(path.join(nativeDir, 'sm3'));
       if (name === './download-quality') return require(path.join(nativeDir, 'download-quality'));
+      if (name === 'node:zlib') return require('node:zlib');
+      if (name === 'node:timers/promises') return require('node:timers/promises');
+      if (name === './playback-signature') return require(path.join(nativeDir, 'playback-signature'));
+      if (name === './playback-v5') return require(path.join(nativeDir, 'playback-v5'));
+      if (name === './request-signal') return require(path.join(nativeDir, 'request-signal'));
       if (name === 'node:crypto') return { ...crypto, createHash(name, ...args) {
         assert.notEqual(name.toLowerCase(), 'sm3', 'must not depend on OpenSSL SM3');
         return crypto.createHash(name, ...args);
@@ -129,8 +129,8 @@ const checks = [
     await f.fetch('11');
     await f.fetch('11');
     await Promise.all([f.fetch('11'), f.fetch('11'), f.fetch('11')]);
-    const requests = f.calls.filter(call => call.url.includes('/reading/bookapi/video_tab/'));
-    assert.equal(requests.length, 5, 'one current model request per lookup; no retry loop');
+    const requests = f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/player/v1?'));
+    assert.equal(requests.length, 5, 'one current V5 model request per lookup; no retry loop');
     for (const field of ['iid', 'device_id']) {
       const ids = requests.map(call => new URL(call.url).searchParams.get(field));
       assert.ok(ids.every(id => /^[1-9]\d{15,29}$/.test(id)), `${field} must stay a valid device identifier`);
@@ -229,14 +229,16 @@ const checks = [
     const result = await f.fetch('11');
     assert.equal(result.source, 'app');
     assert.equal(f.registrations, 2, 'a blank response window must renew the playback identity once');
-    assert.equal(f.calls.filter(call => call.url.includes('/reading/bookapi/video_tab/')).length, 4,
+    assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/player/v1?')).length, 2,
       'both current clusters are retried after the identity rotation');
+    assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/v1/?')).length, 1,
+      'legacy POST remains bounded to one recovery attempt');
   }],
   ['no wrong-episode fallback', async () => {
     assert.ok(fs.existsSync(path.join(nativeDir, 'app-source.js')), 'app source missing');
     const { fetch, calls } = fixture({ wrongVid: true });
     await assert.rejects(fetch('11'));
-    assert.equal(calls.length, 3);
+    assert.equal(calls.length, 1);
   }],
   ['URL boundary and redirect validation', async () => {
     assert.ok(fs.existsSync(path.join(nativeDir, 'app-source.js')), 'app source missing');
@@ -247,7 +249,7 @@ const checks = [
     }
     const { fetch, calls } = fixture({ redirect: 'https://127.0.0.1/private' });
     await assert.rejects(fetch('11'));
-    assert.equal(calls.length, 2, 'redirect validation must stop before the legacy route');
+    assert.equal(calls.length, 2, 'redirect validation must stop after the signed model and fallback request');
     await assert.rejects(fixture({ media: 'https://127.0.0.1/video' }).fetch('11'));
   }],
   ['invalid input and invalid key rejected', async () => {

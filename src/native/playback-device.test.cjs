@@ -11,17 +11,17 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, 'playback-device.js'), 'utf8');
 const endpoint = 'https://log5-applog-lf.fqnovel.com/service/2/device_register/?tt_data=a&cronet_version=8d40f833_2026-03-03&ttnet_version=4.2.243.31-douyin&use_store_region_cookie=1';
 const failureMessage = '匿名播放设备注册失败，请检查网络，10 秒后重试';
-function load(clock = Date) {
+function load(clock = Date, full = false) {
     const module = { exports: {} };
     vm.runInNewContext(source, {
-        module, Buffer, AbortSignal, Date: clock,
+        module, Buffer, AbortSignal, AbortController, setTimeout, clearTimeout, Date: clock,
         require(name) {
             assert.ok(['node:crypto', 'node:zlib'].includes(name), 'no transport or persistence dependencies');
             return require(name);
         },
         console: { log() { assert.fail('no logging'); }, warn() { assert.fail('no logging'); }, error() { assert.fail('no logging'); } },
     }, { filename: 'playback-device.js' });
-    return module.exports.getPlaybackDevice;
+    return full ? module.exports : module.exports.getPlaybackDevice;
 }
 
 test('lazy registration shares one promise and one exact identity across concurrent and later playback', async () => {
@@ -147,6 +147,24 @@ test('binary request decrypts to authenticated gzip JSON with the fixed anonymou
     assert.equal(header.device_id, undefined);
     assert.equal(header.install_id, undefined);
     assert.doesNotMatch(JSON.stringify(payload), /"(?:account|account_id|user_id|uid|sessionid|session_id|device_token|access_token|refresh_token|cookie|cookies|authorization|password|phone_number)"\s*:/i);
+});
+
+test('direct registration propagates caller cancellation to the transport', async () => {
+    const { registerPlaybackDevice } = load(Date, true);
+    const controller = new AbortController();
+    let observedSignal;
+    const request = async (...args) => {
+        observedSignal = args[3];
+        return new Promise((resolve, reject) => {
+            observedSignal.addEventListener('abort', () => reject(Object.assign(new Error('cancelled'), { code: 'ERR_CANCELED' })), { once: true });
+        });
+    };
+    const pending = registerPlaybackDevice(request, { signal: controller.signal });
+    await Promise.resolve();
+    assert.equal(observedSignal.aborted, false);
+    controller.abort();
+    await assert.rejects(pending, { code: 'ERR_CANCELED', message: '已取消 App 片源请求' });
+    assert.equal(observedSignal.aborted, true);
 });
 
 test('synchronous and asynchronous failures share a safe error during cooldown', async () => {

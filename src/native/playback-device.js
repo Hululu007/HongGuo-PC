@@ -20,7 +20,26 @@ function responseId(response, name) {
     return typeof value === 'string' && /^\d{1,30}$/.test(value) && /[1-9]/.test(value) ? value : '';
 }
 
-async function registerPlaybackDevice(requestJson) {
+function registrationSignal(parent, timeout) {
+    if (!parent) return { signal: AbortSignal.timeout(timeout), dispose() {} };
+    const controller = new AbortController();
+    const timeoutReason = () => Object.assign(new Error('App 片源请求超时'), { name: 'TimeoutError' });
+    const abort = () => controller.abort(parent.reason?.name === 'TimeoutError' ? timeoutReason() : parent.reason);
+    let timer;
+    if (parent.aborted) abort();
+    else {
+        parent.addEventListener('abort', abort, { once: true });
+        timer = setTimeout(() => controller.abort(timeoutReason()), timeout);
+        timer.unref?.();
+    }
+    return { signal: controller.signal, dispose() {
+        clearTimeout(timer);
+        parent.removeEventListener('abort', abort);
+    } };
+}
+
+async function registerPlaybackDevice(requestJson, options = {}) {
+    const request = registrationSignal(options?.signal, 8000);
     try {
             const now = Date.now();
             const cdid = crypto.randomUUID();
@@ -60,13 +79,19 @@ async function registerPlaybackDevice(requestJson) {
                     'x-ss-stub': crypto.createHash('md5').update(data).digest('hex').toUpperCase(),
                 },
                 data,
-            }, Date.now() + 8000, AbortSignal.timeout(8000));
+            }, Date.now() + 8000, request.signal);
             const device_id = responseId(response, 'device_id');
             const iid = responseId(response, 'install_id');
             if (Number(response?.code ?? response?.Code ?? 0) !== 0) throw Object.assign(new Error('Registration rejected'), { code: 'BUSINESS_REJECTED' });
             if (!device_id || !iid) throw Object.assign(new Error('Invalid registration'), { code: 'INVALID_RESPONSE' });
         return Object.freeze({ device_id, iid, cdid });
     } catch (error) {
+        if (options?.signal?.aborted) {
+            const timeout = options.signal.reason?.name === 'TimeoutError';
+            throw Object.assign(new Error(timeout ? 'App 片源请求超时' : '已取消 App 片源请求'), {
+                code: timeout ? 'ETIMEDOUT' : 'ERR_CANCELED',
+            });
+        }
         const status = Number(error?.status);
         const registrationFailure = Number.isInteger(status) && status >= 300 && status <= 599 ? `HTTP_${status}`
             : ['ECONNABORTED', 'ETIMEDOUT'].includes(error?.code) ? 'TIMEOUT'
@@ -75,6 +100,8 @@ async function registerPlaybackDevice(requestJson) {
         throw Object.assign(new Error('匿名播放设备注册失败，请检查网络，10 秒后重试'), {
             code: 'DEVICE_REGISTRATION_FAILED', registrationFailure,
         });
+    } finally {
+        request.dispose();
     }
 }
 
