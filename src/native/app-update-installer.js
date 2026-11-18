@@ -19,7 +19,9 @@ function createUpdateInstaller({ updater, currentVersion, isEnabled, installBloc
   updater.on('download-progress', progress => {
     if (state.status !== 'downloading' || !isEnabled()) return;
     const percent = Math.max(0, Math.min(100, Math.floor(Number(progress.percent) || 0)));
-    if (percent !== state.percent) update({ percent });
+    const speed = Number(progress.bytesPerSecond);
+    const bytesPerSecond = Number.isFinite(speed) && speed > 0 ? Math.round(speed) : 0;
+    if (percent !== state.percent || bytesPerSecond !== state.bytesPerSecond) update({ percent, bytesPerSecond });
   });
   updater.on('error', () => {
     if (!['checking', 'downloading', 'installing'].includes(state.status) || !isEnabled()) return;
@@ -33,7 +35,7 @@ function createUpdateInstaller({ updater, currentVersion, isEnabled, installBloc
     generation++;
     clearNativeInstall();
     nativeReadyVersion = null;
-    update({ status: 'idle', version: null, percent: 0, error: '', downloaded: false });
+    update({ status: 'idle', version: null, percent: 0, bytesPerSecond: 0, error: '', downloaded: false });
     cancellationToken?.cancel();
     return { success: true, state: getState() };
   }
@@ -49,7 +51,7 @@ function createUpdateInstaller({ updater, currentVersion, isEnabled, installBloc
     if (state.downloaded && state.version === expectedVersion) return Promise.resolve({ success: true, state: getState() });
     const request = ++generation;
     operationGeneration = request;
-    update({ status: 'checking', version: expectedVersion, percent: 0, error: '', downloaded: false });
+    update({ status: 'checking', version: expectedVersion, percent: 0, bytesPerSecond: 0, error: '', downloaded: false });
     operation = (async () => {
       try {
         const result = await updater.checkForUpdates();

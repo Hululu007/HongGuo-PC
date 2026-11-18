@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 私密安全报告
+    url: https://github.com/yuchen0x1/HongGuo-PC/security/advisories/new
+    about: 请私密报告敏感漏洞，避免在公开 Issue 粘贴凭据和细节。

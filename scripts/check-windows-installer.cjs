@@ -137,6 +137,11 @@ async function runInstallerCheck() {
   try {
     const installerStats = fs.statSync(setup);
     assert(installerStats.size > 0, 'NSIS installer must not be empty');
+    result.installer = {
+      name: setupName,
+      size: installerStats.size,
+      sha256: createHash('sha256').update(fs.readFileSync(setup)).digest('hex'),
+    };
     const peMachine = (file, offset) => {
       const buffer = Buffer.alloc(6);
       const handle = fs.openSync(file, 'r');

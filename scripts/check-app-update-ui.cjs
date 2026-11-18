@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { transformSync } = require('esbuild');
 const release = { version: '9.0', url: 'https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v9.0' };
-function mount(api = {}, component = 'AppUpdateNotice', props = {}) {
+function mount(api = {}, component = 'AppUpdateNotice', props = {}, stored = new Map()) {
   const slots = [], effects = [], cleanups = [], effectFns = [], events = new Map(), timers = new Map();
   let cursor = 0, tree, timerId = 0;
   const react = {
@@ -22,6 +22,7 @@ function mount(api = {}, component = 'AppUpdateNotice', props = {}) {
     getSettings: async () => ({ app_updates_enabled: true }),
   };
   const window = { electronAPI: new Proxy({ ...defaults, ...api }, { get: (o, k) => o[k] || (k.startsWith('on') ? cb => { events.set(k, cb); return () => events.delete(k); } : async () => ({ success: true })) }),
+    localStorage: { getItem: key => stored.get(key) ?? null, setItem: (key, value) => stored.set(key, value) },
     addEventListener: (name, cb) => events.set(name, cb), removeEventListener: name => events.delete(name), dispatchEvent: event => events.get(event.type)?.(event) };
   const module = { exports: {} };
   vm.runInNewContext(transformSync(fs.readFileSync(`${__dirname}/../src/components/${component}.jsx`, 'utf8'), { loader: 'jsx', format: 'cjs' }).code, {
@@ -88,6 +89,24 @@ function mount(api = {}, component = 'AppUpdateNotice', props = {}) {
     ui.button('关闭更新提醒').props.onClick(); await ui.flush(); assert.equal(ui.text(), '');
     ui.emit('hongguo-check-app-update'); await ui.flush(); assert.ok(ui.button('下载更新'));
     ui.unmount();
+  });
+  await test('deferral survives a restart and a newer version can interrupt it', async () => {
+    const stored = new Map();
+    let current = release;
+    const api = { checkAppUpdate: async () => ({ enabled: true, currentVersion: '8.9', release: current }) };
+    const launch = () => mount(api, 'AppUpdateNotice', {}, stored);
+    const first = launch(); await first.flush();
+    assert.ok(first.text().includes('当前版本：v8.9'));
+    first.button('稍后提醒').props.onClick(); first.unmount();
+    const restarted = launch(); await restarted.flush();
+    assert.equal(restarted.text(), '');
+    current = { ...release, version: '9.1' };
+    restarted.timer(); await restarted.flush();
+    assert.ok(restarted.text().includes('v9.1'));
+    restarted.emit('onAppUpdateState', { supported: true, status: 'downloading', version: '9.1', percent: 20, bytesPerSecond: 1024 * 1024 });
+    await restarted.flush();
+    assert.ok(restarted.text().includes('20% · 1.0 MB/s'));
+    restarted.unmount();
   });
   await test('update settings page keeps the opt-out and manual check controls', async () => {
     let events = 0;

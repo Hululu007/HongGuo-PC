@@ -2,7 +2,16 @@
 
 6.15（内部 `6.15.0`）已正式发布，标签 `v6.15`，状态、验证与限制见 [6.15 说明](release-6.15.md)。仅支持 Windows x64。正式发行资产为 NSIS Windows x64 安装 EXE 与 `latest.yml`；GitHub 保留自动生成的源代码快照。
 
-分支与触发规则（自 6.3 起）：开发与发行都基于 `main` 分支，不再按版本新建发行分支；每次推送只触发轻量源码 Test，Windows 候选构建由 `v*` 标签推送或手动 workflow_dispatch 触发，从标签对应提交构建并核验后再发布 Release。
+## 当前流程
+
+1. 从 `main` 创建主题分支，提交版本配置、锁文件和 [用户更新记录](releases/release-notes.md)，经 PR 检查后合并。保留分支历史，紧急修复也使用新版本标签。
+2. 将两段公开标签 `v主.次` 绑定到已合并提交。标签推送启动源码 Test 和 Windows x64 候选。手动仅构建使用 `windows-build-only` 工件名。
+3. 确认两个标签工作流成功。候选应包含安装、重装、真实 1.80 安装器升级和资料保留回执。涉及播放的验收素材规则见下文。
+4. 从 `main` 启动 **Publish validated Windows release**，输入标签、Windows 候选运行 ID、Test 运行 ID 和冻结 SHA。发布工作流仅可在 `windows-release` 环境运行。
+5. 工作流校验仓库、标签、提交、工作流来源、完整安装回执、安装器 SHA-256 和清单 SHA-512。它创建或续传匹配的草稿，核对 GitHub 报告的资产大小与 SHA-256 后公开。正式 Release 锁定资产和标签。
+6. 核对公开更新清单和下载入口，确认 README 同步，再登记平台状态和发行回执。若公开后的探测失败，先检查已发布状态与资产摘要，避免重复发布。
+
+校验值随 GitHub Release 资产详情及 Actions 回执提供。普通下载仍为一个 NSIS 安装 EXE 和一个 `latest.yml`。
 
 6.0（内部 `6.0.0`）已于 2026-11-04 正式发布于二次开发仓库 yuchen0x1/HongGuo-PC，标签 `v6.0`。Windows x64 安装包与便携 zip 随 Release 发布（大小/SHA256 见 release-6.0.md），EXE 未签名；Mac arm64/x64 未构建（当时不在该版本资产内）。`node scripts/check-release-version.cjs` 通过 1521 版本对；npm test 相关项通过（3 项 Windows symlink 环境预置失败）；构建产物启动冒烟通过。应用内更新来源切换至 yuchen0x1/HongGuo-PC。详见 [6.0说明](release-6.0.md)。
 

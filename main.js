@@ -5283,7 +5283,7 @@ function appUpdateSupport() {
   if (IS_PREVIEW || !app.isPackaged) reason = '开发或预览版本不支持应用内安装，请使用正式安装版。';
   else if (process.platform === 'win32' && (portableConfig.mode === 'portable' || portableConfig.portableDir
     || process.env.PORTABLE_EXECUTABLE_FILE || process.env.PORTABLE_EXECUTABLE_DIR)) reason = '便携版需手动更新。请先退出旧程序，再运行发布页中的 setup 安装包；安装版支持后续应用内更新。';
-  else if (process.platform !== 'win32') reason = '当前发行版仅支持 Windows x64 应用内更新，请前往发布页手动更新。';
+  else if (process.platform !== 'win32' || process.arch !== 'x64') reason = '当前发行版仅支持 Windows x64 应用内更新，请前往发布页手动更新。';
   return { supported: !reason, reason };
 }
 function appUpdateState() {
@@ -5366,7 +5366,7 @@ ipcMain.handle('check-app-update', async event => {
   const result = await updateRequest;
   const enabled = getCurrentSettings().app_updates_enabled !== false;
   latestAppRelease = enabled ? result.release : null;
-  return { enabled, release: latestAppRelease, error: enabled ? result.error : '' };
+  return { enabled, currentVersion: APP_VERSION.replace(/\.0$/, ''), release: latestAppRelease, error: enabled ? result.error : '' };
 });
 ipcMain.handle('open-app-update', async event => {
   if (IS_PREVIEW || !mainWindow || event.sender !== mainWindow.webContents || getCurrentSettings().app_updates_enabled === false) {

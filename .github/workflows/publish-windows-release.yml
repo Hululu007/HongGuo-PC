@@ -7,87 +7,122 @@ on:
         required: true
         type: string
       candidate_run_id:
-        description: Successful Windows candidate workflow run ID
+        description: Successful Windows candidate tag run
         required: true
         type: string
       test_run_id:
-        description: Successful source test workflow run ID
+        description: Successful source test tag run
         required: true
         type: string
       expected_commit:
         description: Exact commit SHA expected for the tag and CI runs
         required: true
         type: string
-permissions:
-  actions: read
-  contents: write
+permissions: {}
+concurrency:
+  group: publish-windows-release
+  cancel-in-progress: false
 jobs:
   publish:
+    if: github.ref_name == github.event.repository.default_branch && github.ref_type == 'branch'
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: windows-release
+    permissions:
+      actions: read
+      contents: write
+    env:
+      TAG: ${{ inputs.tag }}
+      EXPECTED_COMMIT: ${{ inputs.expected_commit }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ inputs.tag }}
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
-      - name: Validate tag and successful CI runs
+      - name: Verify the tag and successful CI runs
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
           CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           TEST_RUN_ID: ${{ inputs.test_run_id }}
-          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+$ ]]
-          [[ "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ && "$TEST_RUN_ID" =~ ^[0-9]+$ ]]
           [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
-          VERSION=${TAG#v}
-          [[ "$(jq -r .version package.json)" == "$VERSION.0" ]]
-          test "$(git rev-parse "$TAG^{commit}")" = "$EXPECTED_COMMIT"
-          candidate=$(gh run view "$CANDIDATE_RUN_ID" --json conclusion,headSha,workflowName --jq '[.conclusion, .headSha, .workflowName] | join(" ")')
-          test "$candidate" = "success $EXPECTED_COMMIT Windows x64 release candidate"
-          source_test=$(gh run view "$TEST_RUN_ID" --json conclusion,headSha,workflowName --jq '[.conclusion, .headSha, .workflowName] | join(" ")')
-          test "$source_test" = "success $EXPECTED_COMMIT Test"
-      - name: Prepare user-facing release notes
-        env:
-          TAG: ${{ inputs.tag }}
-        run: node scripts/release-notes.cjs "$TAG" release-notes.txt
-      - uses: actions/download-artifact@v4
+          [[ "$CANDIDATE_RUN_ID" =~ ^[0-9]+$ && "$TEST_RUN_ID" =~ ^[0-9]+$ ]]
+          test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$EXPECTED_COMMIT"
+          git merge-base --is-ancestor "$EXPECTED_COMMIT" HEAD
+
+          check_run() {
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$1" |
+              jq -e --arg repo "$GITHUB_REPOSITORY" --arg tag "$TAG" --arg sha "$EXPECTED_COMMIT" --arg path "$2" '
+                .conclusion == "success" and .event == "push" and .head_branch == $tag and
+                .head_sha == $sha and .path == $path and .head_repository.full_name == $repo
+              ' >/dev/null
+          }
+          check_run "$CANDIDATE_RUN_ID" .github/workflows/windows.yml
+          check_run "$TEST_RUN_ID" .github/workflows/test.yml
+
+          git checkout --detach "$EXPECTED_COMMIT"
+          test "$(jq -r .version package.json)" = "${TAG:1}.0"
+          node scripts/release-notes.cjs "$TAG" release-notes.txt
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: windows-release-candidate
           run-id: ${{ inputs.candidate_run_id }}
           github-token: ${{ github.token }}
           path: release-assets
-      - name: Verify installer and update metadata assets
-        env:
-          TAG: ${{ inputs.tag }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: windows-verification
+          run-id: ${{ inputs.candidate_run_id }}
+          github-token: ${{ github.token }}
+          path: release-verification
+      - name: Verify the tested installer, latest.yml and SHA-256 values
         run: |
-          version=${TAG#v}
-          installer="hongguo-downloader-${version}-win-x64-setup.exe"
-          mapfile -t assets < <(find release-assets -maxdepth 1 -type f -printf '%f\n' | sort)
-          test "${#assets[@]}" -eq 2
-          test "${assets[0]}" = "$installer"
-          test "${assets[1]}" = "latest.yml"
-          test -s "release-assets/$installer"
-          test -s release-assets/latest.yml
-          grep -qx "version: ${version}.0" release-assets/latest.yml
-          grep -qx "path: $installer" release-assets/latest.yml
-          grep -q "    size: $(stat -c%s "release-assets/$installer")" release-assets/latest.yml
-          sha512=$(openssl dgst -sha512 -binary "release-assets/$installer" | openssl base64 -A)
-          grep -q "sha512: $sha512" release-assets/latest.yml
-      - name: Attach validated assets to draft and publish
+          node scripts/verify-release-assets.cjs release-assets release-verification/installer-result.json > verified-assets.json
+          jq -r '.[] | "\(.sha256)  \(.name)"' verified-assets.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Upload verified assets to a draft and publish
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
         run: |
-          release=$(gh release view "$TAG" --json tagName --jq .tagName)
-          test "$release" = "$TAG"
-          gh release upload "$TAG" release-assets/* --clobber
-          gh release edit "$TAG" --notes-file release-notes.txt --draft=false --prerelease=false
-          installer=$(gh release view "$TAG" --json assets --jq '[.assets[].name | select(endswith("setup.exe"))] | length')
-          metadata=$(gh release view "$TAG" --json assets --jq '[.assets[].name | select(. == "latest.yml")] | length')
-          test "$installer" -eq 1
-          test "$metadata" -eq 1
-          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = "false"
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" |
+            jq -e --arg tag "$TAG" '
+              def parts: ltrimstr("v") | split(".") | map(tonumber);
+              (.tag_name | parts) < ($tag | parts)
+            ' >/dev/null
+          if gh release view "$TAG" --json isDraft > existing-release.json; then
+            jq -e '.isDraft == true' existing-release.json >/dev/null
+          else
+            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file release-notes.txt
+          fi
+          release_id="$(gh release view "$TAG" --json databaseId --jq .databaseId)"
+          release_api="repos/$GITHUB_REPOSITORY/releases/$release_id"
+
+          gh api "$release_api" > draft.json
+          jq -e --slurpfile expected verified-assets.json '
+            .draft and all(.assets[]; . as $asset |
+              any($expected[0][]; .name == $asset.name and .size == $asset.size and
+                ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded"))
+          ' draft.json >/dev/null
+          for name in $(jq -r '.[].name' verified-assets.json); do
+            if ! jq -e --arg name "$name" 'any(.assets[]; .name == $name)' draft.json >/dev/null; then
+              gh release upload "$TAG" "release-assets/$name"
+            fi
+          done
+          gh api "$release_api" | jq -e --slurpfile expected verified-assets.json '
+            .draft and (.assets | length) == ($expected[0] | length) and
+            all(.assets[]; . as $asset | any($expected[0][]; .name == $asset.name and
+              .size == $asset.size and ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded"))
+          ' >/dev/null
+          gh release edit "$TAG" --notes-file release-notes.txt --draft=false --prerelease=false --latest
+      - name: Confirm the public update feed and installer
+        run: |
+          base="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors "$base/latest.yml" -o public-latest.yml
+          cmp public-latest.yml release-assets/latest.yml
+          installer=$(jq -r '.[] | select(.name | endswith(".exe")) | .name' verified-assets.json)
+          curl --fail --silent --show-error --location --head --retry 3 "$base/$installer" >/dev/null
+          curl --fail --silent --show-error --retry 3 "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/latest" |
+            jq -e --arg tag "$TAG" '.tag_name == $tag and (.draft or .prerelease | not)' >/dev/null

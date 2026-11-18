@@ -39,7 +39,13 @@
 
 ### 应用内更新
 
-当前 `main` 源码已接入 `electron-updater`：Windows x64 NSIS 安装版会检查正式版、显示真实下载进度，在 SHA-512 校验通过后由用户点击“重启并安装”。开发版、预览版和便携版会回退到 GitHub 发布页。已发布的 v6.7 安装包仍是旧的“提醒 + 下载页”行为；新能力随 v6.8 正式 Release 提供。实现边界、发布步骤和剩余验收边界见 [docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md)。
+Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 SHA-512 校验后，由你选择何时重启安装。开发版、预览版和便携版可从 GitHub 发布页手动下载安装。详见 [应用内更新指南](docs/AUTO_UPDATE.md)。
+
+| 平台 | 发现与搜索 | 播放与本地剧库 | 下载和 NAS 导出 | 应用内更新 |
+|---|---|---|---|---|
+| Windows 10/11 x64 安装版 | 支持 | 支持，解码效果取决于设备 | 支持本地与已挂载的 NAS | 支持 |
+
+历史平台与候选平台的验证边界见 [平台评估](docs/platform-assessment.md)。
 
 ## 最新更新
 
@@ -59,7 +65,7 @@
 
 设置 → 配置文件位置中提供“导出诊断信息”。导出的 JSON 只包含版本、运行状态、任务统计、存储状态、代理模式和 FFmpeg 可用性；不会包含代理密码、签名媒体地址或本地绝对路径。提交前仍请检查文件内容并移除你不希望分享的业务信息。
 
-项目审计、竞品研究和持续升级记录见 [`PROJECT_AUDIT.md`](PROJECT_AUDIT.md)、[`COMPETITOR_ANALYSIS.md`](COMPETITOR_ANALYSIS.md)、[`UPGRADE_ROADMAP.md`](UPGRADE_ROADMAP.md) 和 [`UPGRADE_REPORT.md`](UPGRADE_REPORT.md)。
+维护状态与路线图见 [维护看板](docs/maintenance.md) 和 [升级清单](UPGRADE_ROADMAP.md)。开发者可查看 [贡献指南](CONTRIBUTING.md)、[架构审计](PROJECT_AUDIT.md) 与 [竞品研究](COMPETITOR_ANALYSIS.md)。
 
 常见代理、更新、FFmpeg 和真实媒体验收边界见 [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)。
 
