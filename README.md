@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.15](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.15)** · 2026-11-18
+**[v6.16](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.16)** · 2026-11-18
 
-修复红果短剧在 App 来源下无法播放的问题。
+更新窗口显示当前版本和实时下载速度。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
