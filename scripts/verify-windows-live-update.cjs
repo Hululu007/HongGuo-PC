@@ -48,7 +48,12 @@ async function launch(expected) {
   port = await reservePort();
   fs.mkdirSync(path.join(root, 'downloads'), { recursive: true });
   fs.mkdirSync(path.join(root, 'temp'), { recursive: true });
-  child = spawn(exe, ['--mute-audio', '--remote-debugging-address=127.0.0.1', '--remote-debugging-port=' + port], {
+  child = spawn(exe, [
+    '--mute-audio',
+    '--user-data-dir=' + path.join(root, 'profile'),
+    '--remote-debugging-address=127.0.0.1',
+    '--remote-debugging-port=' + port,
+  ], {
     stdio: 'ignore',
     env: {
       ...process.env,
