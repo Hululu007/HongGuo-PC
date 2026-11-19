@@ -110,7 +110,7 @@ function row(definition, width, height, suffix) {
       data: { [id]: { video_model: model } } }) };
   };
   const plain = { ...row('1080p', 1080, 1920, 'inline'), encrypt_info: { encrypt: false } };
-  const identities = [{ device_id: '11', iid: '12', cdid: 'fixture' }, { device_id: '21', iid: '22', cdid: 'fixture' }];
+  const identities = Array.from({ length: 8 }, (_, i) => ({ device_id: String(11 + i * 10), iid: String(12 + i * 10), cdid: 'fixture' }));
   let recoverCalls = 0, renewals = 0, recoveryRegistrations = 0;
   const recovery = load(async config => {
     recoverCalls++;
@@ -122,20 +122,20 @@ function row(definition, width, height, suffix) {
     return identities[recoveryRegistrations - 1];
   } });
   assert.equal((await recovery.fetchAppPlayUrl(vid)).url, plain.main_url, 'empty model response renews the device and recovers');
-  assert.equal(recoverCalls, 3);
+  assert.equal(recoverCalls, 2, 'a fresh identity on the V5 endpoint recovers after one empty response');
   assert.equal(renewals, 1);
   for (const status of [200, 403, 404]) {
     let calls = 0, registrations = 0;
     const unavailable = load(async () => { calls++; return { status, headers: {}, data: '' }; },
       { registerPlaybackDevice: async () => identities[registrations++] });
     await assert.rejects(unavailable.fetchAppPlayUrl(vid), error => status === 200 ? error.code === 'EMPTY_RESPONSE' : error.status === status);
-    assert.equal(calls, status === 200 ? 3 : 1, 'current clusters and legacy fallback stay bounded');
-    assert.equal(registrations, status === 200 ? 2 : 1, `registration count for HTTP ${status}`);
+    assert.equal(calls, status === 200 ? 5 : 1, 'empty responses retry with fresh V5 identities and stay bounded');
+    assert.equal(registrations, status === 200 ? 5 : 1, `registration count for HTTP ${status}`);
   }
   let cooldownCalls = 0;
   await assert.rejects(load(async () => { cooldownCalls++; return { status: 200, headers: {}, data: '' }; },
     { getPlaybackDevice: async () => identities[0] }).fetchAppPlayUrl(vid), error => error.code === 'EMPTY_RESPONSE');
-  assert.equal(cooldownCalls, 3, 'empty response permits one fresh-device alternate route before legacy fallback');
+  assert.equal(cooldownCalls, 5, 'empty response is retried on kept V5 endpoint with fresh devices');
   let clock = Date.now(), slowCalls = 0;
   const slowRegistration = load(async config => {
     slowCalls++;

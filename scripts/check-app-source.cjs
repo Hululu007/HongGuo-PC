@@ -67,7 +67,11 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
       }
       assert.equal(config.headers.Cookie, undefined);
       assert.equal(config.headers.Authorization, undefined);
-      if (tabEmpty && isV5) return { status: 200, headers: {}, data: '' };
+      // Simulate an occasionally rejected playback identity: only the first
+      // V5 request is empty; a freshly registered device on the retry succeeds.
+      if (tabEmpty && isV5 && calls.filter(call => String(call.url).includes('/player/v1?')).length === 1) {
+        return { status: 200, headers: {}, data: '' };
+      }
       const model = { video_model: JSON.stringify({ fallback_api: fallback }) };
       return { status: 200, headers: {}, data: JSON.stringify({ code: 0, data: {
         '999': model, ...(wrongVid ? {} : { '11': model }),
@@ -224,15 +228,15 @@ const checks = [
     assert.equal(result.quality, '720P');
     assert.equal(calls.length, 2);
   }],
-  ['empty current route rotates the anonymous device before legacy fallback', async () => {
+  ['empty current route rotates the anonymous device and retries V5', async () => {
     const f = fixture({ tabEmpty: true });
     const result = await f.fetch('11');
     assert.equal(result.source, 'app');
     assert.equal(f.registrations, 2, 'a blank response window must renew the playback identity once');
     assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/player/v1?')).length, 2,
-      'both current clusters are retried after the identity rotation');
-    assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/v1/?')).length, 1,
-      'legacy POST remains bounded to one recovery attempt');
+      'the V5 endpoint is retried after the identity rotation');
+    assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/v1/?')).length, 0,
+      'recovery stays on V5 and never downgrades to the legacy endpoint');
   }],
   ['no wrong-episode fallback', async () => {
     assert.ok(fs.existsSync(path.join(nativeDir, 'app-source.js')), 'app source missing');

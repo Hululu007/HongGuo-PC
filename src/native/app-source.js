@@ -438,34 +438,39 @@ async function fetchAppPlayUrlFresh(vid, options) {
     let identity = await registerPlaybackDevice(requestJson, { signal: options.signal });
     throwIfAborted(options.signal);
     // Registration has its own 8s budget; it must not consume the model request budget.
-    const deadline = Date.now() + 12000;
-    const request = boundedSignal(options.signal, 12000);
+    // Empty HTTP 200 responses have been observed to vary with the registered
+    // playback identity. Retry the current V5 route with a fresh identity when
+    // time permits; the legacy route also returned empty responses in testing.
+    const overallDeadline = Date.now() + 20000;
+    const request = boundedSignal(options.signal, 20000);
     const { signal } = request;
+    const MAX_MODEL_ATTEMPTS = 5;
+    // A fallback lookup shares the successful model attempt's deadline; it
+    // never starts a new timeout window or extends the overall deadline.
+    const firstDeadline = Math.min(Date.now() + 12000, overallDeadline);
+    let deadline = firstDeadline;
     try {
         let response;
-        for (let attempt = 0; attempt < 2; attempt++) {
+        for (let attempt = 0; attempt < MAX_MODEL_ATTEMPTS; attempt++) {
             throwIfAborted(signal);
-            // Prefer the current API; only an empty response enables one legacy attempt.
-            const signed = playbackRequest(payload, identity, attempt ? '' : vid);
-            if (attempt) signed.headers.Connection = 'close';
+            // Each model request keeps its own bounded 12s budget; the overall
+            // deadline only limits the total time spent across retries.
+            deadline = attempt === 0 ? firstDeadline : Math.min(Date.now() + 12000, overallDeadline);
+            // Always use the current V5 endpoint. Alternate official hosts on
+            // consecutive attempts so a host-specific rejection cannot persist.
+            const signed = playbackRequest(payload, identity, vid, Boolean(attempt % 2));
+            signed.headers.Connection = 'close';
             try {
-                try {
-                    response = await requestJson(signed.url, { method: signed.method, headers: signed.headers, data: signed.body }, deadline, signal);
-                } catch (error) {
-                    throwIfAborted(signal);
-                    if (attempt || error.code !== 'EMPTY_RESPONSE' || deadline - Date.now() < 1000) throw error;
-                    // An empty primary response can recover on the other official host with the same identity.
-                    const alternate = playbackRequest(payload, identity, vid, true);
-                    response = await requestJson(alternate.url, { method: alternate.method, headers: alternate.headers, data: alternate.body }, deadline, signal);
-                }
+                response = await requestJson(signed.url, { method: signed.method, headers: signed.headers, data: signed.body }, deadline, signal);
                 throwIfAborted(signal);
                 break;
             } catch (error) {
                 throwIfAborted(signal);
                 if (error.code === 'ERR_CANCELED') throw error;
-                if (attempt || error.code !== 'EMPTY_RESPONSE' || deadline - Date.now() < 1000) throw error;
-                // Keep the legacy attempt even when a fresh registration fails.
-                if (deadline - Date.now() >= 8000) {
+                if (error.code !== 'EMPTY_RESPONSE' || attempt === MAX_MODEL_ATTEMPTS - 1 || overallDeadline - Date.now() < 2500) throw error;
+                // Prefer a fresh identity within the remaining time budget;
+                // preserve explicit registration rejections and cancellation.
+                if (overallDeadline - Date.now() >= 9000) {
                     try { identity = await registerPlaybackDevice(requestJson, { signal }); }
                     catch (registrationError) {
                         throwIfAborted(signal);
@@ -476,8 +481,8 @@ async function fetchAppPlayUrlFresh(vid, options) {
                     }
                 }
                 throwIfAborted(signal);
-                if (deadline - Date.now() < 1500) throw error;
-                try { await delay(1000, undefined, { signal }); }
+                if (overallDeadline - Date.now() < 2000) throw error;
+                try { await delay(250, undefined, { signal }); }
                 catch (waitError) { throwIfAborted(signal); throw waitError; }
                 throwIfAborted(signal);
             }
