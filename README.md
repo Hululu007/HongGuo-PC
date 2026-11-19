@@ -53,7 +53,7 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 **[v6.17](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.17)** · 2026-11-19
 
-改进 App 播放接口空响应后的恢复：继续尝试当前 V5 接口，时间允许时更新匿名播放设备身份，不再在该恢复路径降级到旧接口。
+本次更新改进 App 片源接口返回空响应时的恢复，减少部分分集因一次取源失败而无法继续播放的情况。正式支持 Windows x64。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
