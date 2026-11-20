@@ -1,5 +1,20 @@
 # 自主开发变更记录
 
+## 2026-11-21 · 开发 renderer 来源边界（发行 6.22）
+
+**巡检结论**：打包应用不再信任继承的 `VITE_DEV_SERVER_URL`；开发模式只接受规范化的 HTTP loopback 来源，窗口加载、媒体访问与 renderer IPC 共用同一过滤结果。6.22 已绑定冻结提交 `ee342c9adf3b2b22116b423fe1dc1285534f87ce` 并正式公开，未改写 v6.21 标签或资产。
+
+**代码变更**：
+
+1. `main.js` 与 `src/native/dev-server-url.js`：生产环境忽略开发服务器环境变量，开发环境拒绝远程、局域网、凭据、路径、query、hash 和超长地址。
+2. `src/native/renderer-security.js`：renderer 信任来源使用同一 loopback 过滤结果；保留 file URL 规范化、主 frame 和导航边界。
+3. `src/native/dev-server-url.test.cjs`、renderer 安全脚本：补充开发地址和文件 URL 正向/负向回归，修复 VM harness 对新模块的模拟。
+4. `package.json`、`package-lock.json`、发行说明：统一 6.22.0 内部版本与 6.22 公开文件名。
+
+**验证与发布**：标签 Test [44834314357](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44834314357)、Windows 候选 [44834314452](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44834314452)、main Test [44833907760](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44833907760)、main CodeQL [44833907850](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44833907850) 均成功；候选含 110 项平台检查、FFmpeg 对应源码和媒体摘要校验、x64 NSIS 安装/重装及真实 1.80.0 → 6.22.0 资料保留升级。发布工作流 [44836461596](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44836461596) 全部成功，v6.22 Release 已公开且不可变。
+
+**后续优先项**：补齐 Authenticode 代码签名链和 Electron fuse；继续处理下载状态机、磁盘空间预检、JSON `.bak` 恢复、FFmpeg watchdog、日志脱敏、Vite 大 chunk 与真实 GUI/媒体/NAS/应用内更新验收。
+
 ## 2026-11-21 · 下载管理与设置边界（发行 6.21）
 
 **巡检结论**：下载管理筛选和批量任务操作、设置卡片搜索与代理保存边界已进入 `main`，并绑定正式标签 `v6.21`。Windows 候选、源码 Test 和 main CodeQL 均通过；正式 Release 已公开且不可变。发布工作流最后的匿名公开入口探测因 runner 收到 HTTP 403 失败，但发布后的 GitHub API 与本机公开 URL 核验确认目标资产已公开；该差异已记录在 [6.21 回执](docs/release-6.21.md)，不将流水线记为全流程成功。

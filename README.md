@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.22](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.22)** · 2026-11-20
+**[v6.22](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.22)** · 2026-11-21
 
-收紧开发渲染器信任边界：打包应用忽略继承的 VITE\_DEV\_SERVER\_URL，开发模式只接受 HTTP loopback 地址。
+收紧开发渲染器信任边界：打包应用忽略继承的 `VITE_DEV_SERVER_URL`，开发模式只接受 HTTP loopback 地址；远程或局域网来源不会进入主进程 IPC 与媒体访问信任范围。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
@@ -268,7 +268,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.20.md](docs/release-6.20.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.22.md](docs/release-6.22.md)。
 
 </details>
 
