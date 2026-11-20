@@ -64,13 +64,17 @@ function ToolbarMore({ children }) {
   return <div className={`toolbar-more ${open ? 'is-open' : ''}`} ref={root}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <button type="button" className="toolbar-more-trigger" ref={trigger}
-      aria-label="更多窗口与播放操作" aria-haspopup="true" aria-expanded={open}
+      aria-label="更多窗口与播放操作" aria-expanded={open}
       aria-controls={open ? 'toolbar-more-menu' : undefined} title="更多操作"
       onClick={() => setOpen(value => !value)}>
       <MoreIcon size={17} /><span>更多</span>
     </button>
     <div id="toolbar-more-menu" className="toolbar-more-menu" role="group" aria-label="窗口与播放操作"
-      onClick={event => { if (event.target.closest('button')) setOpen(false); }}>
+      onClick={event => {
+        if (!event.target.closest('button')) return;
+        if (event.currentTarget.contains(event.currentTarget.ownerDocument.activeElement)) trigger.current?.focus();
+        setOpen(false);
+      }}>
       {children}
     </div>
   </div>;
@@ -91,7 +95,7 @@ const MENU = [
 
 export default function App() {
   const localeApi = typeof useI18n === 'function' ? useI18n() : { locale: 'zh-CN', t: (_key, fallback) => fallback };
-  const { t } = localeApi;
+  const { t, locale = 'zh-CN' } = localeApi;
   const { stealthMode, toggleStealth, stealthError } = useStealthWindow();
   useLayoutEffect(() => initializeTheme(), []);
   const [layout, setLayout] = useState('landscape');
@@ -142,6 +146,7 @@ export default function App() {
       if ((event.ctrlKey || event.metaKey) && (event.key === 'k' || event.key === 'K')) {
         const target = event.target;
         if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+        if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
         event.preventDefault();
         setPaletteOpen(true);
       }
@@ -277,7 +282,8 @@ export default function App() {
           {MENU.filter((item) => item.id !== 'settings').map((item) => {
             const Icon = item.icon;
             return (
-              <button key={item.id} className={`sidebar-item ${page === item.id ? 'active' : ''}`}
+              <button lang={locale} key={item.id} className={`sidebar-item ${page === item.id ? 'active' : ''}`}
+                aria-label={t(item.labelKey, item.label)} title={sidebarCollapsed ? t(item.labelKey, item.label) : undefined}
                 aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>
                 <Icon size={19} /><span>{t(item.labelKey, item.label)}</span>
               </button>
@@ -285,11 +291,12 @@ export default function App() {
           })}
         </nav>
         <div className="sidebar-footer">
-          <button className={`sidebar-item ${page === 'settings' ? 'active' : ''}`}
+          <button lang={locale} className={`sidebar-item ${page === 'settings' ? 'active' : ''}`}
+            aria-label={t('nav.settings', '设置')} title={sidebarCollapsed ? t('nav.settings', '设置') : undefined}
             aria-current={page === 'settings' ? 'page' : undefined} onClick={() => navigate('settings')}>
             <Settings size={19} /><span>{t('nav.settings', '设置')}</span>
           </button>
-          <button className="sidebar-collapse-btn" onClick={toggleSidebarCollapsed}
+          <button lang={locale} className="sidebar-collapse-btn" onClick={toggleSidebarCollapsed}
             aria-label={sidebarCollapsed ? t('nav.expand', '展开侧栏') : t('nav.collapse', '收起侧栏')} aria-expanded={!sidebarCollapsed}
             title={sidebarCollapsed ? t('nav.expand', '展开侧栏') : t('nav.collapse', '收起侧栏')}>
             <PanelLeftIcon size={15} /><span>{t('nav.collapse', '收起')}</span>
@@ -299,10 +306,10 @@ export default function App() {
       </aside>
       <div className="main-wrapper">
         <header className="window-toolbar">
-          <span className="toolbar-location">{currentPage ? t(currentPage.labelKey, currentPage.label) : ''}</span>
+          <span lang={locale} className="toolbar-location" aria-live="polite" aria-atomic="true">{currentPage ? t(currentPage.labelKey, currentPage.label) : ''}</span>
           {page === 'player' && layout === 'portrait' && <PageMenu items={MENU} page={page} onNavigate={navigate} />}
           <button className="toolbar-search" onClick={() => setPaletteOpen(true)} title="全局搜索（Ctrl+K）" aria-label="全局搜索" aria-keyshortcuts="Control+K">
-            <Search size={14} /><span>{t('nav.search', '搜索页面、剧集…')}</span><kbd>Ctrl K</kbd>
+            <Search size={14} /><span lang={locale}>{t('nav.search', '搜索页面、剧集…')}</span><kbd>Ctrl K</kbd>
           </button>
           <div className="toolbar-actions">
             <span className="toolbar-caption">{appInfo?.preview ? t('nav.preview', '功能预览') : '红果短剧'}</span>
@@ -340,7 +347,7 @@ export default function App() {
         <nav className="compact-navigation" aria-label="竖屏导航">
           {MENU.map((item) => {
             const Icon = item.icon;
-            return <button key={item.id} aria-current={page === item.id ? 'page' : undefined}
+            return <button lang={locale} key={item.id} aria-current={page === item.id ? 'page' : undefined}
               onClick={() => navigate(item.id)} title={t(item.labelKey, item.label)}><Icon size={18} /><span>{t(item.labelKey, item.label)}</span></button>;
           })}
         </nav>
@@ -348,7 +355,7 @@ export default function App() {
         {stealthMode && <div className="stealth-toolbar"><span>移开暂停隐藏 · 移回继续</span><button className="btn btn-outline btn-sm" onClick={() => toggleStealth(false)}>退出小窗</button></div>}
         {stealthError && <div className="app-storage-error" role="alert">{stealthError}</div>}
         {storageError && <div className="app-storage-error" role="alert"><span>{storageError}</span><button className="btn btn-outline btn-sm" onClick={() => setStorageError('')}>关闭提示</button></div>}
-        {visited.map((id) => <main className="main-content" data-page={id} hidden={page !== id} key={id}>{renderPage(id)}</main>)}
+        {visited.map((id) => <main className="main-content" data-page={id} tabIndex={-1} hidden={page !== id} key={id}>{renderPage(id)}</main>)}
       </div>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)}
         onNavigate={navigate}

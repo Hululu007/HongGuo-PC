@@ -643,6 +643,7 @@ function Browse({ onNavigate, active = true }) {
                 className="browse-card"
                 onClick={() => openSeries(item)}
                 onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
                   if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openSeries(item); }
                 }}
                 title={item.series_title}

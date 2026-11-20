@@ -60,19 +60,6 @@
   font-size: 13px;
 }
 
-/* 一键暂停：实心警示色，和主色按钮区分开 */
-.btn-danger-solid {
-  background: var(--danger-fill);
-  border-color: var(--danger-fill);
-  color: #fff;
-  font-weight: 600;
-}
-
-.btn-danger-solid:hover:not(:disabled) {
-  background: var(--danger-hover);
-  border-color: var(--danger-hover);
-}
-
 /* 并发运行状态条 */
 .dm-queue-bar {
   display: flex;
@@ -104,8 +91,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent);
-  animation: dm-pulse 1.2s ease-in-out infinite;
+  background: var(--action-bg);
 }
 
 @keyframes dm-pulse {
@@ -251,29 +237,6 @@
   padding: 0 2px;
 }
 
-.dm-toast {
-  position: fixed;
-  right: 26px;
-  bottom: 26px;
-  z-index: 999;
-  max-width: 380px;
-  padding: 11px 16px;
-  border-radius: var(--radius);
-  font-size: 13px;
-  color: #fff;
-  box-shadow: var(--shadow-lg);
-  cursor: pointer;
-  animation: dm-toast-in 0.22s ease-out;
-}
-
-.dm-toast-success { background: var(--success-fill); }
-.dm-toast-error { background: var(--danger-fill); }
-
-@keyframes dm-toast-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .dm-empty {
   text-align: center;
   padding: 80px 20px;
@@ -364,7 +327,7 @@
 }
 
 .status-pending { background: var(--bg-inset); color: var(--text-secondary); }
-.status-downloading { background: var(--accent-soft); color: var(--accent); }
+.status-downloading { background: var(--accent-soft); color: var(--accent-text); }
 .status-completed { background: var(--success-bg); color: var(--success); }
 .status-failed { background: var(--danger-bg); color: var(--danger); }
 .status-stopped { background: var(--bg-inset); color: var(--text-tertiary); }
@@ -389,7 +352,7 @@
 
 .dm-progress-fill {
   height: 100%;
-  background: var(--accent);
+  background: var(--action-bg);
   border-radius: 4px;
 
 }
@@ -444,9 +407,14 @@
 .dm-more-actions summary::-webkit-details-marker { display: none; }
 .dm-more-actions summary::after { content: ''; width: 5px; height: 5px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); margin-left: 9px; margin-top: -3px; }
 .dm-more-actions summary:hover, .dm-more-actions[open] summary { background: var(--bg-inset); }
-.dm-more-menu { position: absolute; top: calc(100% + 6px); left: 0; width: 230px; background: var(--bg-card); padding: 6px; border-radius: 10px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 2px; z-index: 20; }
+.dm-more-menu { position: absolute; top: calc(100% + 6px); right: 0; width: 230px; max-width: calc(100vw - 24px); max-height: calc(100vh - 140px); overflow-y: auto; background: var(--bg-card); padding: 6px; border-radius: 10px; box-shadow: var(--shadow-lg); display: flex; flex-direction: column; gap: 2px; z-index: 20; }
 .dm-more-menu .btn { justify-content: flex-start; border: 0; }
 .dm-more-menu .btn:disabled { display: flex; }
+@media (max-width: 600px) {
+  .dm-toolbar { position: relative; }
+  .dm-more-actions { position: static; }
+  .dm-more-menu { left: 0; right: auto; width: min(230px, 100%); }
+}
 .merge-inline { margin-left: auto; }
 .merge-select { height: 35px; max-width: 160px; }
 .dm-queue-bar, .dm-hint { margin: 16px 0; }
@@ -487,24 +455,17 @@
 /* 状态徽章：统一 pill */
 .status-tag { border-radius: 999px; padding: 2px 9px; font-size: var(--fs-xs); font-weight: 500; }
 
-/* 赛博未来下载进度条与任务流光 */
-.dm-progress-bar {
-  background: rgba(255, 255, 255, .08);
-  border-radius: 999px;
-  overflow: hidden;
-  height: 5px;
-}
-.dm-progress-fill {
-  background: linear-gradient(90deg, #ff304f, #24dfff) !important;
-  box-shadow: 0 0 10px rgba(36, 223, 255, .6);
-  border-radius: 999px;
+/* 深色主题的下载进度条流光与队列脉冲 */
+:root[data-theme="dark"] .dm-progress-fill {
+  background: linear-gradient(90deg, var(--accent), var(--tech-blue));
+  box-shadow: 0 0 10px color-mix(in srgb, var(--tech-blue) 60%, transparent);
   position: relative;
 }
-.dm-progress-fill::after {
+:root[data-theme="dark"] .dm-progress-fill::after {
   content: "";
   position: absolute;
   top: 0; bottom: 0; right: 0; width: 14px;
-  background: #fff;
+  background: var(--text-primary);
   filter: blur(2px);
   opacity: .8;
 }
@@ -514,9 +475,10 @@
   backdrop-filter: blur(12px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, .3), inset 0 0 12px rgba(36, 223, 255, .05);
 }
-.dm-queue-pulse {
-  background: #24dfff !important;
-  box-shadow: 0 0 8px #24dfff;
+:root[data-theme="dark"] .dm-queue-pulse {
+  background: var(--tech-blue);
+  box-shadow: 0 0 8px var(--tech-blue);
+  animation: dm-pulse 1.2s ease-in-out infinite;
 }
 
 

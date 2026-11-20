@@ -1,0 +1,255 @@
+{
+  "generatedAt": "2026-11-20T16:23:54.421Z",
+  "scope": "Twenty equally weighted, common, persisted checks: ten per theme. Each passing check contributes five points.",
+  "limitations": "Retrospective evidence score only; not an overall product, aesthetic, WCAG, playback, system-DPI or release-readiness score. Unmeasured states are not assigned passing scores.",
+  "sources": [
+    "before/evidence.json",
+    "after/evidence.json"
+  ],
+  "before": {
+    "passed": 13,
+    "total": 20,
+    "score": 65,
+    "checks": [
+      {
+        "id": "light/all-ten-pages-nonempty",
+        "passed": true,
+        "observed": 10
+      },
+      {
+        "id": "light/explicit-theme-applied",
+        "passed": true,
+        "observed": {
+          "rendered": "light",
+          "preference": "light"
+        }
+      },
+      {
+        "id": "light/system-theme-followed",
+        "passed": true,
+        "observed": {
+          "themeSource": "light",
+          "shouldUseDarkColors": false,
+          "matchMediaChanged": true,
+          "themeApplied": true
+        }
+      },
+      {
+        "id": "light/palette-opens",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "light/palette-initial-input-focus",
+        "passed": true,
+        "observed": "command-palette-input"
+      },
+      {
+        "id": "light/palette-tab-contained",
+        "passed": true,
+        "observed": "command-item active"
+      },
+      {
+        "id": "light/palette-escape-closes",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "light/palette-restores-trigger-focus",
+        "passed": false,
+        "observed": "BODY"
+      },
+      {
+        "id": "light/all-collapsed-navigation-named",
+        "passed": false,
+        "observed": 0
+      },
+      {
+        "id": "light/tertiary-token-on-canvas-contrast",
+        "passed": false,
+        "observed": 3.44
+      },
+      {
+        "id": "dark/all-ten-pages-nonempty",
+        "passed": true,
+        "observed": 10
+      },
+      {
+        "id": "dark/explicit-theme-applied",
+        "passed": true,
+        "observed": {
+          "rendered": "dark",
+          "preference": "dark"
+        }
+      },
+      {
+        "id": "dark/system-theme-followed",
+        "passed": true,
+        "observed": {
+          "themeSource": "dark",
+          "shouldUseDarkColors": true,
+          "matchMediaChanged": true,
+          "themeApplied": true
+        }
+      },
+      {
+        "id": "dark/palette-opens",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "dark/palette-initial-input-focus",
+        "passed": false,
+        "observed": "toolbar-search"
+      },
+      {
+        "id": "dark/palette-tab-contained",
+        "passed": true,
+        "observed": "command-item active"
+      },
+      {
+        "id": "dark/palette-escape-closes",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "dark/palette-restores-trigger-focus",
+        "passed": false,
+        "observed": "BODY"
+      },
+      {
+        "id": "dark/all-collapsed-navigation-named",
+        "passed": false,
+        "observed": 0
+      },
+      {
+        "id": "dark/tertiary-token-on-canvas-contrast",
+        "passed": false,
+        "observed": 3.68
+      }
+    ]
+  },
+  "after": {
+    "passed": 20,
+    "total": 20,
+    "score": 100,
+    "checks": [
+      {
+        "id": "light/all-ten-pages-nonempty",
+        "passed": true,
+        "observed": 10
+      },
+      {
+        "id": "light/explicit-theme-applied",
+        "passed": true,
+        "observed": {
+          "rendered": "light",
+          "preference": "light"
+        }
+      },
+      {
+        "id": "light/system-theme-followed",
+        "passed": true,
+        "observed": {
+          "themeSource": "light",
+          "shouldUseDarkColors": false,
+          "matchMediaChanged": true,
+          "themeApplied": true
+        }
+      },
+      {
+        "id": "light/palette-opens",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "light/palette-initial-input-focus",
+        "passed": true,
+        "observed": "command-palette-input"
+      },
+      {
+        "id": "light/palette-tab-contained",
+        "passed": true,
+        "observed": "command-palette-input"
+      },
+      {
+        "id": "light/palette-escape-closes",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "light/palette-restores-trigger-focus",
+        "passed": true,
+        "observed": "toolbar-search"
+      },
+      {
+        "id": "light/all-collapsed-navigation-named",
+        "passed": true,
+        "observed": 10
+      },
+      {
+        "id": "light/tertiary-token-on-canvas-contrast",
+        "passed": true,
+        "observed": 4.99
+      },
+      {
+        "id": "dark/all-ten-pages-nonempty",
+        "passed": true,
+        "observed": 10
+      },
+      {
+        "id": "dark/explicit-theme-applied",
+        "passed": true,
+        "observed": {
+          "rendered": "dark",
+          "preference": "dark"
+        }
+      },
+      {
+        "id": "dark/system-theme-followed",
+        "passed": true,
+        "observed": {
+          "themeSource": "dark",
+          "shouldUseDarkColors": true,
+          "matchMediaChanged": true,
+          "themeApplied": true
+        }
+      },
+      {
+        "id": "dark/palette-opens",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "dark/palette-initial-input-focus",
+        "passed": true,
+        "observed": "command-palette-input"
+      },
+      {
+        "id": "dark/palette-tab-contained",
+        "passed": true,
+        "observed": "command-palette-input"
+      },
+      {
+        "id": "dark/palette-escape-closes",
+        "passed": true,
+        "observed": true
+      },
+      {
+        "id": "dark/palette-restores-trigger-focus",
+        "passed": true,
+        "observed": "toolbar-search"
+      },
+      {
+        "id": "dark/all-collapsed-navigation-named",
+        "passed": true,
+        "observed": 10
+      },
+      {
+        "id": "dark/tertiary-token-on-canvas-contrast",
+        "passed": true,
+        "observed": 7.05
+      }
+    ]
+  }
+}

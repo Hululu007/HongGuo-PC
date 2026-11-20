@@ -28,6 +28,8 @@
 }
 
 .settings-group {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -372,7 +374,7 @@
 .builtin-source-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--border-muted); font-size: 13px; }
 .builtin-source-row:last-of-type { border-bottom: 0; padding-bottom: 0; }
 .builtin-source-row em { display: block; margin-top: 4px; font-size: 12px; font-style: normal; color: var(--text-secondary); }
-.builtin-source-row input { appearance: none; flex: 0 0 36px; width: 36px; height: 22px; border: 1px solid var(--text-muted); border-radius: 11px; background: var(--bg-canvas); cursor: pointer; position: relative; }
+.builtin-source-row input { appearance: none; flex: 0 0 36px; width: 36px; height: 22px; border: 1px solid var(--control-border); border-radius: 11px; background: var(--bg-canvas); cursor: pointer; position: relative; }
 .builtin-source-row input::before { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-secondary); }
 .builtin-source-row input:checked { background: var(--primary); border-color: var(--primary); }
 .builtin-source-row input:checked::before { transform: translateX(14px); background: white; }
@@ -382,7 +384,9 @@
 .shortcut-settings-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .shortcut-settings-heading h2 { font-size: 17px; letter-spacing: 0; }
 .shortcut-settings-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 28px; margin: 12px 0; }
-.shortcut-settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border-muted); }
+.shortcut-settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 9px 0; border-bottom: 1px solid var(--border-muted); }
+.shortcut-settings-heading { flex-wrap: wrap; }
+.settings-group > .btn { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .shortcut-record { min-width: 76px; font-variant-numeric: tabular-nums; }
 .shortcut-record.is-recording { border-color: var(--accent); color: var(--accent-text); background: var(--accent-soft); }
 .shortcut-error { color: var(--danger); }

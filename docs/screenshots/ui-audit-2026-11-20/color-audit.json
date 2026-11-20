@@ -1,0 +1,3219 @@
+{
+  "generatedAt": "2026-11-20T15:58:10.929Z",
+  "filesScanned": 120,
+  "literalOccurrences": 403,
+  "byCategory": {
+    "A": 135,
+    "B": 166,
+    "C": 102
+  },
+  "categories": {
+    "A": "Central token definitions; component UI colors should refer to semantic tokens.",
+    "B": "Contextual intentional/inherited exception candidates; not evidence of an error.",
+    "C": "Remaining literal requiring contextual review; not automatically a bug.",
+    "D": "Confirmed theme defects are enumerated with before/after evidence in docs/ui-ux-audit-2026-11-20.md, rather than inferred from this lexical scan."
+  },
+  "limitations": "Lexical inventory only. CSS selector context is a best-effort clue. Images, remote official-login pages and OS-owned dialogs are not recolored or certified by this scan.",
+  "occurrences": [
+    {
+      "file": "src/App.jsx",
+      "line": 30,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/App.jsx",
+      "line": 30,
+      "literal": "stroke=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/App.jsx",
+      "line": 36,
+      "literal": "fill=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/App.jsx",
+      "line": 334,
+      "literal": "stroke=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/App.jsx",
+      "line": 340,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/App.jsx",
+      "line": 340,
+      "literal": "stroke=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/AccountManagement.css",
+      "line": 23,
+      "literal": "#fff",
+      "selector": ".account-qr img",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 24,
+      "literal": "#ff304f3d",
+      "selector": ".browse-cat.active",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 34,
+      "literal": "#ff304f14",
+      "selector": ".genre-chip.active",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 62,
+      "literal": "#05060bd9",
+      "selector": ".browse-cover::after",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 64,
+      "literal": "#10131c99",
+      "selector": ":root:not([data-theme=\"dark\"]) .browse-cover::after",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 68,
+      "literal": "#ffffff2b",
+      "selector": ".browse-cover::before",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 77,
+      "literal": "color: white",
+      "selector": ".browse-ep-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 78,
+      "literal": "#0d1017c9",
+      "selector": ".browse-ep-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 86,
+      "literal": "#0d1017d9",
+      "selector": ":root[data-theme=\"dark\"] .browse-rank-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 86,
+      "literal": "#f5f7ff",
+      "selector": ":root[data-theme=\"dark\"] .browse-rank-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 86,
+      "literal": "#ffffff1a",
+      "selector": ":root[data-theme=\"dark\"] .browse-rank-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 96,
+      "literal": "#05060bc0",
+      "selector": ".browse-hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 96,
+      "literal": "#05060b33",
+      "selector": ".browse-hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 102,
+      "literal": "#ff5168",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 102,
+      "literal": "#e02844",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 102,
+      "literal": "color: white",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 104,
+      "literal": "#ff304f66",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 104,
+      "literal": "#ffffff40",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 112,
+      "literal": "#ffffff2b",
+      "selector": ".card-fav-btn",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 112,
+      "literal": "#0d1017b8",
+      "selector": ".card-fav-btn",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 112,
+      "literal": "#f5f7ff",
+      "selector": ".card-fav-btn",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 116,
+      "literal": "#0d1017e0",
+      "selector": ".card-fav-btn:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 117,
+      "literal": "#ff304fe6",
+      "selector": ".card-fav-btn.is-fav",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 117,
+      "literal": "#ff6b8080",
+      "selector": ".card-fav-btn.is-fav",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 117,
+      "literal": "#fff",
+      "selector": ".card-fav-btn.is-fav",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 117,
+      "literal": "#ff304f59",
+      "selector": ".card-fav-btn.is-fav",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 119,
+      "literal": "#ffffffd9",
+      "selector": ":root:not([data-theme=\"dark\"]) .card-fav-btn",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 119,
+      "literal": "#1a1d26",
+      "selector": ":root:not([data-theme=\"dark\"]) .card-fav-btn",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 119,
+      "literal": "#10131c1a",
+      "selector": ":root:not([data-theme=\"dark\"]) .card-fav-btn",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 120,
+      "literal": "#fff",
+      "selector": ":root:not([data-theme=\"dark\"]) .card-fav-btn:hover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 121,
+      "literal": "#e02844",
+      "selector": ":root:not([data-theme=\"dark\"]) .card-fav-btn.is-fav",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 121,
+      "literal": "#fff",
+      "selector": ":root:not([data-theme=\"dark\"]) .card-fav-btn.is-fav",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 188,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ".browse-cover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 193,
+      "literal": "rgba(36, 223, 255, .4)",
+      "selector": ".browse-card:hover .browse-cover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 194,
+      "literal": "rgba(0, 0, 0, .6)",
+      "selector": ".browse-card:hover .browse-cover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 194,
+      "literal": "rgba(36, 223, 255, .22)",
+      "selector": ".browse-card:hover .browse-cover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 194,
+      "literal": "rgba(36, 223, 255, .3)",
+      "selector": ".browse-card:hover .browse-cover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 197,
+      "literal": "rgba(13, 16, 23, .85)",
+      "selector": ".browse-ep-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 198,
+      "literal": "rgba(255, 255, 255, .15)",
+      "selector": ".browse-ep-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 199,
+      "literal": "rgba(0, 0, 0, .5)",
+      "selector": ".browse-ep-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 203,
+      "literal": "rgba(61, 220, 151, .4)",
+      "selector": ".browse-dl-badge",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 207,
+      "literal": "rgba(255, 255, 255, .25)",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Browse.css",
+      "line": 209,
+      "literal": "rgba(255, 255, 255, .35)",
+      "selector": ".browse-hover-play",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 2,
+      "literal": "#fff",
+      "selector": ".comment-danmaku-item",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 2,
+      "literal": "#000",
+      "selector": ".comment-danmaku-item",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 2,
+      "literal": "#000",
+      "selector": ".comment-danmaku-item",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 2,
+      "literal": "#000",
+      "selector": ".comment-danmaku-item",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 9,
+      "literal": "#242424",
+      "selector": ".danmaku-settings-mark",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 10,
+      "literal": "rgba(0, 0, 0, .22)",
+      "selector": ".danmaku-settings",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 27,
+      "literal": "rgba(0, 0, 0, .65)",
+      "selector": ".comment-danmaku-status",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.css",
+      "line": 27,
+      "literal": "#fff",
+      "selector": ".comment-danmaku-status",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/CommentDanmaku.jsx",
+      "line": 159,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/CommentDanmaku.jsx",
+      "line": 159,
+      "literal": "stroke=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/DownloadManager.css",
+      "line": 473,
+      "literal": "rgba(13, 17, 25, .7)",
+      "selector": ":root[data-theme=\"dark\"] .dm-queue-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/DownloadManager.css",
+      "line": 474,
+      "literal": "rgba(36, 223, 255, .2)",
+      "selector": ":root[data-theme=\"dark\"] .dm-queue-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/DownloadManager.css",
+      "line": 476,
+      "literal": "rgba(0, 0, 0, .3)",
+      "selector": ":root[data-theme=\"dark\"] .dm-queue-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/DownloadManager.css",
+      "line": 476,
+      "literal": "rgba(36, 223, 255, .05)",
+      "selector": ":root[data-theme=\"dark\"] .dm-queue-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/DownloadManager.css",
+      "line": 517,
+      "literal": "rgba(var(--accent-rgb, 120, 120, 255)",
+      "selector": ".dm-selection-bar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 87,
+      "literal": "#c0392b",
+      "selector": ".search-more [role=\"alert\"]",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 109,
+      "literal": "rgba(13, 17, 25, .75)",
+      "selector": ":root[data-theme=\"dark\"] .hongguo-card",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 110,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ":root[data-theme=\"dark\"] .hongguo-card",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 113,
+      "literal": "rgba(0, 0, 0, .4)",
+      "selector": ":root[data-theme=\"dark\"] .hongguo-card",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 113,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ":root[data-theme=\"dark\"] .hongguo-card",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 116,
+      "literal": "rgba(255, 255, 255, .04)",
+      "selector": ":root[data-theme=\"dark\"] .mode-tabs",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 117,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ":root[data-theme=\"dark\"] .mode-tabs",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 121,
+      "literal": "rgba(255, 48, 79, .24)",
+      "selector": ":root[data-theme=\"dark\"] .mode-tab.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 121,
+      "literal": "rgba(255, 48, 79, .1)",
+      "selector": ":root[data-theme=\"dark\"] .mode-tab.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 122,
+      "literal": "rgba(255, 48, 79, .3)",
+      "selector": ":root[data-theme=\"dark\"] .mode-tab.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 124,
+      "literal": "rgba(255, 48, 79, .25)",
+      "selector": ":root[data-theme=\"dark\"] .mode-tab.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 127,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ":root[data-theme=\"dark\"] .episode-card",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 128,
+      "literal": "rgba(255, 255, 255, .03)",
+      "selector": ":root[data-theme=\"dark\"] .episode-card",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 132,
+      "literal": "rgba(36, 223, 255, .35)",
+      "selector": ":root[data-theme=\"dark\"] .episode-card:hover:not(:disabled)",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/HongguoDownload.css",
+      "line": 133,
+      "literal": "rgba(36, 223, 255, .15)",
+      "selector": ":root[data-theme=\"dark\"] .episode-card:hover:not(:disabled)",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/icons.jsx",
+      "line": 294,
+      "literal": "fill=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/icons.jsx",
+      "line": 294,
+      "literal": "stroke=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/OfficialDanmaku.jsx",
+      "line": 193,
+      "literal": "#FFFFFF",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PageMenu.jsx",
+      "line": 34,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/PageMenu.jsx",
+      "line": 34,
+      "literal": "stroke=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 267,
+      "literal": "rgba(12, 14, 18, 0.88)",
+      "selector": ".compat-overlay",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 268,
+      "literal": "#e8eaed",
+      "selector": ".compat-overlay",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 280,
+      "literal": "#9aa0aa",
+      "selector": ".compat-overlay-sub",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 290,
+      "literal": "#e8eaed",
+      "selector": ".compat-overlay .btn-outline",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 291,
+      "literal": "rgba(255, 255, 255, 0.32)",
+      "selector": ".compat-overlay .btn-outline",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 295,
+      "literal": "rgba(255, 255, 255, 0.14)",
+      "selector": ".compat-overlay .btn-outline:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 296,
+      "literal": "#fff",
+      "selector": ".compat-overlay .btn-outline:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 378,
+      "literal": "#000",
+      "selector": ".player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 393,
+      "literal": "#000",
+      "selector": ".player-video",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 396,
+      "literal": "#000",
+      "selector": ".player-transition-frame",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 398,
+      "literal": "rgba(0, 0, 0, .8)",
+      "selector": ".player-placeholder.player-placeholder-over-frame",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 399,
+      "literal": "rgba(255, 255, 255, .45)",
+      "selector": ".player-placeholder.player-placeholder-over-frame .btn-outline",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 409,
+      "literal": "#c9ccd1",
+      "selector": ".player-placeholder",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 410,
+      "literal": "#20211f",
+      "selector": ".player-placeholder",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 422,
+      "literal": "#8a8f99",
+      "selector": ".player-placeholder-sub",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 427,
+      "literal": "#e8eaed",
+      "selector": ".player-placeholder .btn-outline",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 428,
+      "literal": "rgba(255, 255, 255, 0.32)",
+      "selector": ".player-placeholder .btn-outline",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 432,
+      "literal": "rgba(255, 255, 255, 0.14)",
+      "selector": ".player-placeholder .btn-outline:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 433,
+      "literal": "#ffffff",
+      "selector": ".player-placeholder .btn-outline:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 434,
+      "literal": "rgba(255, 255, 255, 0.55)",
+      "selector": ".player-placeholder .btn-outline:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 441,
+      "literal": "rgba(255, 255, 255, 0.16)",
+      "selector": ".player-wait-bar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 612,
+      "literal": "#191a18",
+      "selector": ".player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 614,
+      "literal": "#858781",
+      "selector": ".player-placeholder > svg",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 616,
+      "literal": "#b5b6b0",
+      "selector": ".player-placeholder-sub, .compat-overlay-sub",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 709,
+      "literal": "rgba(20, 20, 20, .68)",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 710,
+      "literal": "#fff",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 761,
+      "literal": "#191a1d",
+      "selector": ".player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 762,
+      "literal": "#00000014",
+      "selector": ".player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 765,
+      "literal": "#ffffff0a",
+      "selector": ":root[data-theme=\"dark\"] .player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 805,
+      "literal": "rgba(255, 255, 255, .1)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 806,
+      "literal": "rgba(0, 0, 0, .8)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 806,
+      "literal": "rgba(36, 223, 255, .08)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 806,
+      "literal": "rgba(255, 255, 255, .12)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 810,
+      "literal": "rgba(36, 223, 255, .25)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage:hover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 811,
+      "literal": "rgba(0, 0, 0, .85)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage:hover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 811,
+      "literal": "rgba(36, 223, 255, .15)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage:hover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 811,
+      "literal": "rgba(36, 223, 255, .2)",
+      "selector": ":root[data-theme=\"dark\"] .player-stage:hover",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 814,
+      "literal": "rgba(13, 16, 23, .85)",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 815,
+      "literal": "rgba(36, 223, 255, .35)",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 816,
+      "literal": "rgba(0, 0, 0, .6)",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 816,
+      "literal": "rgba(36, 223, 255, .25)",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Player.css",
+      "line": 817,
+      "literal": "#24dfff",
+      "selector": ".player-rate-notice",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 6,
+      "literal": "#fff",
+      "selector": ".player-controls",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 13,
+      "literal": "rgba(0, 0, 0, .84)",
+      "selector": ".player-controls-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 20,
+      "literal": "rgba(255, 255, 255, .16)",
+      "selector": ".player-controls button:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 22,
+      "literal": "#fff",
+      "selector": ".player-controls button:focus-visible, .player-controls input:focus-visible",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 31,
+      "literal": "rgba(0, 0, 0, .22)",
+      "selector": ".player-controls-menu",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 36,
+      "literal": "#000",
+      "selector": ".player-stage:fullscreen",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 46,
+      "literal": "rgba(0, 0, 0, .78)",
+      "selector": ".player-now-playing",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 46,
+      "literal": "#000",
+      "selector": ".player-now-playing",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 50,
+      "literal": "rgba(255, 255, 255, .82)",
+      "selector": ".player-now-meta",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 54,
+      "literal": "rgba(255, 255, 255, .18)",
+      "selector": ".player-controls-selection > button[aria-expanded=\"true\"]",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 94,
+      "literal": "rgba(8, 10, 16, .75)",
+      "selector": ".player-controls-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 94,
+      "literal": "rgba(4, 6, 12, .96)",
+      "selector": ".player-controls-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.css",
+      "line": 97,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ".player-controls-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/PlayerControls.jsx",
+      "line": 13,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/PlayerControls.jsx",
+      "line": 13,
+      "literal": "stroke=\"currentColor\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/RandomDrama.jsx",
+      "line": 26,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/RandomDrama.jsx",
+      "line": 28,
+      "literal": "fill=\"white\"",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/RandomDrama.jsx",
+      "line": 29,
+      "literal": "fill=\"none\"",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/components/Settings.css",
+      "line": 124,
+      "literal": "rgba(16, 185, 129, 0.18)",
+      "selector": ".proxy-dot-on",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Settings.css",
+      "line": 129,
+      "literal": "rgba(138, 143, 153, 0.15)",
+      "selector": ".proxy-dot-off",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Settings.css",
+      "line": 380,
+      "literal": "background: white",
+      "selector": ".builtin-source-row input:checked::before",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/Settings.css",
+      "line": 495,
+      "literal": "rgba(var(--accent-rgb, 120, 120, 255)",
+      "selector": ".settings-quicknav-item.active",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 8,
+      "literal": "#0a0d16",
+      "selector": ".splash-screen",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 8,
+      "literal": "#05060b",
+      "selector": ".splash-screen",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 8,
+      "literal": "#030408",
+      "selector": ".splash-screen",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 9,
+      "literal": "#f5f7ff",
+      "selector": ".splash-screen",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 17,
+      "literal": "#8995aa",
+      "selector": ".splash-particles span",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 20,
+      "literal": "#24dfff",
+      "selector": ".splash-particles span:nth-child(3n)",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 21,
+      "literal": "#ff304f",
+      "selector": ".splash-particles span:nth-child(4n)",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 24,
+      "literal": "#24dfff0d",
+      "selector": ".splash-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 24,
+      "literal": "#24dfff0d",
+      "selector": ".splash-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 26,
+      "literal": "#000",
+      "selector": ".splash-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 27,
+      "literal": "#000",
+      "selector": ".splash-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 36,
+      "literal": "#ff304f",
+      "selector": ".splash-lines i",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 52,
+      "literal": "#ff304f66",
+      "selector": ".splash-core-glow",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 52,
+      "literal": "#ff304f22",
+      "selector": ".splash-core-glow",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 58,
+      "literal": "#ff304f33",
+      "selector": ".splash-orbit",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 63,
+      "literal": "#24dfff",
+      "selector": ".splash-orbit::after",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 63,
+      "literal": "#24dfff",
+      "selector": ".splash-orbit::after",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 65,
+      "literal": "#24dfff2b",
+      "selector": ".splash-orbit.inner",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 66,
+      "literal": "#ff304f",
+      "selector": ".splash-orbit.inner::after",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 66,
+      "literal": "#ff304f",
+      "selector": ".splash-orbit.inner::after",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 77,
+      "literal": "#ff4a63",
+      "selector": ".splash-logo-mark",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 77,
+      "literal": "#c81b36",
+      "selector": ".splash-logo-mark",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 78,
+      "literal": "#ff304f73",
+      "selector": ".splash-logo-mark",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 78,
+      "literal": "#ffffff4d",
+      "selector": ".splash-logo-mark",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 81,
+      "literal": "#fff",
+      "selector": ".splash-logo-mark svg",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 84,
+      "literal": "#24dfff3d",
+      "selector": ".splash-scanline",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 85,
+      "literal": "#000",
+      "selector": ".splash-scanline",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 86,
+      "literal": "#000",
+      "selector": ".splash-scanline",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 90,
+      "literal": "#ff6b80",
+      "selector": ".splash-title-en",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 98,
+      "literal": "#8995aa",
+      "selector": ".splash-boot-status",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 99,
+      "literal": "#24dfff",
+      "selector": ".splash-boot-status b",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 100,
+      "literal": "#ffffff12",
+      "selector": ".splash-boot-bar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 103,
+      "literal": "#ff304f",
+      "selector": ".splash-boot-fill",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 103,
+      "literal": "#8b5cff",
+      "selector": ".splash-boot-fill",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 103,
+      "literal": "#24dfff",
+      "selector": ".splash-boot-fill",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 104,
+      "literal": "#ff304f66",
+      "selector": ".splash-boot-fill",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 107,
+      "literal": "#5f6b81",
+      "selector": ".splash-boot-steps",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 109,
+      "literal": "#3ddc97",
+      "selector": ".splash-boot-steps span.done",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 110,
+      "literal": "#f5f7ff",
+      "selector": ".splash-boot-steps span.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/splash.css",
+      "line": 111,
+      "literal": "#ffc24b",
+      "selector": ".splash-boot-steps span.skip",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 14,
+      "literal": "rgba(255, 255, 255, .05)",
+      "selector": ".titlebar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 14,
+      "literal": "rgba(255, 255, 255, 0)",
+      "selector": ".titlebar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 40,
+      "literal": "rgba(255, 255, 255, .05)",
+      "selector": ".titlebar::after",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 70,
+      "literal": "rgba(224, 40, 68, .38)",
+      "selector": ".titlebar-logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 145,
+      "literal": "#fff",
+      "selector": ".titlebar-close:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 146,
+      "literal": "rgba(255, 255, 255, .12)",
+      "selector": ".titlebar-close:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/TitleBar.css",
+      "line": 152,
+      "literal": "#fff",
+      "selector": ".titlebar-close:active",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/components/useFloatingPlayer.js",
+      "line": 86,
+      "literal": "#000",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 11,
+      "literal": "#f4f5f8",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 11,
+      "literal": "#eceef2",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 11,
+      "literal": "#e2e5eb",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 12,
+      "literal": "#e02844",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 12,
+      "literal": "#c31f38",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 12,
+      "literal": "#e02844",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 12,
+      "literal": "#c31f38",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 12,
+      "literal": "#fde8eb",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 13,
+      "literal": "#1a1d26",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 13,
+      "literal": "#1a1d26",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 13,
+      "literal": "#5a6172",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 13,
+      "literal": "#5a6172",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 13,
+      "literal": "#636a78",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 13,
+      "literal": "#636a78",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 14,
+      "literal": "#b51f38",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 14,
+      "literal": "#981a30",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 14,
+      "literal": "#ffffff",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 14,
+      "literal": "#858c99",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 15,
+      "literal": "#fff",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 15,
+      "literal": "#f4f5f8",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 15,
+      "literal": "#fff",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 15,
+      "literal": "#eceef2",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 15,
+      "literal": "#fff",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 15,
+      "literal": "#eceef2",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 16,
+      "literal": "#e9ebf0",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 16,
+      "literal": "#fff",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 17,
+      "literal": "#dfe2e9",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 17,
+      "literal": "#dfe2e9",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 17,
+      "literal": "#e8eaf0",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 17,
+      "literal": "#c3c8d4",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 18,
+      "literal": "#1f7a56",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 18,
+      "literal": "#bf293d",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 18,
+      "literal": "#885d0c",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 18,
+      "literal": "#17569d",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 19,
+      "literal": "#c31f38",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 19,
+      "literal": "#f2b7c0",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 19,
+      "literal": "#f9e3e6",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 20,
+      "literal": "#fde8eb",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 20,
+      "literal": "#f2b7c0",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 20,
+      "literal": "#cc2f43",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 20,
+      "literal": "#b02638",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 21,
+      "literal": "#e3f3ec",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 21,
+      "literal": "#bcdccc",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 21,
+      "literal": "#1f7a56",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 22,
+      "literal": "#ffffff",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 23,
+      "literal": "#23262e",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 24,
+      "literal": "#b51f38",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 24,
+      "literal": "#e0284425",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 24,
+      "literal": "#f6ccd3",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 25,
+      "literal": "#10131c40",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 25,
+      "literal": "#10131c66",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 25,
+      "literal": "#e8eaf0",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 25,
+      "literal": "#c3c8d4",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 27,
+      "literal": "#0f9fc0",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 27,
+      "literal": "#6b46d9",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 27,
+      "literal": "#e0f6fb",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 27,
+      "literal": "#ede8fc",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 37,
+      "literal": "#10131c0a",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 38,
+      "literal": "#10131c14",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 39,
+      "literal": "#10131c2e",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 40,
+      "literal": "#10131c0d",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 40,
+      "literal": "#10131c12",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 41,
+      "literal": "#10131c14",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 41,
+      "literal": "#10131c1f",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 42,
+      "literal": "#e0284433",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 42,
+      "literal": "#e0284430",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 44,
+      "literal": "#ffffffd9",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 44,
+      "literal": "#ffffff99",
+      "selector": ":root",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 59,
+      "literal": "#080a10",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 59,
+      "literal": "#080a10",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 60,
+      "literal": "#0d1017",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 60,
+      "literal": "#1c2534",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 60,
+      "literal": "#2a1218",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 61,
+      "literal": "#ff304f",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 61,
+      "literal": "#ff5168",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 61,
+      "literal": "#ff304f",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 61,
+      "literal": "#ff5168",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 62,
+      "literal": "#ff304f16",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 62,
+      "literal": "#ff6b80",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 62,
+      "literal": "#ff304f45",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 63,
+      "literal": "#f5f7ff",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 63,
+      "literal": "#f5f7ff",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 63,
+      "literal": "#a5afc1",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 63,
+      "literal": "#a5afc1",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 63,
+      "literal": "#8e9bb2",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 63,
+      "literal": "#8e9bb2",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 64,
+      "literal": "#bd203b",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 64,
+      "literal": "#a31b34",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 64,
+      "literal": "#ffffff",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 64,
+      "literal": "#6c7890",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 65,
+      "literal": "#151b27",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 65,
+      "literal": "#10141e",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 65,
+      "literal": "#10141e",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 65,
+      "literal": "#1c2534",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 65,
+      "literal": "#0d1017",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 66,
+      "literal": "#151b27",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 66,
+      "literal": "#1c2534",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 66,
+      "literal": "#0d1119",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 67,
+      "literal": "#232b3b",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 67,
+      "literal": "#232b3b",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 67,
+      "literal": "#1a2130",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 67,
+      "literal": "#3a4559",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 68,
+      "literal": "#3ddc97",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 68,
+      "literal": "#ff5c6c",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 68,
+      "literal": "#ffc24b",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 68,
+      "literal": "#8bc7ff",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 69,
+      "literal": "#ff304f14",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 69,
+      "literal": "#ff304f3d",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 69,
+      "literal": "#e02844",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 69,
+      "literal": "#c31f38",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 70,
+      "literal": "#3ddc9714",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 70,
+      "literal": "#3ddc9738",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 72,
+      "literal": "#ff6b80",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 72,
+      "literal": "#ff304f30",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 72,
+      "literal": "#ff304f44",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 73,
+      "literal": "#04060cb8",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 73,
+      "literal": "#04060ce0",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 73,
+      "literal": "#1a2130",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 73,
+      "literal": "#333e52",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 74,
+      "literal": "#24dfff",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 74,
+      "literal": "#8b5cff",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 74,
+      "literal": "#24dfff1a",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 74,
+      "literal": "#8b5cff1a",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 75,
+      "literal": "#00000042",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 76,
+      "literal": "#00000059",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 77,
+      "literal": "#0000008c",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 78,
+      "literal": "#00000059",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 78,
+      "literal": "#00000047",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 79,
+      "literal": "#00000066",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 79,
+      "literal": "#00000073",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 79,
+      "literal": "#ff304f2e",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 80,
+      "literal": "#ff304f52",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 80,
+      "literal": "#ff304f45",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 81,
+      "literal": "#10141ec2",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 81,
+      "literal": "#ffffff14",
+      "selector": ":root[data-theme=\"dark\"]",
+      "category": "A",
+      "reason": "Central design-token definition, not a component bypass."
+    },
+    {
+      "file": "src/index.css",
+      "line": 119,
+      "literal": "#000",
+      "selector": ".cyber-loader",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 120,
+      "literal": "#000",
+      "selector": ".cyber-loader",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 135,
+      "literal": "#24dfff0a",
+      "selector": ":root[data-theme=\"dark\"] .sidebar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 142,
+      "literal": "#ff4a63",
+      "selector": ".logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 142,
+      "literal": "#d61f3c",
+      "selector": ".logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 143,
+      "literal": "color: white",
+      "selector": ".logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 144,
+      "literal": "#ff304f55",
+      "selector": ".logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 144,
+      "literal": "#ffffff3d",
+      "selector": ".logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 146,
+      "literal": "#e0284440",
+      "selector": ":root:not([data-theme=\"dark\"]) .logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 146,
+      "literal": "#ffffff3d",
+      "selector": ":root:not([data-theme=\"dark\"]) .logo",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 160,
+      "literal": "#ffffff0a",
+      "selector": ".sidebar-item:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 166,
+      "literal": "#ff304faa",
+      "selector": ".sidebar-item.active::before",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 246,
+      "literal": "#ffffff2b",
+      "selector": ".btn-primary, .btn-chip-primary",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 248,
+      "literal": "#e0284433",
+      "selector": ":root:not([data-theme=\"dark\"]) .btn-primary, :root:not([data-theme=\"dark\"]) .btn-chip-primary",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 285,
+      "literal": "fill='none'",
+      "selector": "select.input-field, select.history-scope, .release-month select, .merge-select, select.toolbar-page-trigger",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/index.css",
+      "line": 291,
+      "literal": "fill='none'",
+      "selector": ":root:not([data-theme=\"dark\"]) select.input-field",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/index.css",
+      "line": 398,
+      "literal": "#24dfff07",
+      "selector": ".cyber-backdrop-grid",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 399,
+      "literal": "#24dfff07",
+      "selector": ".cyber-backdrop-grid",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 401,
+      "literal": "#000",
+      "selector": ".cyber-backdrop-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 402,
+      "literal": "#000",
+      "selector": ".cyber-backdrop-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 404,
+      "literal": "#0f9fc010",
+      "selector": ":root:not([data-theme=\"dark\"]) .cyber-backdrop-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 404,
+      "literal": "#0f9fc010",
+      "selector": ":root:not([data-theme=\"dark\"]) .cyber-backdrop-grid",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 406,
+      "literal": "#ff304f26",
+      "selector": ".cyber-backdrop-glow.red",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 407,
+      "literal": "#24dfff17",
+      "selector": ".cyber-backdrop-glow.blue",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 408,
+      "literal": "#8b5cff14",
+      "selector": ".cyber-backdrop-glow.violet",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 415,
+      "literal": "#8995aa",
+      "selector": ".cyber-backdrop-dust span",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 417,
+      "literal": "#24dfff",
+      "selector": ".cyber-backdrop-dust span:nth-child(3n)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 418,
+      "literal": "#ff304f",
+      "selector": ".cyber-backdrop-dust span:nth-child(4n)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 610,
+      "literal": "rgba(255, 48, 79, .18)",
+      "selector": ".titlebar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 611,
+      "literal": "rgba(0, 0, 0, .45)",
+      "selector": ".titlebar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 611,
+      "literal": "rgba(36, 223, 255, .08)",
+      "selector": ".titlebar",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 617,
+      "literal": "rgba(36, 223, 255, .3)",
+      "selector": ":root[data-theme=\"dark\"] .titlebar::before",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 617,
+      "literal": "rgba(255, 48, 79, .6)",
+      "selector": ":root[data-theme=\"dark\"] .titlebar::before",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 617,
+      "literal": "rgba(139, 92, 255, .35)",
+      "selector": ":root[data-theme=\"dark\"] .titlebar::before",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 624,
+      "literal": "rgba(255, 255, 255, .06)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 625,
+      "literal": "rgba(13, 16, 23, .88)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 625,
+      "literal": "rgba(8, 10, 16, .95)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 626,
+      "literal": "rgba(36, 223, 255, .06)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 626,
+      "literal": "rgba(0, 0, 0, .35)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 638,
+      "literal": "rgba(255, 255, 255, .04)",
+      "selector": ".sidebar-item::after",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 647,
+      "literal": "rgba(255, 48, 79, .16)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 647,
+      "literal": "rgba(255, 48, 79, .03)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 648,
+      "literal": "rgba(255, 48, 79, .28)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 649,
+      "literal": "rgba(255, 48, 79, .15)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 649,
+      "literal": "rgba(255, 48, 79, .08)",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 652,
+      "literal": "#ff304f",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active::before",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 652,
+      "literal": "#ff304f88",
+      "selector": ":root[data-theme=\"dark\"] .sidebar-item.active::before",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 662,
+      "literal": "rgba(255, 255, 255, .15)",
+      "selector": ".btn-primary, .btn-chip-primary",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 668,
+      "literal": "rgba(255, 255, 255, .18)",
+      "selector": ".btn-primary::before, .btn-chip-primary::before",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 681,
+      "literal": "rgba(13, 17, 25, .75)",
+      "selector": ":root[data-theme=\"dark\"] .input-field",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 690,
+      "literal": "#ff304f",
+      "selector": ":root[data-theme=\"dark\"] .input-field:focus",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 691,
+      "literal": "rgba(16, 21, 32, .9)",
+      "selector": ":root[data-theme=\"dark\"] .input-field:focus",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 692,
+      "literal": "rgba(255, 48, 79, .22)",
+      "selector": ":root[data-theme=\"dark\"] .input-field:focus",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 692,
+      "literal": "rgba(255, 48, 79, .18)",
+      "selector": ":root[data-theme=\"dark\"] .input-field:focus",
+      "category": "B",
+      "reason": "Contextual exception candidate: media contrast, artwork, mask, or explicitly dark-scoped decoration."
+    },
+    {
+      "file": "src/index.css",
+      "line": 698,
+      "literal": "rgba(13, 17, 25, .6)",
+      "selector": ".toolbar-search",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 699,
+      "literal": "rgba(255, 255, 255, .1)",
+      "selector": ".toolbar-search",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 700,
+      "literal": "rgba(0, 0, 0, .4)",
+      "selector": ".toolbar-search",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 703,
+      "literal": "rgba(36, 223, 255, .4)",
+      "selector": ".toolbar-search:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 704,
+      "literal": "rgba(36, 223, 255, .15)",
+      "selector": ".toolbar-search:hover",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 713,
+      "literal": "rgba(255, 255, 255, .06)",
+      "selector": ".toolbar-search kbd",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 714,
+      "literal": "rgba(255, 255, 255, .12)",
+      "selector": ".toolbar-search kbd",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 716,
+      "literal": "rgba(0, 0, 0, .3)",
+      "selector": ".toolbar-search kbd",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 730,
+      "literal": "rgba(255, 255, 255, .03)",
+      "selector": ".ep-chip",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 731,
+      "literal": "rgba(255, 255, 255, .08)",
+      "selector": ".ep-chip",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 736,
+      "literal": "rgba(36, 223, 255, .45)",
+      "selector": ".ep-chip:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 737,
+      "literal": "rgba(36, 223, 255, .18)",
+      "selector": ".ep-chip:hover:not(:disabled)",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/index.css",
+      "line": 828,
+      "literal": "fill='none'",
+      "selector": ":root:not([data-theme=\"dark\"]) .release-month select",
+      "category": "B",
+      "reason": "Theme-inherited SVG paint or explicitly absent paint."
+    },
+    {
+      "file": "src/native/danmaku.js",
+      "line": 149,
+      "literal": "#FFFFFF",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/native/danmaku.js",
+      "line": 154,
+      "literal": "#FFFFFF",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/native/danmaku.js",
+      "line": 157,
+      "literal": "#FFFFFF",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "src/native/danmaku.js",
+      "line": 161,
+      "literal": "#FFFFFF",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    },
+    {
+      "file": "main.js",
+      "line": 5567,
+      "literal": "#f5f6fa",
+      "category": "C",
+      "reason": "Review in context; a literal alone is not a confirmed theme defect."
+    }
+  ]
+}

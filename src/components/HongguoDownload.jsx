@@ -98,6 +98,17 @@ function HongguoDownload({ onNavigate, active = true, seedTerm = '' }) {
     setTab(next);
   };
 
+  const handleModeKeyDown = event => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const modes = ['search', 'input'];
+    const index = modes.indexOf(tab);
+    const nextIndex = { ArrowRight: (index + 1) % modes.length, ArrowLeft: (index + modes.length - 1) % modes.length, Home: 0, End: modes.length - 1 }[event.key];
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    switchTab(modes[nextIndex]);
+    event.currentTarget.querySelectorAll('[role="tab"]')[nextIndex]?.focus();
+  };
+
   // 搜索选中一部剧后：复用既有的选集下载界面
   const handleSeriesFromSearch = (data) => {
     if (searchVersion !== resolveRequest.current) return;
@@ -326,8 +337,9 @@ const handleSeasonPick = async (season) => {
       </div>
 
       {/* 方式切换 */}
-      <div className="mode-tabs">
+      <div className="mode-tabs" role="tablist" aria-label="搜索与下载方式" onKeyDown={handleModeKeyDown}>
         <button
+          id="hongguo-search-tab" type="button" role="tab" aria-selected={tab === 'search'} aria-controls="hongguo-search-panel" tabIndex={tab === 'search' ? 0 : -1}
           className={`mode-tab ${tab === 'search' ? 'active' : ''}`}
           onClick={() => switchTab('search')}
         >
@@ -335,6 +347,7 @@ const handleSeasonPick = async (season) => {
           <span>搜索剧集</span>
         </button>
         <button
+          id="hongguo-input-tab" type="button" role="tab" aria-selected={tab === 'input'} aria-controls="hongguo-input-panel" tabIndex={tab === 'input' ? 0 : -1}
           className={`mode-tab ${tab === 'input' ? 'active' : ''}`}
           onClick={() => switchTab('input')}
         >
@@ -343,7 +356,7 @@ const handleSeasonPick = async (season) => {
         </button>
       </div>
 
-      <div hidden={tab !== 'search'}>
+      <div id="hongguo-search-panel" role="tabpanel" aria-labelledby="hongguo-search-tab" hidden={tab !== 'search'}>
         <SearchPanel
           active={active && tab === 'search'}
           onSelectSeries={handleSeriesFromSearch}
@@ -351,9 +364,8 @@ const handleSeasonPick = async (season) => {
           seedTerm={seedTerm}
         />
       </div>
-      {tab === 'input' && (
-        /* 解析输入卡片 */
-        <div className="hongguo-card">
+      {/* 解析输入卡片 */}
+      <div id="hongguo-input-panel" role="tabpanel" aria-labelledby="hongguo-input-tab" hidden={tab !== 'input'} className="hongguo-card">
           <div className="card-header-title">
             <Link2 size={18} />
             <span>输入短剧链接或 ID</span>
@@ -396,8 +408,7 @@ const handleSeasonPick = async (season) => {
 
           {errorMsg && <div className="alert alert-error" role="alert">{errorMsg}</div>}
           {successMsg && <div className="alert alert-success" role="status">{successMsg}</div>}
-        </div>
-      )}
+      </div>
 
       {/* 搜索模式下的提示信息（解析卡片被替换了，这里单独显示） */}
       {tab === 'search' && (errorMsg || successMsg) && (

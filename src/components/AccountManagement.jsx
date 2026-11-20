@@ -153,6 +153,17 @@ export default function AccountManagement({ active = true }) {
     setError(''); setStatus('');
   };
 
+  const handleSourceKeyDown = event => {
+    if (busy || event.altKey || event.ctrlKey || event.metaKey) return;
+    const sources = ['hongguo', 'hema'];
+    const index = sources.indexOf(source);
+    const nextIndex = { ArrowRight: (index + 1) % sources.length, ArrowLeft: (index + sources.length - 1) % sources.length, Home: 0, End: sources.length - 1 }[event.key];
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    selectSource(sources[nextIndex]);
+    event.currentTarget.querySelectorAll('[role="tab"]')[nextIndex]?.focus();
+  };
+
   useEffect(() => {
     if (active) load();
     return () => { request.current++; historyRequest.current++; };
@@ -170,19 +181,19 @@ export default function AccountManagement({ active = true }) {
       <User size={22} />
       <div><h2>登录账号</h2><p>分别管理红果与河马短剧账号；登录状态不会替代来源平台的会员或解锁权益。</p></div>
     </div>
-    <div className="account-source-tabs" role="tablist" aria-label="账号来源">
-      <button type="button" role="tab" aria-selected={source === 'hongguo'} aria-controls="hongguo-account-panel"
+    <div className="account-source-tabs" role="tablist" aria-label="账号来源" onKeyDown={handleSourceKeyDown}>
+      <button id="hongguo-account-tab" type="button" role="tab" aria-selected={source === 'hongguo'} aria-controls="hongguo-account-panel" tabIndex={source === 'hongguo' ? 0 : -1}
         className={`account-source-tab ${source === 'hongguo' ? 'is-active' : ''}`} disabled={busy} onClick={() => selectSource('hongguo')}>
         <User size={16} />红果账号
       </button>
-      <button type="button" role="tab" aria-selected={source === 'hema'} aria-controls="hema-account-panel"
+      <button id="hema-account-tab" type="button" role="tab" aria-selected={source === 'hema'} aria-controls="hema-account-panel" tabIndex={source === 'hema' ? 0 : -1}
         className={`account-source-tab ${source === 'hema' ? 'is-active' : ''}`} disabled={busy} onClick={() => selectSource('hema')}>
         <Film size={16} />河马账号
       </button>
     </div>
-    {source === 'hongguo' ? <>
+    <div id="hongguo-account-panel" role="tabpanel" aria-labelledby="hongguo-account-tab" hidden={source !== 'hongguo'}>
       {!account && <div className="account-web-login"><button className="btn btn-outline" disabled={busy} onClick={async () => { try { const result = await window.electronAPI.openAccountWebLogin(); if (!result?.success) throw new Error(result?.error || '打开官网登录失败'); } catch(e) { setError(e.message); } }}>使用官网登录</button><p>手机提示二维码无效时，可打开官网并使用官网当前提供的登录方式。</p></div>}
-    <section id="hongguo-account-panel" className="account-card" role="tabpanel" aria-label="红果账号状态">
+    <section className="account-card">
       {account ? <>
         <div className="account-identity">
           <span className="account-avatar"><User size={24} /></span>
@@ -235,7 +246,8 @@ export default function AccountManagement({ active = true }) {
       {status && <p className="account-page-status" role="status">{status}</p>}
       {error && <div className="history-error" role="alert"><span>{error}</span></div>}
     </section>
-    </> : <section id="hema-account-panel" className="account-card hema-account-card" role="tabpanel" aria-label="河马账号状态">
+    </div>
+    <section id="hema-account-panel" className="account-card hema-account-card" role="tabpanel" aria-labelledby="hema-account-tab" hidden={source !== 'hema'}>
       <div className="account-provider-heading">
         <span className="account-provider-icon"><Film size={22} /></span>
         <div><h3>河马账号</h3><p>官方账号与看点、VIP 等来源权益分开管理。</p></div>
@@ -255,6 +267,6 @@ export default function AccountManagement({ active = true }) {
       </div>
       {status && <p className="account-page-status" role="status">{status}</p>}
       {error && <div className="history-error" role="alert"><span>{error}</span></div>}
-    </section>}
+    </section>
   </div>;
 }

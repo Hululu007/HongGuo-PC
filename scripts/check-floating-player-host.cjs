@@ -11,6 +11,13 @@ function node() {
   }, cloneNode() { return node(); }, setAttribute() {} };
 }
 const document = { createElement: node, querySelectorAll: () => [], documentElement: { dataset: { theme: 'dark' } } };
+const mutationObservers = [];
+class FakeMutationObserver {
+  constructor(callback) { this.callback = callback; this.connected = false; mutationObservers.push(this); }
+  observe(target, options) { this.target = target; this.options = options; this.connected = true; }
+  disconnect() { this.connected = false; }
+  trigger() { if (this.connected) this.callback(); }
+}
 const slots = [], effects = [], cleanups = [], setups = [], changes = [];
 let cursor = 0, child, blocked = false, title = '真实剧名 · 第 1 集', api;
 const react = {
@@ -34,7 +41,7 @@ const window = { open(url, name) {
 const file = path.resolve(__dirname, '../src/components/useFloatingPlayer.js');
 const moduleFixture = { exports: {} };
 vm.runInNewContext(transformSync(fs.readFileSync(file, 'utf8'), { format: 'cjs' }).code,
-  { module: moduleFixture, exports: moduleFixture.exports, require: name => { assert.equal(name, 'react'); return react; }, document, window });
+  { module: moduleFixture, exports: moduleFixture.exports, require: name => { assert.equal(name, 'react'); return react; }, document, window, MutationObserver: FakeMutationObserver });
 const onChange = value => changes.push(value);
 const render = () => { cursor = 0; api = moduleFixture.exports.default(title, onChange); effects.splice(0).forEach(fn => fn()); };
 render();
@@ -54,6 +61,21 @@ assert.equal(api.floating, true);
 assert.equal(api.host.parentNode, child.document.body);
 assert.equal(api.host.children[0], mediaIdentity, 'moving to a floating window must retain the same media node');
 assert.equal(child.document.title, title);
+assert.equal(child.document.documentElement.dataset.theme, 'dark', 'new floating window must inherit the current theme');
+const appearanceObserver = mutationObservers.at(-1);
+assert.equal(appearanceObserver.connected, true);
+assert.equal(appearanceObserver.target, document.documentElement);
+assert.equal(appearanceObserver.options.attributeFilter.join(','), 'data-theme,data-poster-size');
+document.documentElement.dataset.theme = 'light';
+document.documentElement.dataset.posterSize = 'large';
+appearanceObserver.trigger();
+assert.equal(child.document.documentElement.dataset.theme, 'light', 'theme changes must reach an open floating window');
+assert.equal(child.document.documentElement.dataset.posterSize, 'large', 'appearance attributes must stay synchronized');
+document.documentElement.dataset.theme = 'dark';
+delete document.documentElement.dataset.posterSize;
+appearanceObserver.trigger();
+assert.equal(child.document.documentElement.dataset.theme, 'dark');
+assert.equal('posterSize' in child.document.documentElement.dataset, false, 'removed appearance preferences must also be cleared');
 assert.equal(mediaIdentity.currentTime, 24, 'entering must retain playback position');
 assert.equal(mediaIdentity.muted, true);
 assert.equal(mediaIdentity.playbackRate, 1.5);
@@ -62,6 +84,7 @@ mediaIdentity.paused = true;
 title = '真实剧名 · 第 2 集'; render();
 assert.equal(child.document.title, title, 'the native title must follow automatic episode changes');
 child.close(); render();
+assert.equal(appearanceObserver.connected, false, 'closing the floating window must stop theme observation');
 assert.equal(api.floating, false);
 assert.equal(api.host.parentNode, slot);
 assert.equal(api.host.children[0], mediaIdentity);
@@ -73,6 +96,10 @@ assert.deepEqual(changes, [true, false]);
 blocked = true;
 assert.throws(() => api.toggle(), /悬浮/);
 assert.equal(api.host.parentNode, slot, 'a blocked popup must leave the current player in place');
-blocked = false; api.toggle(); render(); cleanups.forEach(fn => fn?.());
+blocked = false; api.toggle(); render();
+const unmountObserver = mutationObservers.at(-1);
+assert.equal(unmountObserver.connected, true);
+cleanups.forEach(fn => fn?.());
+assert.equal(unmountObserver.connected, false, 'unmount must stop theme observation');
 assert.equal(child.closed, true, 'unmount must close the owned window');
-console.log('PASS floating host: one media node, dynamic title, close restoration, blocked popup, and unmount cleanup');
+console.log('PASS floating host: one media node, live theme/poster sync, dynamic title, close restoration, blocked popup, and observer cleanup');
