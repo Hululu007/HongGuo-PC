@@ -1,0 +1,104 @@
+{
+  "mode": "after",
+  "startedAt": "2026-11-20T21:57:46.716Z",
+  "note": "Electron child-process acceptance driver from the 2026-11-21 05:57 local Windows run. No media playback or downloads were initiated."
+  "app": {
+    "platform": "win32",
+    "electron": "44.9.1",
+    "chrome": "152.0.7977.167"
+  },
+  "isolation": {
+    "freshUserDataDir": true,
+    "dataFileSettingsRootIndependent": true,
+    "appUpdatesDisabled": true,
+    "audioMuted": true,
+    "autoplayRequiresUserGesture": true,
+    "mediaPlaybackActions": 0,
+    "downloadActions": 0,
+    "dataFileRootWithinTempProfile": true,
+    "dataFileSettings": {
+      "independentDownloadRoot": true,
+      "appUpdatesEnabled": false,
+      "watchUpdatesEnabled": false
+    },
+    "webContentsAudioMuted": true,
+    "mediaStartedEvents": 0
+  },
+  "renderer": {
+    "url": "file:///[isolated-build]/dist-react/index.html",
+    "title": "红果短剧",
+    "appShell": true,
+    "muted": true,
+    "isDistReactFile": true
+  },
+  "display": {
+    "bounds": {
+      "x": 0,
+      "y": 0,
+      "width": 2048,
+      "height": 1280
+    },
+    "workArea": {
+      "x": 0,
+      "y": 0,
+      "width": 2048,
+      "height": 1232
+    },
+    "scaleFactor": 1.25,
+    "colorDepth": 24
+  },
+  "themeChecks": [],
+  "pages": [],
+  "responsiveMatrix": [],
+  "extendedMatrix": [],
+  "collapsedNavigation": [],
+  "paletteChecks": [],
+  "optionalScreens": [
+    {
+      "kind": "settings-proxy",
+      "theme": "light",
+      "opened": true,
+      "tabStayedInside": true,
+      "escapeClosed": true,
+      "focusRestored": true,
+      "screenshot": "docs/screenshots/settings-search-6.21/light-settings-proxy.png",
+      "initialFocusInside": true,
+      "text": "网络代理设置\n启用代理\n关闭时代理不生效，所有请求直连\n代理模式\n跟随系统\n接口与下载读取启动环境代理；发现页等浏览器请求使用系统代理\n手动指定\n填写 HTTP/HTTPS 代理地址与端口，忽略环境变量中的绕过规则（NO_PROXY）\n强制直连\n忽略一切代理，直接连接\n\n测试仅检查接口与下载访问百度的连接，不代表发现页等浏览器请求的代理状态。\n\n测试连接\n取消\n保存并生效"
+    },
+    {
+      "kind": "settings-proxy",
+      "theme": "dark",
+      "opened": true,
+      "tabStayedInside": true,
+      "escapeClosed": true,
+      "focusRestored": true,
+      "screenshot": "docs/screenshots/settings-search-6.21/dark-settings-proxy.png",
+      "initialFocusInside": true,
+      "text": "网络代理设置\n启用代理\n关闭时代理不生效，所有请求直连\n代理模式\n跟随系统\n接口与下载读取启动环境代理；发现页等浏览器请求使用系统代理\n手动指定\n填写 HTTP/HTTPS 代理地址与端口，忽略环境变量中的绕过规则（NO_PROXY）\n强制直连\n忽略一切代理，直接连接\n\n测试仅检查接口与下载访问百度的连接，不代表发现页等浏览器请求的代理状态。\n\n测试连接\n取消\n保存并生效"
+    }
+  ],
+  "assertions": [
+    {
+      "theme": "light",
+      "proxyFilter": true,
+      "enterFocus": true,
+      "escapeClear": true,
+      "emptyResult": true,
+      "clearFocus": true,
+      "screenshot": "docs/screenshots/settings-search-6.21/light-proxy-filter.png",
+      "emptyScreenshot": "docs/screenshots/settings-search-6.21/light-empty-filter.png"
+    },
+    {
+      "theme": "dark",
+      "proxyFilter": true,
+      "enterFocus": true,
+      "escapeClear": true,
+      "emptyResult": true,
+      "clearFocus": true,
+      "screenshot": "docs/screenshots/settings-search-6.21/dark-proxy-filter.png",
+      "emptyScreenshot": "docs/screenshots/settings-search-6.21/dark-empty-filter.png"
+    }
+  ],
+  "errors": [],
+  "finishedAt": "2026-11-20T21:57:52.741Z"
+}

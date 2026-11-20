@@ -35,7 +35,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
   return { context, handlers, protocols, run: s => vm.runInContext(s, context) };
 }
 (async () => {
-  let hits = 0, streamClosed = false;
+  let hits = 0, onAbortFixtureClosed;
   const requests = []; const endpointHits = new Map();
   const server = http.createServer((r, s) => {
     hits++;
@@ -53,7 +53,10 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     if (r.url === '/missing') { s.writeHead(404); s.end('missing'); return; }
     if (r.url === '/referer' && !r.headers.referer) { s.writeHead(403); s.end('forbidden'); return; }
     if (r.url === '/large') { s.writeHead(200, { 'content-length': String(301 * 1024 * 1024) }); s.write('hello'); return; }
-    if (r.url === '/slow') { s.writeHead(200, { 'content-type': 'video/mp4', 'content-length': '99999' }); s.write('hello'); r.on('close', () => streamClosed = true); return; }
+    if (r.url === '/slow' || r.url === '/abort') {
+      if (r.url === '/abort') s.once('close', () => onAbortFixtureClosed?.());
+      s.writeHead(200, { 'content-type': 'video/mp4', 'content-length': '99999' }); s.write('hello'); return;
+    }
     if (r.url === '/broken') { s.writeHead(200, { 'content-length': '99999' }); s.write('hello'); setTimeout(() => s.destroy(), 20); return; }
     const body = Buffer.from('0123456789');
     if (r.headers.range === 'bytes=2-4') { s.writeHead(206, { 'content-type': 'video/mp4', 'content-length': '3', 'content-range': 'bytes 2-4/10' }); s.end(body.subarray(2,5)); }
@@ -200,15 +203,24 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     assert.equal((await h.protocols['hongguo-stream'](new Request(p.url))).status, 404);
   });
   await check('release aborts active upstream body', async () => {
-    const h = hload(async () => ({ url: base + '/slow' }));
+    const h = hload(async () => ({ url: base + '/abort' }));
     const p = await Promise.race([h.handlers['prepare-online-play']({}, { vid: 'abort' }), sleep(150).then(() => ({}))]);
     assert.ok(p.url, 'prepare must return a stream URL');
-    streamClosed = false;
+    const closed = new Promise(resolve => { onAbortFixtureClosed = resolve; });
     const response = await h.protocols['hongguo-stream'](new Request(p.url));
-    const reader = response.body.getReader(); await reader.read();
-    await h.handlers['release-online-play']({}, { streamId: p.streamId });
-    await sleep(30); assert.equal(streamClosed, true);
-    await reader.cancel().catch(() => {});
+    const reader = response.body.getReader();
+    let timeout;
+    try {
+      assert.equal((await reader.read()).done, false, 'upstream must be active before release');
+      await h.handlers['release-online-play']({}, { streamId: p.streamId });
+      await Promise.race([closed, new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error('released media response did not close')), 1000);
+      })]);
+    } finally {
+      clearTimeout(timeout);
+      onAbortFixtureClosed = undefined;
+      await reader.cancel().catch(() => {});
+    }
   });
   await check('cancel during address lookup prevents stale ready state', async () => {
     let resolve; const h = hload(() => new Promise(r => resolve = r));

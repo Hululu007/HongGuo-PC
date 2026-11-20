@@ -1,5 +1,5 @@
 // Full Electron UI theme audit against the already-built dist-react renderer.
-// Usage: node scripts/check-ui-theme.cjs --baseline | --after
+// Usage: node scripts/check-ui-theme.cjs --baseline | --after | --settings-search
 // Runs the real app in a disposable profile; it never plays or downloads media.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -7,12 +7,15 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
-const MODE = process.argv.includes('--after') ? 'after' : process.argv.includes('--baseline') ? 'before' : '';
+const SETTINGS_ONLY = process.argv.includes('--settings-search');
+const MODE = SETTINGS_ONLY || process.argv.includes('--after') ? 'after' : process.argv.includes('--baseline') ? 'before' : '';
 if (!MODE) {
-  console.error('Usage: node scripts/check-ui-theme.cjs --baseline | --after');
+  console.error('Usage: node scripts/check-ui-theme.cjs --baseline | --after | --settings-search');
   process.exit(2);
 }
-const OUTPUT_DIR = path.join(ROOT, 'docs', 'screenshots', 'ui-audit-2026-11-20', MODE);
+const OUTPUT_DIR = SETTINGS_ONLY
+  ? path.join(ROOT, 'docs', 'screenshots', 'settings-search-6.21')
+  : path.join(ROOT, 'docs', 'screenshots', 'ui-audit-2026-11-20', MODE);
 
 if (!process.versions.electron) {
   const { spawnSync } = require('node:child_process');
@@ -32,7 +35,7 @@ if (!process.versions.electron) {
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
   try {
-    const childMode = MODE === 'before' ? '--baseline' : '--after';
+    const childMode = SETTINGS_ONLY ? '--settings-search' : MODE === 'before' ? '--baseline' : '--after';
     const result = spawnSync(require('electron'), [__filename, childMode, '--profile', profile], {
       cwd: ROOT, env, encoding: 'utf8', timeout: 300000, maxBuffer: 32 * 1024 * 1024,
     });
@@ -116,7 +119,7 @@ if (!process.versions.electron) {
     const image = await win.webContents.capturePage();
     const file = screenshotName(name);
     fs.writeFileSync(file, image.toPNG());
-    return file;
+    return SETTINGS_ONLY ? path.relative(ROOT, file).replaceAll('\\', '/') : file;
   }
   async function execute(win, code) {
     let timer;
@@ -145,28 +148,85 @@ if (!process.versions.electron) {
     return win.getBounds();
   }
 
-  const pageIds = ['browse', 'feed', 'download', 'player', 'history', 'calendar', 'manager', 'account', 'announcements', 'settings'];
-  const pageIndexes = new Map(pageIds.map((id, index) => [id, index]));
+  // Page IDs select fixed renderer programs; never interpolate them into JavaScript or selectors.
+  const pageActions = new Map([
+    ['browse', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[0]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[0].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[0].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="browse"]'); return page && !page.hidden; })()`,
+    }],
+    ['feed', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[1]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[1].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[1].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="feed"]'); return page && !page.hidden; })()`,
+    }],
+    ['download', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[2]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[2].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[2].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="download"]'); return page && !page.hidden; })()`,
+    }],
+    ['player', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[3]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[3].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[3].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="player"]'); return page && !page.hidden; })()`,
+    }],
+    ['history', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[4]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[4].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[4].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="history"]'); return page && !page.hidden; })()`,
+    }],
+    ['calendar', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[5]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[5].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[5].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="calendar"]'); return page && !page.hidden; })()`,
+    }],
+    ['manager', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[6]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[6].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[6].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="manager"]'); return page && !page.hidden; })()`,
+    }],
+    ['account', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[7]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[7].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[7].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="account"]'); return page && !page.hidden; })()`,
+    }],
+    ['announcements', {
+      sidebar: `document.querySelectorAll('.sidebar-menu .sidebar-item')[8]?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[8].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[8].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="announcements"]'); return page && !page.hidden; })()`,
+    }],
+    ['settings', {
+      sidebar: `document.querySelector('.sidebar-footer .sidebar-item')?.click()`,
+      compact: `document.querySelectorAll('.compact-navigation button')[9].click()`,
+      toolbar: `document.querySelectorAll('#toolbar-page-menu button')[9].click()`,
+      visible: `(() => { const page = document.querySelector('main.main-content[data-page="settings"]'); return page && !page.hidden; })()`,
+    }],
+  ]);
+  const pageIds = [...pageActions.keys()];
   const defaultSize = { width: 1100, height: 750 };
   const themes = ['light', 'dark'];
 
   async function navigate(win, id) {
-    const index = pageIndexes.get(id);
-    if (index === undefined) throw new Error(`Unknown page ${id}`);
+    const actions = pageActions.get(id);
+    if (!actions) throw new Error(`Unknown page ${id}`);
     const portrait = await execute(win, `!!document.querySelector('.app-layout.layout-portrait')`);
     if (portrait) {
       const picker = await execute(win, `!!document.querySelector('.layout-portrait.player-focused .toolbar-page-trigger')`);
       if (picker) await execute(win, `document.querySelector('.toolbar-page-trigger').click()`);
-      await execute(win, `document.querySelectorAll(${JSON.stringify(picker ? '#toolbar-page-menu button' : '.compact-navigation button')})[${index}].click()`);
+      await execute(win, picker ? actions.toolbar : actions.compact);
     } else {
-      const expression = id === 'settings'
-        ? `document.querySelector('.sidebar-footer .sidebar-item')?.click()`
-        : `document.querySelectorAll('.sidebar-menu .sidebar-item')[${index}]?.click()`;
-      await execute(win, expression);
+      await execute(win, actions.sidebar);
     }
-    await until(() => execute(win,
-      `(() => { const page = document.querySelector('main.main-content[data-page=${JSON.stringify(id)}]'); return page && !page.hidden; })()`),
-    `navigation to ${id}`, 8000);
+    await until(() => execute(win, actions.visible), `navigation to ${id}`, 8000);
     await sleep(id === 'browse' || id === 'feed' ? 350 : 180);
     await raf(win);
   }
@@ -433,24 +493,98 @@ if (!process.versions.electron) {
     evidence.optionalScreens.push({ kind: 'settings-proxy', ...result });
   }
 
+  async function checkSettingsSearch(win) {
+    for (const theme of themes) {
+      await setAppearance(win, theme);
+      await waitForTheme(win, theme);
+      await execute(win, `(() => {
+        const input = document.querySelector('.settings-search input');
+        input.focus();
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '代理');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      await until(() => execute(win, `document.querySelectorAll('[id^="settings-anchor-"]:not([hidden])').length === 1`), 'proxy-only settings');
+      win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' });
+      win.webContents.sendInputEvent({ type: 'char', keyCode: '\r' });
+      win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' });
+      await until(() => execute(win, `document.activeElement?.id === 'settings-anchor-proxy'`), 'Enter focuses the matching card');
+      await raf(win);
+      const screenshot = await capture(win, `${theme}-proxy-filter`);
+      await optionalProxyModal(win, theme);
+      await execute(win, `document.querySelector('.settings-search input').focus()`);
+      win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Escape' });
+      win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Escape' });
+      await until(() => execute(win, `document.querySelector('.settings-search input').value === '' && document.querySelectorAll('[id^="settings-anchor-"]:not([hidden])').length === 12`), 'Escape restores all settings');
+      await execute(win, `(() => {
+        const input = document.querySelector('.settings-search input');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'no-matching-setting');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      })()`);
+      await until(() => execute(win, `!!document.querySelector('.settings-search-empty') && document.querySelectorAll('[id^="settings-anchor-"]:not([hidden])').length === 0`), 'settings empty result');
+      const emptyScreenshot = await capture(win, `${theme}-empty-filter`);
+      await execute(win, `document.querySelector('.settings-search-empty button').click()`);
+      await until(() => execute(win, `document.querySelector('.settings-search input').value === '' && document.activeElement === document.querySelector('.settings-search input')`), 'clear restores search focus');
+      evidence.assertions.push({ theme, proxyFilter: true, enterFocus: true, escapeClear: true, emptyResult: true, clearFocus: true, screenshot, emptyScreenshot });
+    }
+    assert.equal(mediaStartedEvents, 0);
+    assert(win.webContents.isAudioMuted());
+    assert.equal(evidence.errors.length, 0);
+    evidence.isolation.mediaStartedEvents = mediaStartedEvents;
+    evidence.finishedAt = new Date().toISOString();
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'evidence.json'), JSON.stringify(evidence, null, 2));
+    console.log('PASS real settings search: both themes, card visibility, Enter focus, Escape clear, empty state, clear focus and proxy dialog keyboard; no playback or downloads');
+  }
+
+  // Keep labels and panel selectors inside literal programs, not nested string substitutions.
+  const playerMenuActions = [
+    {
+      name: 'episodes',
+      exists: `!!document.querySelector('.player-controls button[aria-label="选集"]')`,
+      open: `(() => { const button = document.querySelector('.player-controls button[aria-label="选集"]'); button.scrollIntoView({block:'center'}); button.focus(); button.click(); })()`,
+      visible: `!!document.querySelector('.player-episode-popover')`,
+      colors: `(() => { const panel = document.querySelector('.player-episode-popover'); const style = getComputedStyle(panel); return { color: style.color, background: style.backgroundColor, bounds: { width: panel.offsetWidth, height: panel.offsetHeight } }; })()`,
+      closed: `!document.querySelector('.player-episode-popover')`,
+    },
+    {
+      name: 'quality',
+      exists: `!!document.querySelector('.player-controls button[aria-label="清晰度"]')`,
+      open: `(() => { const button = document.querySelector('.player-controls button[aria-label="清晰度"]'); button.scrollIntoView({block:'center'}); button.focus(); button.click(); })()`,
+      visible: `!!document.querySelector('.player-quality-popover')`,
+      colors: `(() => { const panel = document.querySelector('.player-quality-popover'); const style = getComputedStyle(panel); return { color: style.color, background: style.backgroundColor, bounds: { width: panel.offsetWidth, height: panel.offsetHeight } }; })()`,
+      closed: `!document.querySelector('.player-quality-popover')`,
+    },
+    {
+      name: 'options',
+      exists: `!!document.querySelector('.player-controls button[aria-label="更多播放选项"]')`,
+      open: `(() => { const button = document.querySelector('.player-controls button[aria-label="更多播放选项"]'); button.scrollIntoView({block:'center'}); button.focus(); button.click(); })()`,
+      visible: `!!document.querySelector('.player-controls-menu')`,
+      colors: `(() => { const panel = document.querySelector('.player-controls-menu'); const style = getComputedStyle(panel); return { color: style.color, background: style.backgroundColor, bounds: { width: panel.offsetWidth, height: panel.offsetHeight } }; })()`,
+      closed: `!document.querySelector('.player-controls-menu')`,
+    },
+    {
+      name: 'danmaku',
+      exists: `!!document.querySelector('.player-controls button[aria-label="弹幕设置"]')`,
+      open: `(() => { const button = document.querySelector('.player-controls button[aria-label="弹幕设置"]'); button.scrollIntoView({block:'center'}); button.focus(); button.click(); })()`,
+      visible: `!!document.querySelector('.danmaku-settings')`,
+      colors: `(() => { const panel = document.querySelector('.danmaku-settings'); const style = getComputedStyle(panel); return { color: style.color, background: style.backgroundColor, bounds: { width: panel.offsetWidth, height: panel.offsetHeight } }; })()`,
+      closed: `!document.querySelector('.danmaku-settings')`,
+    },
+  ];
+
   async function optionalPlayerMenus(win, theme) {
-    for (const [button, panel, name] of [
-      ['选集', '.player-episode-popover', 'episodes'],
-      ['清晰度', '.player-quality-popover', 'quality'],
-      ['更多播放选项', '.player-controls-menu', 'options'],
-      ['弹幕设置', '.danmaku-settings', 'danmaku'],
-    ]) {
+    for (const menu of playerMenuActions) {
+      const { name } = menu;
       const result = { kind: 'player-menu', theme, name, opened: false, screenshot: '' };
-      const exists = await execute(win, `!!document.querySelector('.player-controls button[aria-label=${JSON.stringify(button)}]')`);
+      const exists = await execute(win, menu.exists);
       if (exists) {
-        await execute(win, `(() => { const button = document.querySelector('.player-controls button[aria-label=${JSON.stringify(button)}]'); button.scrollIntoView({block:'center'}); button.focus(); button.click(); })()`);
-        result.opened = await until(() => execute(win, `!!document.querySelector(${JSON.stringify(panel)})`), `player ${name} panel`, 2000).catch(() => false);
+        await execute(win, menu.open);
+        result.opened = await until(() => execute(win, menu.visible), `player ${name} panel`, 2000).catch(() => false);
         if (result.opened) {
           await raf(win);
           result.screenshot = await capture(win, `${theme}-player-${name}`);
-          result.colors = await execute(win, `(() => { const panel = document.querySelector(${JSON.stringify(panel)}); const style = getComputedStyle(panel); return { color: style.color, background: style.backgroundColor, bounds: { width: panel.offsetWidth, height: panel.offsetHeight } }; })()`);
+          result.colors = await execute(win, menu.colors);
           win.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'ESC' }); win.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'ESC' });
-          await until(() => execute(win, `!document.querySelector(${JSON.stringify(panel)})`), `player ${name} panel close`, 2000);
+          await until(() => execute(win, menu.closed), `player ${name} panel close`, 2000);
         }
       } else result.note = 'No real selected archive/control was available; not tested.';
       evidence.optionalScreens.push(result);
@@ -588,6 +722,7 @@ if (!process.versions.electron) {
       await sleep(350);
       evidence.renderer = await execute(win, `({ url: location.href, title: document.title, appShell: !!document.querySelector('.app-shell'), muted: true })`);
       evidence.renderer.isDistReactFile = String(evidence.renderer.url).includes('/dist-react/index.html');
+      if (SETTINGS_ONLY) evidence.renderer.url = 'file:///[isolated-build]/dist-react/index.html';
       evidence.display = (() => {
         const display = screen.getPrimaryDisplay();
         return { bounds: display.bounds, workArea: display.workArea, scaleFactor: display.scaleFactor, colorDepth: display.colorDepth };
@@ -606,6 +741,13 @@ if (!process.versions.electron) {
         if (isMainFrame) loadListenerErrors.push({ code, description, url });
       });
 
+      if (SETTINGS_ONLY) {
+        diagnosticStep = 'settings-search';
+        await checkSettingsSearch(win);
+        win.destroy();
+        app.exit(0);
+        return;
+      }
       const display = evidence.display;
       const area = display.workArea;
       const widths = [...new Set([900, Math.min(1100, area.width), Math.min(1440, area.width)])].filter(value => value >= 900);

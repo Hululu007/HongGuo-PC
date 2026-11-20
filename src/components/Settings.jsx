@@ -55,17 +55,18 @@ function describeProxy(settings) {
 
 // 设置页顶部锚点导航：点击平滑滚动到对应卡片并高亮。
 const SETTING_ANCHORS = [
-  { id: 'appearance', label: '外观', keywords: '主题 缩放 字号 海报' },
+  { id: 'appearance', label: '外观', keywords: '主题 缩放 字号 海报 theme dark light' },
+  { id: 'language', label: '语言', keywords: '简体中文 英文 English locale language' },
   { id: 'shortcuts', label: '快捷键', keywords: '播放 老板键 按键' },
   { id: 'pip', label: '画中画', keywords: '小窗 原生 置顶' },
   { id: 'builtin', label: '内置来源', keywords: '来源 采集 搜索' },
   { id: 'custom', label: '自定义源', keywords: '播放源 苹果cms api 接口' },
-  { id: 'playback', label: '播放缓存', keywords: '缓存 兼容 自动删除 连播 红果 app' },
-  { id: 'danmaku', label: '弹幕', keywords: '评论 时间轴 显示' },
-  { id: 'download', label: '下载', keywords: '目录 命名 清晰度 并发 文件夹' },
-  { id: 'proxy', label: '代理', keywords: '网络 直连 系统代理' },
-  { id: 'watch', label: '追剧', keywords: '提醒 新集 新一季 通知' },
-  { id: 'storage', label: '配置位置', keywords: '配置文件 密码 便携版 数据' },
+  { id: 'playback', label: '播放缓存', keywords: '播放与缓存 缓存后续 2 集 自动兼容模式 看完自动删除 连播 优先使用红果 App 搜索 官网' },
+  { id: 'danmaku', label: '弹幕', keywords: '本集评论 时间轴弹幕 显示弹幕按钮 弹幕来源' },
+  { id: 'download', label: '下载', keywords: '下载目录 文件命名规则 默认下载清晰度 最大并发下载数 选择文件夹 普通下载保存整剧资料 封面 简介 NFO NAS' },
+  { id: 'proxy', label: '代理', keywords: '网络代理 直连 跟随系统代理 代理密码 主机 端口 用户名 连接测试' },
+  { id: 'watch', label: '追剧', keywords: '追剧提醒 自动检查新集 查找疑似新一季 发送系统通知' },
+  { id: 'storage', label: '配置与诊断', keywords: '配置位置 配置文件位置 密码 安全存储 便携版 数据 故障 排查 导出诊断信息 diagnostics' },
 ];
 
 function SettingsPage({ active = true, preview = false, appInfo = null }) {
@@ -81,6 +82,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   const [testResult, setTestResult] = useState(null);
   const [testing, setTesting] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [readbackNotice, setReadbackNotice] = useState('');
   const [saving, setSaving] = useState(false);
   const [pictureModeSaving, setPictureModeSaving] = useState(false);
   const [pictureModeNotice, setPictureModeNotice] = useState('');
@@ -92,25 +94,25 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   const testVersion = useRef(0);
   const savingRef = useRef(false);
   const pictureModeRequest = useRef({ pending: false, version: 0 });
-  const editedKeys = useRef(new Set());
+  const editedKeys = useRef(new Map());
+  const readVersion = useRef(0);
+  // Keep freshness and the normalized readback together, even before React renders it.
+  const proxySnapshot = useRef({ settings: null, stale: false });
   const savedTimer = useRef(null);
-
-  const loadSettings = async () => {
-    setLoadError('');
-    try { setSettings({ download_quality: 'auto', picture_in_picture_mode: 'custom', ...await window.electronAPI.getSettings() }); }
-    catch (error) { setLoadError(error.message || '设置加载失败，请重试'); }
-  };
+  const settingsSearchRef = useRef(null);
 
   // 重新进入设置页时同步播放器里刚改过的共享选项；保留用户未保存的字段。
   const refreshSettings = async () => {
     if (savingRef.current) return;
+    const version = ++readVersion.current;
     const modeVersion = pictureModeRequest.current.version;
     try {
       const fresh = { download_quality: 'auto', picture_in_picture_mode: 'custom', ...await window.electronAPI.getSettings() };
+      if (version !== readVersion.current) return;
       setSettings(prev => {
         if (!prev) return fresh;
         const merged = { ...fresh };
-        for (const key of editedKeys.current) {
+        for (const key of editedKeys.current.keys()) {
           if (Object.hasOwn(prev, key)) merged[key] = prev[key];
         }
         if (pictureModeRequest.current.pending || modeVersion !== pictureModeRequest.current.version) {
@@ -118,13 +120,16 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
         }
         return merged;
       });
+      proxySnapshot.current = { settings: fresh, stale: false };
       setLoadError('');
+      setReadbackNotice('');
+      return fresh;
     } catch (error) {
-      setLoadError(error.message || '设置加载失败，请重试');
+      if (version === readVersion.current) setLoadError(error.message || '设置加载失败，请重试');
     }
   };
 
-  useEffect(() => () => { testVersion.current++; clearTimeout(savedTimer.current); }, []);
+  useEffect(() => () => { testVersion.current++; readVersion.current++; clearTimeout(savedTimer.current); }, []);
 
   useEffect(() => {
     if (!active) {
@@ -137,7 +142,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   }, [active]);
 
   const update = (key, value) => {
-    editedKeys.current.add(key);
+    editedKeys.current.set(key, (editedKeys.current.get(key) || 0) + 1);
     setSettings((prev) => ({ ...prev, [key]: value }));
     if (key === 'locale') setLocaleSetting(value);
     setSaved(false);
@@ -180,30 +185,59 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   const persist = async (next, isProxy = false) => {
     if (savingRef.current) return;
     savingRef.current = true;
+    readVersion.current++; // Invalidate any refresh started before this commit.
     setSaving(true);
     setSaved(false);
     setSaveError('');
+    setReadbackNotice('');
     try {
-      // Submit only edited fields; the main process merges newer playback options.
+      // Proxy confirmation commits only its dialog; other settings remain drafts.
       const editable = ['locale', 'root', 'name_format', 'download_quality', 'download_metadata', 'cache_next_episode', 'compat_mode', 'auto_delete_watched', 'show_danmaku_controls', 'max_concurrent', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'app_updates_enabled'];
+      const revisions = new Map(editedKeys.current);
       const submitted = {};
       for (const key of editable) {
-        if (Object.hasOwn(next, key) && (editedKeys.current.has(key) || isProxy && key.startsWith('proxy_'))) submitted[key] = next[key];
+        if (Object.hasOwn(next, key) && (isProxy ? key.startsWith('proxy_') : revisions.has(key))) submitted[key] = next[key];
       }
       if (isProxy) submitted.clear_proxy_password = next.clear_proxy_password === true && !String(next.proxy_password || '');
       const res = await window.electronAPI.saveSettings(submitted);
       if (!res?.success) throw new Error(res?.error || '设置未保存，请重试');
-      if (isProxy) closeProxy();
-      setSettings(await window.electronAPI.getSettings());
-      if (next.locale) {
-        setLocaleSetting(next.locale);
-        globalThis.window?.dispatchEvent?.(new CustomEvent('hongguo:locale-change', { detail: next.locale }));
+      if (isProxy) { proxySnapshot.current = { settings: null, stale: true }; closeProxy(); }
+      for (const key of Object.keys(submitted)) {
+        if (editedKeys.current.get(key) === revisions.get(key)) editedKeys.current.delete(key);
       }
-      editedKeys.current.clear();
-      setDirty(false);
-      setSaved(true);
+      setDirty(editedKeys.current.size > 0);
+      setSaved(!isProxy && editedKeys.current.size === 0);
+      if (isProxy) setReadbackNotice('代理设置已保存。');
       clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 2000);
+      // Apply acknowledged public fields even if a later readback fails. Never retain a password.
+      const committed = { ...submitted };
+      delete committed.proxy_password;
+      delete committed.clear_proxy_password;
+      // Main normalizes proxy URLs and removes embedded credentials. Only its readback is safe to display.
+      for (const key of Object.keys(committed)) if (key.startsWith('proxy_')) delete committed[key];
+      const mergeDrafts = (fresh, previous) => {
+        const merged = { ...fresh };
+        for (const key of editedKeys.current.keys()) merged[key] = previous[key];
+        return merged;
+      };
+      setSettings(prev => mergeDrafts({ ...prev, ...committed }, prev));
+      if (submitted.locale && !editedKeys.current.has('locale')) {
+        setLocaleSetting(submitted.locale);
+        globalThis.window?.dispatchEvent?.(new CustomEvent('hongguo:locale-change', { detail: submitted.locale }));
+      }
+      const modeVersion = pictureModeRequest.current.version;
+      try {
+        const fresh = await window.electronAPI.getSettings();
+        proxySnapshot.current = { settings: fresh, stale: false };
+        setSettings(prev => {
+          const merged = mergeDrafts(fresh, prev);
+          if (pictureModeRequest.current.pending || modeVersion !== pictureModeRequest.current.version) merged.picture_in_picture_mode = prev.picture_in_picture_mode;
+          return merged;
+        });
+      } catch {
+        setReadbackNotice('设置已保存，但刷新显示失败；重新进入设置页可重试读取，无需重复保存。');
+      }
     } catch (error) {
       setSaveError(error.message || '设置保存失败，请重试');
     } finally {
@@ -231,15 +265,27 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
 
   const scrollToSection = (id) => {
     const el = document.getElementById(`settings-anchor-${id}`);
-    if (!el) return;
+    if (!el || el.hidden) return;
     setActiveAnchor(id);
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.focus({ preventScroll: true });
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduceMotion ? 'instant' : 'smooth', block: 'start' });
   };
 
-  const normalizedSettingsSearch = settingsSearch.trim().toLocaleLowerCase('zh-CN');
+  const normalizeSearch = value => value.normalize('NFKC').trim().toLowerCase();
+  const normalizedSettingsSearch = normalizeSearch(settingsSearch);
+  const searchTerms = normalizedSettingsSearch.split(/\s+/);
   const matchingAnchors = normalizedSettingsSearch
-    ? SETTING_ANCHORS.filter(anchor => `${anchor.label} ${anchor.keywords}`.toLocaleLowerCase('zh-CN').includes(normalizedSettingsSearch))
+    ? SETTING_ANCHORS.filter(({ label, keywords }) => {
+        const words = normalizeSearch(`${label} ${keywords}`);
+        return searchTerms.every(term => words.includes(term));
+      })
     : SETTING_ANCHORS;
+  const visibleAnchors = new Set(matchingAnchors.map(anchor => anchor.id));
+  // Keep filtered controls mounted so their edit state survives a search.
+  const anchorProps = id => ({ id: `settings-anchor-${id}`, role: 'region', 'aria-label': SETTING_ANCHORS.find(anchor => anchor.id === id)?.label, tabIndex: -1, hidden: !visibleAnchors.has(id) });
+  const changeSearch = value => { setSettingsSearch(value); setActiveAnchor(''); };
+  const clearSearch = () => { changeSearch(''); settingsSearchRef.current?.focus(); };
 
   const submitSettingsSearch = (event) => {
     event.preventDefault();
@@ -255,14 +301,21 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   };
 
   // ===== 代理弹窗 =====
-  const openProxyModal = () => {
+  const openProxyModal = async () => {
+    if (savingRef.current) return;
+    const snapshot = proxySnapshot.current;
+    const current = snapshot.stale ? await refreshSettings() : snapshot.settings || settings;
+    if (!current) {
+      setSaveError('代理已保存，但当前配置读取失败；请稍后重新打开代理设置，避免覆盖已生效的配置。');
+      return;
+    }
     testVersion.current++;
     setProxyDraft({
-      proxy_enabled: settings.proxy_enabled === true,
-      proxy_mode: settings.proxy_mode || 'system',
-      proxy_host: settings.proxy_host || '127.0.0.1',
-      proxy_port: settings.proxy_port || 7890,
-      proxy_username: settings.proxy_username || '',
+      proxy_enabled: current.proxy_enabled === true,
+      proxy_mode: current.proxy_mode || 'system',
+      proxy_host: current.proxy_host || '127.0.0.1',
+      proxy_port: current.proxy_port || 7890,
+      proxy_username: current.proxy_username || '',
       proxy_password: '',
       clear_proxy_password: false,
     });
@@ -297,7 +350,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   useDialogKeyboard(active && proxyOpen, () => { if (!savingRef.current) closeProxy(); }, '.proxy-modal');
 
   if (!settings) {
-    return <div className="settings-container">{loadError ? <div role="alert"><p>{loadError}</p><button className="btn btn-outline" onClick={loadSettings}>{t('settings.reload', '重新加载')}</button></div> : t('settings.loading', '加载中…')}</div>;
+    return <div className="settings-container">{loadError ? <div role="alert"><p>{loadError}</p><button className="btn btn-outline" onClick={refreshSettings}>{t('settings.reload', '重新加载')}</button></div> : t('settings.loading', '加载中…')}</div>;
   }
 
   const proxyInfo = describeProxy(settings);
@@ -313,24 +366,32 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
       <form className="settings-search" role="search" onSubmit={submitSettingsSearch}>
         <Search size={16} />
         <input
+          ref={settingsSearchRef}
           lang={locale}
           type="search"
           value={settingsSearch}
-          onChange={(event) => setSettingsSearch(event.target.value)}
+          onChange={(event) => changeSearch(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && settingsSearch && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              event.stopPropagation();
+              clearSearch();
+            }
+          }}
           placeholder={t('settings.search', '搜索设置，例如：下载、弹幕、代理')}
           aria-label={t('settings.search', '搜索设置')}
           aria-describedby="settings-search-hint"
         />
-        {settingsSearch && <button type="button" className="settings-search-clear" onClick={() => setSettingsSearch('')} aria-label="清除设置搜索">
+        {settingsSearch && <button type="button" className="settings-search-clear" onClick={clearSearch} aria-label="清除设置搜索">
           <X size={15} />
         </button>}
       </form>
       <div className="settings-search-meta" id="settings-search-hint" aria-live="polite">
         {normalizedSettingsSearch
-          ? (matchingAnchors.length > 0 ? `找到 ${matchingAnchors.length} 个设置分类，按 Enter 跳转到第一个结果` : '没有匹配的设置分类')
-          : '输入关键词快速定位设置分类'}
+          ? (matchingAnchors.length > 0 ? `找到 ${matchingAnchors.length} 个设置分类，按 Enter 跳转到第一个结果` : '没有匹配的设置分类；试试其他关键词，或按 Esc 清除')
+          : '输入关键词筛选设置分类'}
       </div>
-      <nav className="settings-quicknav" aria-label="设置分类">
+      <nav className="settings-quicknav" aria-label="设置分类" hidden={!matchingAnchors.length}>
         {matchingAnchors.map((anchor) => (
           <button key={anchor.id} type="button"
             className={`settings-quicknav-item ${activeAnchor === anchor.id ? 'active' : ''}`}
@@ -341,8 +402,12 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
         ))}
       </nav>
 
-      <section className="settings-card" id="settings-anchor-appearance" aria-label="外观设置"><AppearanceSettings active={active} /></section>
-      <section className="settings-card" lang={locale} aria-label={t('settings.language', '语言设置')}>
+      {!matchingAnchors.length && <div className="settings-search-empty">
+        <p>没有匹配的设置，未保存的修改仍会保留。</p>
+        <button type="button" className="btn btn-outline" onClick={clearSearch}>显示全部设置</button>
+      </div>}
+      <section className="settings-card" {...anchorProps('appearance')} aria-label="外观设置"><AppearanceSettings active={active} /></section>
+      <section className="settings-card" lang={locale} {...anchorProps('language')} aria-label={t('settings.language', '语言设置')}>
         <div className="settings-group">
           <label className="settings-label" htmlFor="ui-locale">{t('settings.language', '语言 / Language')}</label>
           <select id="ui-locale" className="input-field select-field" value={settings.locale || 'auto'} disabled={!active || saving} aria-describedby="ui-locale-hint" onChange={event => update('locale', event.target.value)}>
@@ -353,8 +418,8 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           <p className="settings-hint" id="ui-locale-hint">{t('settings.languageHint', '英文仅覆盖导航与部分设置，其余界面仍为中文。选择后立即预览，点击「保存设置」后会记住语言偏好。')}</p>
         </div>
       </section>
-      <div id="settings-anchor-shortcuts"><ShortcutSettings active={active} /></div>
-      <section className="settings-card" id="settings-anchor-pip" aria-label="画中画小窗设置">
+      <div {...anchorProps('shortcuts')}><ShortcutSettings active={active} /></div>
+      <section className="settings-card" {...anchorProps('pip')} aria-label="画中画小窗设置">
         <div className="settings-group">
           <label className="settings-label" htmlFor="picture-in-picture-mode">画中画小窗</label>
           <select id="picture-in-picture-mode" className="input-field select-field"
@@ -370,25 +435,25 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           {pictureModeError && <p className="appearance-error" role="alert">{pictureModeError}</p>}
         </div>
       </section>
-      <div id="settings-anchor-builtin"><BuiltinSources /></div>
-      <div id="settings-anchor-custom"><CustomSources active={active} /></div>
-      <p className="settings-hint">播放页顶部可开启小窗模式：窗口缩小、置顶并在支持的系统上跨虚拟桌面可见；鼠标移开时暂停隐藏，移回继续，Esc 或 Dock 可恢复主窗口。</p>
+      <div {...anchorProps('builtin')}><BuiltinSources /></div>
+      <div {...anchorProps('custom')}><CustomSources active={active} /></div>
+      <p className="settings-hint" hidden={!visibleAnchors.has('pip')}>播放页顶部可开启小窗模式：窗口缩小、置顶并在支持的系统上跨虚拟桌面可见；鼠标移开时暂停隐藏，移回继续，Esc 或 Dock 可恢复主窗口。</p>
       <fieldset className="settings-card" disabled={saving}>
-        <div className="settings-group" id="settings-anchor-playback">
+        <div className="settings-group" {...anchorProps('playback')}>
           <span className="settings-label">播放与缓存</span>
           <label className="proxy-switch-row"><input type="checkbox" checked={settings.cache_next_episode !== false} onChange={event => update('cache_next_episode', event.target.checked)} /><span className="proxy-switch-text">缓存后续 2 集<em>开始播放后最多预取接下来两集可在线播放的分集，减少连续切集等待；会使用网络流量。</em></span></label>
           <label className="proxy-switch-row"><input type="checkbox" checked={settings.compat_mode !== false} onChange={event => update('compat_mode', event.target.checked)} /><span className="proxy-switch-text">自动兼容模式<em>无法解码时尝试转码播放，解决部分黑屏有声问题。</em></span></label>
           <label className="proxy-switch-row"><input type="checkbox" checked={settings.auto_delete_watched === true} onChange={event => update('auto_delete_watched', event.target.checked)} /><span className="proxy-switch-text">看完自动删除<em>看完一集后删除该集已下载的视频、在线播放缓存和转码缓存。下载文件会永久删除；需要时可重新下载。保存后生效。</em></span></label>
           <label className="proxy-switch-row"><input type="checkbox" aria-label="优先使用红果 App 搜索" checked={settings.search_app_enabled === true} onChange={event => update('search_app_enabled', event.target.checked)} /><span className="proxy-switch-text">优先使用红果 App 搜索<em>失败或空结果自动回退官网；关闭此项时，官网不可用仍会尝试 App 备用搜索。</em></span></label>
         </div>
-        <div className="settings-group" id="settings-anchor-danmaku">
+        <div className="settings-group" {...anchorProps('danmaku')}>
           <span className="settings-label">弹幕按钮设置</span>
           <div className="settings-inline-save">
           <label className="proxy-switch-row"><input type="checkbox" aria-label="显示弹幕按钮" checked={settings.show_danmaku_controls !== false} onChange={event => update('show_danmaku_controls', event.target.checked)} /><span className="proxy-switch-text">显示弹幕按钮<em>保存后生效。关闭时隐藏弹幕及弹幕设置按钮，并停用弹幕；再次开启会恢复原有弹幕偏好。</em></span></label>
             <button type="button" className="btn btn-primary" aria-label="保存当前设置" onClick={save}>{saving ? '保存中…' : saved ? '已保存' : '保存'}</button>
           </div>
         </div>
-        <div className="settings-group">
+        <div className="settings-group" hidden={!visibleAnchors.has('danmaku')}>
           <label className="settings-label" htmlFor="danmaku-source">弹幕来源</label>
           <select id="danmaku-source" className="input-field select-field" value={danmakuSource} onChange={event => writeDanmakuSource(event.target.value)}>
             <option value="official">时间轴弹幕</option><option value="comments">本集评论（备用）</option>
@@ -401,7 +466,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
             } catch (error) { setSaveError(error.message || '来源链接打开失败'); }
           }}>弹幕实现参考 dawei233/hongguo-drama（GPL-3.0）</button>
         </div>
-        <div className="settings-group" id="settings-anchor-download">
+        <div className="settings-group" {...anchorProps('download')}>
           <label className="settings-label">下载目录</label>
           <div className="folder-row">
             <input
@@ -422,7 +487,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
             onChange={event => update('download_metadata', event.target.checked)} /><span className="proxy-switch-text">普通下载保存整剧资料<em>自动随视频保存封面、简介和 tvshow.nfo，不生成分集 NFO。可将下载目录设为已挂载的 NAS，程序会自动建剧名文件夹，无需再使用“下载到 NAS”。普通下载仍遵循看完自动删除设置。</em></span></label>
         </div>
 
-        <div className="settings-group">
+        <div className="settings-group" hidden={!visibleAnchors.has('download')}>
           <label className="settings-label">文件命名规则</label>
           <div className="preset-row">
             {FORMAT_PRESETS.map((p) => (
@@ -448,7 +513,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           </p>
         </div>
 
-        <div className="settings-group">
+        <div className="settings-group" hidden={!visibleAnchors.has('download')}>
           <label className="settings-label" htmlFor="default-download-quality">默认下载清晰度</label>
           <select id="default-download-quality" className="input-field select-field"
             value={settings.download_quality || 'auto'} aria-describedby="default-download-quality-hint"
@@ -460,7 +525,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           <p className="settings-hint" id="default-download-quality-hint">保存后用于新建下载任务，也可在下载时单独选择。红果片源所选清晰度不可用或下载失败时，自动尝试更低清晰度，并在下载管理中提示；已有文件不自动删除或覆盖。</p>
         </div>
 
-        <div className="settings-group">
+        <div className="settings-group" hidden={!visibleAnchors.has('download')}>
           <label className="settings-label">最大并发下载数</label>
           <select
             className="input-field select-field"
@@ -478,7 +543,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           </p>
         </div>
 
-        <div className="settings-group" id="settings-anchor-proxy">
+        <div className="settings-group" {...anchorProps('proxy')}>
           <label className="settings-label">网络代理</label>
           <div className="proxy-status-row">
             <span className={`proxy-dot ${proxyInfo.on ? 'proxy-dot-on' : 'proxy-dot-off'}`} />
@@ -495,14 +560,14 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           </p>
         </div>
 
-        <div className="settings-group" id="settings-anchor-watch">
+        <div className="settings-group" {...anchorProps('watch')}>
           <span className="settings-label">追剧提醒</span>
           <label className="proxy-switch-row"><input type="checkbox" checked={settings.watch_updates_enabled !== false} onChange={event => update('watch_updates_enabled', event.target.checked)} /><span className="proxy-switch-text">自动检查新集<em>应用运行期间，每部剧约 6 小时检查一次；列表较多时分批检查</em></span></label>
           <label className="proxy-switch-row"><input type="checkbox" checked={settings.watch_sequels_enabled !== false} onChange={event => update('watch_sequels_enabled', event.target.checked)} /><span className="proxy-switch-text">查找疑似新一季<em>约每天按剧名搜索一次，仅提示同名且季数更高的剧；可能遗漏或误报</em></span></label>
           <label className="proxy-switch-row"><input type="checkbox" checked={settings.watch_notifications_enabled === true} onChange={event => update('watch_notifications_enabled', event.target.checked)} /><span className="proxy-switch-text">发送系统通知<em>默认关闭。开启后还需允许 macOS 通知；关闭不影响观看记录红点</em></span></label>
         </div>
 
-        <div className="settings-group" id="settings-anchor-storage">
+        <div className="settings-group" {...anchorProps('storage')}>
           <span className="settings-label">配置文件位置</span>
           {settings.proxy_password_warning && <p className="alert alert-error" role="alert">{settings.proxy_password_warning}</p>}
           <p className="settings-hint">代理密码由本机系统安全存储加密；更换电脑后可能需要重新输入。</p>
@@ -521,7 +586,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
           {diagnosticsNotice && <p className="settings-hint" role="status">{diagnosticsNotice}</p>}
         </div>
 
-        {preview && <div className="settings-group">
+        {preview && <div className="settings-group" hidden={!visibleAnchors.has('storage')}>
           <span className="settings-label">独立预览</span>
           <p className="settings-hint">预览数据独立保存，不接收正式版更新，不会覆盖已安装的红果短剧。</p>
         </div>}
@@ -532,6 +597,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
             {saving ? '正在保存…' : saved ? <><Check size={16} /> 已保存</> : '保存设置'}
           </button>
         </div>
+        {readbackNotice && <p className="settings-hint" role="status">{readbackNotice}</p>}
         {saveError && !proxyOpen && <p className="alert alert-error" role="alert">{saveError}</p>}
       </fieldset>
 

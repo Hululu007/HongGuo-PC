@@ -463,6 +463,20 @@
 
 .settings-search-clear:hover { background: var(--bg-hover); color: var(--text-primary); }
 .settings-search-meta { min-height: 20px; padding: 6px 2px 0; color: var(--text-tertiary); font-size: var(--fs-xs); }
+.settings-container :is(.settings-card, .settings-group, .settings-quicknav)[hidden] { display: none; }
+.settings-search-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  background: var(--bg-card);
+}
 .settings-quicknav {
   display: flex;
   flex-wrap: wrap;
