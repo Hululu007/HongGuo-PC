@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.17](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.17)** · 2026-11-19
+**[v6.18](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.18)** · 2026-11-20
 
-本次更新改进 App 片源接口返回空响应时的恢复，减少部分分集因一次取源失败而无法继续播放的情况。正式支持 Windows x64。
+修复 Windows 上部分加密 HLS 视频因临时密钥路径解析错误而无法播放或下载的问题。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
