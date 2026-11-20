@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.20](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.20)** · 2026-11-20
+**[v6.21](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.21)** · 2026-11-21
 
-修复文字导出（弹幕/评论/剧评 JSON）的临时文件安全：改用本进程独占创建的随机临时文件，导出期间目标文件或所在目录被替换时保留原文件并报告失败，不再可能改写同名 .tmp 或跟随目录链接。
+下载管理支持按剧名、任务名、文件名及状态筛选，批量选择跨页保留；设置搜索实际过滤卡片，代理弹窗与其他设置草稿隔离，Windows 候选构建增加 FFmpeg 对应源码与二进制摘要校验。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
