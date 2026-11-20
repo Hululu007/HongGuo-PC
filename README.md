@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.20](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.20)** · 2026-11-20
+**[v6.21](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.21)** · 2026-11-20
 
-修复文字导出（弹幕/评论/剧评 JSON）的临时文件安全：改用本进程独占创建的随机临时文件，导出期间目标文件或所在目录被替换时保留原文件并报告失败，不再可能改写同名 .tmp 或跟随目录链接。
+下载管理可按剧名、任务名和文件名查找，并可叠加状态筛选。「等待重试」和「失败 / 已停止」分别显示。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
