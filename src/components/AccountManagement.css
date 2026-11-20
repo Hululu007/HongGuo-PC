@@ -5,7 +5,7 @@
 .account-source-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
 .account-source-tab { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); color: var(--text-secondary); cursor: pointer; transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
 .account-source-tab:hover:not(:disabled) { color: var(--text-primary); background: var(--bg-hover); }
-.account-source-tab.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.account-source-tab.is-active { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-text); }
 .account-source-tab:disabled { cursor: default; opacity: .65; }
 .account-card { padding: 24px 28px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .account-identity { display: flex; align-items: center; gap: 12px; }

@@ -13,6 +13,7 @@ export default function useFloatingPlayer(title, onChange, onBeforeMove) {
   latestTitle.current = title;
   const disposing = useRef(false);
   const pendingRestore = useRef(null);
+  const appearanceObserver = useRef(null);
 
   const moveHost = useCallback(destination => {
     const video = host.querySelector('video');
@@ -51,6 +52,8 @@ export default function useFloatingPlayer(title, onChange, onBeforeMove) {
     popup.current = child;
     const restore = () => {
       if (popup.current !== child) return;
+      appearanceObserver.current?.disconnect();
+      appearanceObserver.current = null;
       popup.current = null;
       if (slot.current) moveHost(slot.current);
       if (!disposing.current) { setFloating(false); onChange?.(false); }
@@ -59,7 +62,21 @@ export default function useFloatingPlayer(title, onChange, onBeforeMove) {
     child.addEventListener('pagehide', restore);
     try {
       child.document.title = latestTitle.current;
-      child.document.documentElement.dataset.theme = document.documentElement.dataset.theme || 'light';
+      const syncAppearance = () => {
+        const source = document.documentElement.dataset;
+        const target = child.document.documentElement.dataset;
+        target.theme = source.theme || 'light';
+        if (source.posterSize) target.posterSize = source.posterSize;
+        else delete target.posterSize;
+      };
+      syncAppearance();
+      if (typeof MutationObserver !== 'undefined') {
+        appearanceObserver.current = new MutationObserver(syncAppearance);
+        appearanceObserver.current.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-theme', 'data-poster-size'],
+        });
+      }
       for (const stylesheet of document.querySelectorAll('link[rel="stylesheet"], style')) {
         const copy = stylesheet.cloneNode(true);
         if (stylesheet.href) copy.href = stylesheet.href;
@@ -87,6 +104,8 @@ export default function useFloatingPlayer(title, onChange, onBeforeMove) {
     return () => {
       disposing.current = true;
       popup.current?.close();
+      appearanceObserver.current?.disconnect();
+      appearanceObserver.current = null;
       pendingRestore.current?.();
     };
   }, []);

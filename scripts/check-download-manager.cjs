@@ -63,8 +63,12 @@ const runningMerge = () => ({ id: 'm', status: 'running', total: 2, done: 0, pro
     assert.equal(ui.moreActions.open, false, 'Escape must close the menu');
     assert.equal(ui.moreActions.focused, true, 'Escape returns focus to the summary');
     ui.moreActions.open = true;
-    ui.find(n => n.props.className === 'dm-more-menu').props.onClick({ target: { closest: () => ({ disabled: false }) } });
+    ui.moreActions.focused = false;
+    const button = { disabled: false };
+    const menu = { ownerDocument: { activeElement: button }, contains: target => target === button };
+    ui.find(n => n.props.className === 'dm-more-menu').props.onClick({ currentTarget: menu, target: { closest: () => button } });
     assert.equal(ui.moreActions.open, false, 'choosing an action closes the menu');
+    assert.equal(ui.moreActions.focused, true, 'closing a focused action restores focus to the summary');
     ui.moreActions.open = true; ui.setProps({ active: false });
     assert.equal(ui.moreActions.open, false, 'leaving the download page closes the menu');
     ui.unmount(); assert.equal(ui.domListeners(), 0);

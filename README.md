@@ -33,7 +33,7 @@
 
 安装包**未做代码签名**。首次运行若弹出 SmartScreen 提示，点「更多信息 → 仍要运行」。
 
-旧版本（6.0 – 6.6）的安装包保留在[历史发行页](https://github.com/yuchen0x1/HongGuo-PC/releases)。
+历史版本的安装包保留在[发行页](https://github.com/yuchen0x1/HongGuo-PC/releases)。
 
 > 发布页里还能看到一个 `latest.yml`，它是旧版和后续安装版自动更新所需的元数据，不是安装程序，不要单独运行。
 
@@ -53,7 +53,7 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 **[v6.18](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.18)** · 2026-11-20
 
-修复 Windows 上部分加密 HLS 视频因临时密钥路径解析错误而无法播放或下载的问题。
+修复 Windows 加密 HLS 临时密钥路径、部分来源播放地址恢复及采集源访问/集数匹配问题。红果完整分集播放尚未恢复。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
@@ -268,7 +268,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.17.md](docs/release-6.17.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.19.md](docs/release-6.19.md)。
 
 </details>
 

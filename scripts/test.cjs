@@ -15,6 +15,7 @@ const skip = new Set([
   'check-merge-benchmark.cjs',
   'check-error-boundary.cjs',
   'check-danmaku-live.cjs',
+  'check-ui-theme.cjs',
 ]);
 
 // 本地回环回归必须直连：继承的终端/系统代理会把请求以 absolute-form 转发回

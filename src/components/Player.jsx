@@ -64,7 +64,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     if (!activeSeriesId || !['fit', 'width'].includes(mode)) return;
     setPictureChoice({ seriesId: activeSeriesId, mode });
     try { window.localStorage.setItem(`hongguo:picture-mode:${activeSeriesId}`, mode); }
-    catch { showToast('画面模式已切换，但未能保存；下次打开可能恢复默认'); }
+    catch { showToast('画面模式已切换，但未能保存；下次打开可能恢复默认', 'error'); }
   };
   const [detail, setDetail] = useState(null); // { series_title, episodes: [...], total, completedCount }
   const [detailError, setDetailError] = useState('');
@@ -112,6 +112,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
   const [storageTotal, setStorageTotal] = useState({ files: 0, bytes: 0 });
   const [autoDelete, setAutoDelete] = useState(false);    // 看完自动删本地文件
   const [confirmAsk, setConfirmAsk] = useState(null);     // {title, message, danger, onOk}
+  const confirmReturnToPage = useRef(false);              // 仅在确认提交后把焦点交还播放页，取消仍回原按钮
 
   // 兼容模式：本机解不了 HEVC 时转码为 H.264
   const [autoCompat, setAutoCompat] = useState(true);
@@ -314,15 +315,15 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     clearTimeout(rateNoticeTimer.current);
   }, [persistPosition, releaseOnline, cancelCompat, releasePrefetch]);
 
-  const showToast = useCallback((text) => {
-    setToast(text);
+  const showToast = useCallback((text, type = 'success') => {
+    setToast({ text, type });
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
   const savePlaybackPreferences = useCallback(() => {
     try { window.localStorage.setItem(PLAYBACK_PREFERENCES_KEY, JSON.stringify({ rate: preferredRateRef.current, volume: volumeRef.current, muted: mutedRef.current })); }
-    catch { showToast('播放偏好已生效，但未能保存；下次打开可能恢复默认'); }
+    catch { showToast('播放偏好已生效，但未能保存；下次打开可能恢复默认', 'error'); }
   }, [showToast]);
 
   const changePlaybackRate = useCallback((value, notify = true, persist = true) => {
@@ -482,9 +483,9 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
       else if (Number.isFinite(result?.count) && Number.isFinite(result?.failed)) {
         message = `已删除 ${result.count} 个文件，${result.failed} 个删除失败${result.error ? `：${result.error}` : ''}`;
       } else message = result?.error || '删除失败';
-      showToast(message + (result?.warning ? `；${result.warning}` : ''));
+      showToast(message + (result?.warning ? `；${result.warning}` : ''), result?.success ? 'success' : 'error');
     } catch (error) {
-      showToast(error.message || '删除失败，请重试');
+      showToast(error.message || '删除失败，请重试', 'error');
     } finally {
       setDownloadedRevision(revision => revision + 1);
       await Promise.all([loadDetail(activeSeriesId), refreshCacheInfo()]);
@@ -518,7 +519,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         setAutoCompat(settings?.compat_mode !== false);
       }
     }).catch(() => {
-      if (!cancelled) showToast('默认下载清晰度读取失败，请确认清晰度后再下载');
+      if (!cancelled) showToast('默认下载清晰度读取失败，请确认清晰度后再下载', 'error');
     }).finally(() => { if (!cancelled) setQualityLoading(false); });
     return () => { cancelled = true; };
   }, [active]);
@@ -545,7 +546,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
       if (!result?.success) throw new Error(result?.error || '设置保存失败');
       setValue(value);
     } catch (error) {
-      showToast(`设置未更改：${error.message}`);
+      showToast(`设置未更改：${error.message}`, 'error');
     } finally {
       playbackSettingPending.current = false;
       setPlaybackSettingSaving(false);
@@ -575,7 +576,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     return window.electronAPI.onOnlinePlayProgress((d) => {
       const request = onlineRequestRef.current;
       if (!request || d.requestId !== request.requestId) return;
-      if (d.code === 'MEDIA_TOO_LARGE') { showToast(d.error); return; }
+      if (d.code === 'MEDIA_TOO_LARGE') { showToast(d.error, 'error'); return; }
       if (request.prepared) return;
       setOnlineProgress({
         vid: d.vid,
@@ -781,7 +782,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
           });
         } else {
           setCompatProgress(null);
-          if (res?.code === 'MEDIA_TOO_LARGE') showToast(res.error);
+          if (res?.code === 'MEDIA_TOO_LARGE') showToast(res.error, 'error');
           if (autoCompat && !res?.cancelled && reconnectOnce()) return;
           const message = (res && res.error) || '转码失败';
           if (!res?.cancelled && onlineSourceRef.current === `${activeSeriesId}:${vidIndex}`) {
@@ -790,7 +791,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
           }
           setDecodeFailed(true);
           setCompatError(message);
-          showToast(message);
+          showToast(message, 'error');
         }
       } catch (e) {
         if (compatRequestRef.current !== request || request.version !== mediaVersion.current) return;
@@ -803,7 +804,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         }
         setDecodeFailed(true);
         setCompatError('转码异常: ' + e.message);
-        showToast('转码异常: ' + e.message);
+        showToast('转码异常: ' + e.message, 'error');
       }
     },
     [episodes, activeSeriesId, onlineQuality, autoCompat, reconnectOnce, showToast, currentPosition, persistPosition, holdVideoFrame, recoverOnlineFailure]
@@ -829,11 +830,11 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     if (affected) stopPlayback('兼容播放已停止，可重试本集继续观看');
     try {
       const r = await window.electronAPI.clearCompatCache();
-      if (!r?.success) { showToast(r?.error || '清理转码缓存失败'); return; }
+      if (!r?.success) { showToast(r?.error || '清理转码缓存失败', 'error'); return; }
       setCompatMap({});
       setCompatCache({ files: 0, bytes: 0 });
       showToast(r.count > 0 ? `已清理转码缓存，释放 ${fmtSize(r.freed)}` : '转码缓存已是空的');
-    } catch (e) { showToast('清理转码缓存失败: ' + e.message); }
+    } catch (e) { showToast('清理转码缓存失败: ' + e.message, 'error'); }
   };
 
   // 播放中若始终解不出画面（videoWidth 一直为 0），判定为解码不兼容。
@@ -877,7 +878,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
       const ep = episodes.find((e) => e.vid_index === vidIndex);
       if (ep?.locked) { showToast('这一集需在来源平台解锁'); return; }
       if (!ep || !ep.vid) {
-        showToast('这一集暂时无法播放，请重新获取剧集后重试');
+        showToast('这一集暂时无法播放，请重新获取剧集后重试', 'error');
         return;
       }
       const quality = stateRef.current.onlineQuality;
@@ -934,7 +935,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
           return;
         }
         if (!res || !res.success) {
-          if (res?.code === 'MEDIA_TOO_LARGE') showToast(res.error);
+          if (res?.code === 'MEDIA_TOO_LARGE') showToast(res.error, 'error');
           await recoverOnlineFailure(ep, (res && res.error) || '在线播放准备失败');
           return;
         }
@@ -1016,7 +1017,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     const autoplay = loadedMediaRef.current ? !loadedMediaRef.current.element.paused : pendingAutoplayRef.current;
     setOnlineQualityChoice(quality);
     stateRef.current.onlineQuality = quality;
-    try { window.localStorage.setItem('hongguo:online-quality', quality); } catch { showToast('本次清晰度已切换，但未能保存'); }
+    try { window.localStorage.setItem('hongguo:online-quality', quality); } catch { showToast('本次清晰度已切换，但未能保存', 'error'); }
     fallbackAttemptRef.current = null;
     reconnectAttemptRef.current = null;
     setCompatMap({});
@@ -1139,7 +1140,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         loadDetail(sid);
         const cache = await window.electronAPI.compatCacheStatus();
         if (cache?.success) setCompatCache({ files: cache.files, bytes: cache.bytes });
-      }).catch(error => showToast(`第 ${ci} 集自动清理失败：${error.message}`));
+      }).catch(error => showToast(`第 ${ci} 集自动清理失败：${error.message}`, 'error'));
     }
   }, [findNext, goToEpisode, showToast, autoDelete, episodes, refreshCacheInfo, loadDetail, persistPosition, holdVideoFrame, resetPlayback, releaseOnline]);
 
@@ -1230,7 +1231,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         if (element && !fullscreenScrollRef.current) fullscreenScrollRef.current = { element, top: element.scrollTop };
         await stageRef.current?.requestFullscreen();
       }
-    } catch { restoreFullscreenScroll(); showToast('无法进入或退出全屏，请重试'); }
+    } catch { restoreFullscreenScroll(); showToast('无法进入或退出全屏，请重试', 'error'); }
   }, [portrait, floatingPlayer.floating, showToast, restoreFullscreenScroll]);
 
   useEffect(() => () => clearTimeout(videoClickTimer.current), [videoSrc]);
@@ -1249,7 +1250,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     const togglePlay = () => {
       const video = videoRef.current;
       if (!video) return;
-      if (video.paused) video.play().catch(() => showToast('暂时无法播放，请重试本集'));
+      if (video.paused) video.play().catch(() => showToast('暂时无法播放，请重试本集', 'error'));
       else video.pause();
     };
     const finishForward = (activate = false) => {
@@ -1263,7 +1264,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         const video = videoRef.current;
         const limit = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
         try { video.currentTime = Math.min(limit, video.currentTime + 5); }
-        catch { showToast('暂时无法跳转，请稍后重试'); }
+        catch { showToast('暂时无法跳转，请稍后重试', 'error'); }
       }
     };
     const onKey = (event) => {
@@ -1293,7 +1294,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
       } else if (action.id === 'forward' || action.id === 'backward') {
         const limit = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Infinity;
         try { video.currentTime = Math.max(0, Math.min(limit, video.currentTime + (action.id === 'forward' ? 5 : -5))); }
-        catch { showToast('暂时无法跳转，请稍后重试'); }
+        catch { showToast('暂时无法跳转，请稍后重试', 'error'); }
       } else if (action.id === 'previous' || action.id === 'next') {
         const handlers = keyboardHandlers.current;
         const episode = action.id === 'previous' ? handlers.findPrev?.(index) : handlers.findNext?.(index);
@@ -1356,7 +1357,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         pendingTargetRef.current = { seriesId: String(sid), vidIndex: selected.vid_index, seekTo: pendingSeekRef.current, autoplay: pendingAutoplayRef.current };
       }
     } catch (e) {
-      if (version === selectionVersion.current) showToast('加载剧集失败: ' + e.message);
+      if (version === selectionVersion.current) showToast('加载剧集失败: ' + e.message, 'error');
     } finally {
       if (version === selectionVersion.current) setLoading(false);
     }
@@ -1376,7 +1377,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         if (selected) await switchSeries(selected.series_id, wanted ? target.vidIndex : 0, !!(wanted && target.resume), !!wanted && target.autoplay !== false && navigation === navigationVersion.current);
         else setLoading(false);
       } catch (e) {
-        if (!cancelled) { setLoading(false); showToast('加载剧库失败: ' + e.message); }
+        if (!cancelled) { setLoading(false); showToast('加载剧库失败: ' + e.message, 'error'); }
       }
     })();
     return () => { cancelled = true; };
@@ -1389,7 +1390,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     let cancelled = false;
     loadSeriesList().then(list => {
       if (!cancelled && !selectedSeriesRef.current && list[0]) switchSeries(list[0].series_id, 0, true, false);
-    }).catch(() => { if (!cancelled) showToast('刷新剧库失败，请重新打开剧集面板'); });
+    }).catch(() => { if (!cancelled) showToast('刷新剧库失败，请重新打开剧集面板', 'error'); });
     return () => { cancelled = true; };
   }, [active, pickerOpen, loadSeriesList, switchSeries, showToast]);
 
@@ -1404,7 +1405,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
   const removeSeries = async (sid, title) => {
     const res = await window.electronAPI.forgetSeries(sid, { clearCache: true }).catch(error => ({ success: false, error: error.message }));
     if (!res || !res.success) {
-      showToast((res && res.error) || '移除失败');
+      showToast((res && res.error) || '移除失败', 'error');
       return;
     }
     showToast(`已永久移除《${title}》的剧库记录（本地文件保留）`);
@@ -1430,10 +1431,10 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     }
     try {
       const r = await window.electronAPI.clearOnlineCache();
-      if (!r?.success) { showToast(r?.error || '清理播放缓存失败'); return; }
+      if (!r?.success) { showToast(r?.error || '清理播放缓存失败', 'error'); return; }
       refreshCacheInfo();
       showToast('已清空在线播放缓存');
-    } catch (e) { showToast('清理播放缓存失败: ' + e.message); }
+    } catch (e) { showToast('清理播放缓存失败: ' + e.message, 'error'); }
   };
 
   const downloadEpisode = async (vidIndex) => {
@@ -1448,9 +1449,9 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         if (activeRef.current && navigation === navigationVersion.current && selection === selectionVersion.current && media === mediaVersion.current
           && String(activeSeriesId) === selectedSeriesRef.current && stateRef.current.currentIndex === vidIndex) setWaitingFor(vidIndex);
       } else {
-        showToast((res && res.error) || '加入下载失败');
+        showToast((res && res.error) || '加入下载失败', 'error');
       }
-    } catch (error) { showToast(error.message || '加入下载失败，请重试'); }
+    } catch (error) { showToast(error.message || '加入下载失败，请重试', 'error'); }
   };
 
   const downloadMissing = async (nextCount = null) => {
@@ -1470,7 +1471,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         else if (!firstError) firstError = r?.error || '加入下载失败';
       } catch (error) { if (!firstError) firstError = error.message || '加入下载失败'; }
     }
-    showToast(firstError ? `${ok} 集提交成功，${missing.length - ok} 集失败：${firstError}` : `已把 ${ok} 集加入下载队列`);
+    showToast(firstError ? `${ok} 集提交成功，${missing.length - ok} 集失败：${firstError}` : `已把 ${ok} 集加入下载队列`, firstError ? 'error' : 'success');
   };
 
   // 一键合并当前这部剧（弹出格式选择）
@@ -1516,7 +1517,8 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     }
   };
 
-  useDialogKeyboard(active && !!(confirmAsk || mergeAsk), () => { setConfirmAsk(null); closeMergeDialog(); }, '.player-confirm');
+  useDialogKeyboard(active && !!(confirmAsk || mergeAsk), () => { setConfirmAsk(null); closeMergeDialog(); }, '.player-confirm', undefined,
+    () => { if (!confirmReturnToPage.current) return null; confirmReturnToPage.current = false; return document.querySelector('main[data-page="player"]'); });
 
   useEffect(() => {
     if (actionsHidden || !active || !portrait) {
@@ -1528,7 +1530,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
   useEffect(() => {
     window.electronAPI.setEpisodePanelOpen?.(active && portrait && episodesOpen && !loading).catch(() => {
       setEpisodesOpen(false);
-      showToast('选集无法展开，请重试');
+      showToast('选集无法展开，请重试', 'error');
     });
   }, [active, portrait, episodesOpen, loading, showToast]);
   useEffect(() => () => { window.electronAPI.setEpisodePanelOpen?.(false).catch(() => {}); }, []);
@@ -1615,8 +1617,8 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               videoRef.current?.pause();
               try {
                 const result = await window.electronAPI.openEpisodeExternal(activeSeriesId, currentIndex);
-                if (!result?.success) showToast(result?.error || '无法打开系统播放器');
-              } catch { showToast('无法打开系统播放器，请稍后重试'); }
+                if (!result?.success) showToast(result?.error || '无法打开系统播放器', 'error');
+              } catch { showToast('无法打开系统播放器，请稍后重试', 'error'); }
             }}>系统播放器</button>
           <button aria-pressed={cacheNext} className={`btn btn-outline ${cacheNext ? 'btn-autonext-on' : ''}`}
             disabled={qualityLoading || playbackSettingSaving}
@@ -1838,7 +1840,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               video.focus({ preventScroll: true });
               clearTimeout(videoClickTimer.current);
               videoClickTimer.current = setTimeout(() => {
-                if (video.paused) video.play().catch(() => showToast('暂时无法播放，请重试本集'));
+                if (video.paused) video.play().catch(() => showToast('暂时无法播放，请重试本集', 'error'));
                 else video.pause();
               }, 300);
             }}
@@ -1891,7 +1893,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               }
               setMediaBuffering(false);
               setDecodeFailed(failedDecode);
-              showToast(failedDecode ? '片源暂时无法播放，请先重新连接片源' : '视频加载失败，请重试本集或检查网络');
+              showToast(failedDecode ? '片源暂时无法播放，请先重新连接片源' : '视频加载失败，请重试本集或检查网络', 'error');
               if (failedDecode && !unavailableOnline) tryAutoCompat(currentIndex);
             }}
           />
@@ -1918,7 +1920,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         }} onOpenSettings={onNavigate ? () => onNavigate('settings') : undefined} danmaku={showDanmakuControls ? danmaku : null} enhancement={enhancement} continuing={autoAdvancing && !playbackError && !decodeFailed} autoContinue={autoNext && !!findNext(currentIndex)} shortcuts={shortcuts} onToggleFullscreen={toggleFullscreen} portrait={portrait} windowFill={windowFill} onWindowFill={setWindowFill} videoRef={videoRef} stageRef={stageRef} source={videoSrc} available={canPlay}
           seriesTitle={detail?.series_title} episodes={episodes} currentIndex={currentIndex} onEpisodeChange={goToEpisode}
           onlineQuality={onlineQuality} supportsOnlineQuality={supportsOnlineQuality} onQualityChange={changeOnlineQuality}
-          pictureMode={pictureMode} onPictureModeChange={changePictureMode} rate={playbackRate} onRateChange={changePlaybackRate} onError={showToast} />
+          pictureMode={pictureMode} onPictureModeChange={changePictureMode} rate={playbackRate} onRateChange={changePlaybackRate} onError={message => showToast(message, 'error')} />
         {!canPlay && (
           <div className={`player-placeholder${holdingFrame && !playbackError ? ' player-placeholder-over-frame' : ''}`} style={{ position: 'absolute', inset: 0, zIndex: 3 }}>
             {playbackError ? (
@@ -2157,13 +2159,15 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
           <NasDownload seriesId={activeSeriesId} quality={downloadQuality} disabled={qualityLoading} />
         </div>}
       </div>
-      {toast && <div className="dm-toast dm-toast-success" onClick={() => setToast(null)}>{toast}</div>}
+      {toast && (toast.type === 'error'
+        ? <div className="dm-toast dm-toast-error" role="alert" aria-atomic="true" onClick={() => setToast(null)}>{toast.text}</div>
+        : <div className="dm-toast dm-toast-success" role="status" aria-live="polite" aria-atomic="true" onClick={() => setToast(null)}>{toast.text}</div>)}
 
       {/* 合并格式选择 */}
       {mergeAsk && (
         <div className="player-confirm-mask" onClick={closeMergeDialog}>
-          <div className="player-confirm" role="dialog" aria-modal="true" aria-label={confirmAsk ? confirmAsk.title : '合并导出'} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-            <div className="player-confirm-title" style={{ color: 'var(--accent)' }}>
+          <div className="player-confirm" role="dialog" aria-modal="true" aria-labelledby="player-merge-title" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+            <div className="player-confirm-title" id="player-merge-title" style={{ color: 'var(--accent)' }}>
               <Layers size={17} />
               合并导出全集
             </div>
@@ -2179,7 +2183,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               <button className="btn btn-outline" onClick={() => mergeThisSeries(false, true)} disabled={merging}>
                 高质量分辨率合并
               </button>
-              <button className="btn btn-outline" onClick={closeMergeDialog}>取消</button>
+              <button className="btn btn-outline" data-dialog-initial-focus onClick={closeMergeDialog}>取消</button>
               <button className="btn btn-outline" onClick={() => mergeThisSeries(true)} disabled={merging}>
                 兼容合并（H.264）
               </button>
@@ -2204,11 +2208,12 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               ))}
             </div>
             <div className="player-confirm-foot">
-              <button className="btn btn-outline" onClick={() => setConfirmAsk(null)}>取消</button>
+              <button className="btn btn-outline" data-dialog-initial-focus onClick={() => setConfirmAsk(null)}>取消</button>
               <button
                 className={`btn ${confirmAsk.danger ? 'btn-danger-solid' : 'btn-primary'}`}
                 onClick={async () => {
                   const fn = confirmAsk.onOk;
+                  confirmReturnToPage.current = true;
                   setConfirmAsk(null);
                   await fn();
                 }}

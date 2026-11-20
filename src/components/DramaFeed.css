@@ -3,6 +3,11 @@
 .drama-feed-header h2 { margin: 0; font-size: var(--fs-display); font-weight: 700; }
 .drama-feed .source-control { display: inline-flex; align-items: center; gap: 8px; font-size: var(--fs-sm); white-space: nowrap; }
 .drama-feed .source-control select { width: auto; min-width: 112px; }
+@media (max-width: 600px) {
+  .drama-feed-header .drama-feed-actions { width: 100%; }
+  .drama-feed .source-control { width: 100%; min-width: 0; }
+  .drama-feed .source-control select { flex: 1; width: 0; min-width: 0; max-width: 100%; }
+}
 .drama-feed-categories { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-bottom: 18px; border-bottom: 1px solid var(--border-default); }
 .drama-feed-categories .drama-random-tab { margin-left: 24px; }
 .drama-feed-list-meta { display: flex; justify-content: space-between; gap: 12px; margin: 16px 0; color: var(--text-secondary); font-size: var(--fs-sm); }

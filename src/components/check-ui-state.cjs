@@ -70,6 +70,7 @@ async function mount(file, api, props = {}, storage = null) {
     cache.set(resolved, module);
     const localRequire = (spec) => {
       if (spec === 'react' || spec === 'react/jsx-runtime' || spec === 'react/jsx-dev-runtime') return react;
+      if (spec === './useDialogKeyboard') return { __esModule: true, default: () => {} };
       if (spec === 'react-dom') return { createPortal: children => children };
       if (spec.endsWith('.css')) return {};
       if (/.(ico|png|jpg|jpeg|svg|gif|webp)$/i.test(spec)) return spec; // 静态资源：Vite 会给 URL，桩里给相对路径即可
@@ -132,9 +133,61 @@ async function mount(file, api, props = {}, storage = null) {
       const selected = ui.nodes().filter(node => node.props.role === 'option' && node.props['aria-selected']);
       assert.equal(selected.length, 1);
       assert.equal(selected[0], ui.button(label));
-      ui.find(node => node.props.role === 'dialog').props.onKeyDown({ key: 'Enter', preventDefault() {} });
+      ui.find(node => node.props.role === 'combobox').props.onKeyDown({ key: 'Enter', preventDefault() {}, stopPropagation() {} });
       assert.equal(opened.at(-1), page);
     }
+    ui.unmount();
+  });
+  await test('mode and account tabs expose selected semantics with roving keyboard focus', async () => {
+    for (const [component, label] of [['HongguoDownload', '搜索与下载方式'], ['AccountManagement', '账号来源']]) {
+      const ui = await mount(component, { getAccountStatus: async () => ({ success: true, account: null }), getMediaSources: async () => ({ success: true, sources: [{ id: 'hongguo', label: '红果' }] }) });
+      await ui.flush();
+      let focused = -1;
+      const fire = key => ui.find(node => node.props.role === 'tablist' && node.props['aria-label'] === label).props.onKeyDown({ key, preventDefault() {}, currentTarget: { querySelectorAll: () => [{ focus() { focused = 0; } }, { focus() { focused = 1; } }] } });
+      const selected = () => ui.nodes().filter(node => node.props.role === 'tab' && node.props['aria-selected']);
+      assert.equal(selected().length, 1); assert.equal(selected()[0].props.tabIndex, 0);
+      fire('ArrowRight'); await ui.flush();
+      assert.equal(focused, 1); assert.equal(selected()[0].props['aria-controls'].includes(component === 'AccountManagement' ? 'hema' : 'input'), true);
+      assert.equal(ui.nodes().filter(node => node.props.role === 'tabpanel' && !node.props.hidden).length, 1);
+      assert.ok(ui.nodes().filter(node => node.props.role === 'tabpanel').every(node => node.props.tabIndex === undefined));
+      fire('Home'); await ui.flush(); assert.equal(focused, 0);
+      ui.unmount();
+    }
+  });
+  await test('download progress exposes bounded accessible values without changing task state', async () => {
+    const ui = await mount('DownloadManager', {
+      getDownloadTasks: async () => [{ id: 'ui-progress', title: '测试下载进度', filename: 'progress.mp4', status: 'downloading', progress: 140 }],
+      getSeriesList: async () => [], getMergeTasks: async () => [], getQueueStatus: async () => ({ running: 1, pending: 0 }),
+    });
+    await ui.flush();
+    const progress = ui.find(node => node.props.role === 'progressbar' && node.props['aria-label'] === '测试下载进度 下载进度');
+    assert.ok(progress); assert.equal(progress.props['aria-valuemin'], 0); assert.equal(progress.props['aria-valuemax'], 100); assert.equal(progress.props['aria-valuenow'], 100);
+    assert.match(progress.props['aria-valuetext'], /100%/);
+    ui.unmount();
+  });
+  await test('download rescan distinguishes success from response and rejected IPC failures', async () => {
+    for (const mode of ['success', 'response-error', 'rejected']) {
+      const ui = await mount('DownloadManager', {
+        getDownloadTasks: async () => [], getSeriesList: async () => [], getMergeTasks: async () => [], getQueueStatus: async () => ({}),
+        rescanDownloads: async () => { if (mode === 'rejected') throw new Error('扫描连接失败'); return mode === 'success' ? { success: true, count: 2 } : { success: false, error: '目录读取失败' }; },
+      });
+      await ui.flush(); await ui.button('扫描下载目录').props.onClick(); await ui.flush();
+      const toast = ui.find(node => String(node.props.className || '').startsWith('dm-toast '));
+      assert.ok(toast); assert.equal(toast.props.role, mode === 'success' ? 'status' : 'alert');
+      assert.equal(toast.props.className, `dm-toast dm-toast-${mode === 'success' ? 'success' : 'error'}`);
+      assert.ok(ui.text().includes(mode === 'success' ? '补回 2 条' : mode === 'rejected' ? '扫描连接失败' : '目录读取失败'));
+      ui.unmount();
+    }
+  });
+  await test('download more actions returns focus to summary before hiding its focused control', async () => {
+    const ui = await mount('DownloadManager', { getDownloadTasks: async () => [], getSeriesList: async () => [], getMergeTasks: async () => [], getQueueStatus: async () => ({}) });
+    await ui.flush();
+    const child = { disabled: false }, owner = { activeElement: child };
+    const summary = { focus() { owner.activeElement = summary; } };
+    const disclosure = { open: true, querySelector: selector => selector === 'summary' ? summary : null };
+    ui.find(node => node.props.className === 'dm-more-actions').props.ref.current = disclosure;
+    ui.find(node => node.props.className === 'dm-more-menu').props.onClick({ target: { closest: () => child }, currentTarget: { ownerDocument: owner, contains: node => node === child } });
+    assert.equal(disclosure.open, false); assert.equal(owner.activeElement, summary);
     ui.unmount();
   });
   await test('global search waits for sources and submits only the newest pending seed once', async () => {
@@ -150,6 +203,16 @@ async function mount(file, api, props = {}, storage = null) {
     assert.deepEqual(calls, [['新搜索', 'hongguo']]);
     await ui.flush();
     assert.equal(calls.length, 1);
+    ui.unmount();
+  });
+  await test('global search retains hash characters within a query and removes only the final request stamp', async () => {
+    const calls = [];
+    const ui = await mount('SearchPanel', {
+      getMediaSources: async () => ({ success: true, sources: [{ id: 'hongguo', label: '红果' }] }),
+      searchSeries: async keyword => { calls.push(keyword); return { success: true, results: [] }; },
+    }, { seedTerm: '剧名#番外#1700000000000', active: true });
+    await ui.flush();
+    assert.deepEqual(calls, ['剧名#番外']);
     ui.unmount();
   });
   await test('global search defers hidden seeds until the search page becomes active', async () => {
@@ -693,6 +756,26 @@ async function mount(file, api, props = {}, storage = null) {
       assert.equal(cards().length, 1, 'returning must restore the retained cache');
       assert.equal(realCalls, callsAfterRefresh + 1, 'returning tries a new batch while retaining the last successful cards');
     } finally { ui.unmount(); }
+  });
+  await test('browse favorite keyboard events do not open the parent card and focused favorite remains visible', async () => {
+    for (const key of ['Enter', ' ']) {
+      let opened = 0;
+      const ui = await mount('Browse', { getSeriesList: async () => [], browseCategories: async () => [], browseList: async () => ({ success: true, results: [{ series_id: 'keyboard-favorite', series_title: '键盘收藏' }] }), searchResolve: async () => { opened++; return ok(detail('keyboard-favorite')); }, getSeriesEpisodes: async () => ok(detail('keyboard-favorite')) });
+      await ui.flush();
+      const card = ui.find(node => node.props.className === 'browse-card');
+      const favorite = ui.find(node => node.type === 'button' && node.props['aria-label'] === '收藏《键盘收藏》');
+      let prevented = false;
+      card.props.onKeyDown({ key, target: favorite, currentTarget: card, preventDefault() { prevented = true; } });
+      assert.equal(prevented, false, 'a nested button keeps its native activation');
+      favorite.props.onClick({ stopPropagation() {} }); await ui.flush();
+      assert.equal(opened, 0); assert.equal(ui.find(node => node.props.role === 'dialog'), undefined);
+      assert.equal(ui.find(node => node.props['aria-label'] === '取消收藏《键盘收藏》').props['aria-pressed'], true);
+      card.props.onKeyDown({ key, target: card, currentTarget: card, preventDefault() { prevented = true; } });
+      await ui.flush(); assert.equal(prevented, true); assert.equal(opened, 1, 'card itself remains keyboard operable');
+      ui.unmount();
+    }
+    const css = fs.readFileSync(path.join(__dirname, 'Browse.css'), 'utf8');
+    assert.match(css, /\.browse-card:focus-within \.browse-hover[^{}]*\{[^}]*opacity:\s*1/);
   });
   await test('closing a loading detail ignores its late result', async () => {
     const pending = deferred();

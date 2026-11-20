@@ -82,7 +82,7 @@ function mount(rows, storage = new Map()) {
   vm.runInNewContext(source, {
     module,
     exports: module.exports,
-    require: name => name === './historyGroups.mjs' ? require('../src/components/historyGroups.mjs') : name === 'react' ? react : name === './icons' ? { Play: Icon, RefreshCw: Icon, Clock: Icon } : {},
+    require: name => name === './historyGroups.mjs' ? require('../src/components/historyGroups.mjs') : name === './useDialogKeyboard' ? { __esModule: true, default: () => {} } : name === 'react' ? react : name === './icons' ? { Play: Icon, RefreshCw: Icon, Clock: Icon } : {},
     window: { electronAPI: api, localStorage: {
       getItem: key => storage.get(key) ?? null,
       setItem: (key, value) => storage.set(key, value),

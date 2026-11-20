@@ -219,7 +219,7 @@ function SearchPanel({ onSelectSeries, onSwitchToInput, active = true, seedTerm 
   useEffect(() => {
     if (!active || sourcesLoading || !seedTerm || appliedSeed.current === seedTerm) return;
     appliedSeed.current = seedTerm;
-    const term = seedTerm.split('#')[0].trim();
+    const term = seedTerm.replace(/#\d+$/, '').trim();
     if (!term) return;
     requestVersion.current++;
     pendingSearch.current = null;

@@ -13,7 +13,10 @@ for (const success of [true, false]) test(`delete-all reports running merges ski
     await player.flush(); player.button('切换剧集').props.onClick(); await player.flush();
     player.button('删除全部已下载').props.onClick(); await player.flush();
     await player.button('全部删除').props.onClick(); await player.flush();
-    const toast = player.find(node => node.props.className === 'dm-toast dm-toast-success')?.children.join('');
+    const toastNode = player.find(node => typeof node.props.className === 'string' && node.props.className.startsWith('dm-toast'));
+    const toast = toastNode?.children.join('');
+    assert.equal(toastNode.props.className, success ? 'dm-toast dm-toast-success' : 'dm-toast dm-toast-error',
+      '删除失败必须显示为错误提示');
     assert.match(toast, /1 部剧正在合并，已跳过/);
     assert.match(toast, /已删除 0 个文件/);
     if (!success) assert.match(toast, /文件占用/);

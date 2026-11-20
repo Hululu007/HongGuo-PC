@@ -57,6 +57,11 @@ const source = transformSync(fs.readFileSync(path.join(__dirname, '../src/compon
   };
   const context = { module: { exports: {} }, document, Date: TestDate, window: { addEventListener: (name, fn) => windowListeners.set(name, fn), removeEventListener: name => windowListeners.delete(name) }, setTimeout: (fn, delay) => { timers.set(++nextTimer, { fn, at: now + delay }); return nextTimer; }, clearTimeout: id => timers.delete(id), setInterval: (fn, delay) => { timers.set(++nextTimer, { fn, at: now + delay }); return nextTimer; }, clearInterval: id => timers.delete(id), require: name => name === 'react' ? react : name === '../shortcuts' ? shortcutModule.exports : name === '../playerDisplay.mjs' ? displayModule.exports : name === './VideoEnhancement' ? videoEnhancementStub : {} };
   context.exports = context.module.exports; vm.runInNewContext(source, context);
+  const measurePopover = context.module.exports.getPlayerPopoverHeight;
+  assert.equal(measurePopover({ top: -200 }, { top: 400 }, 88), 296, 'scrolled stage menus fit below the main scrollport header');
+  assert.equal(measurePopover({ top: 150 }, { top: 400 }, 88), 234, 'normal stage remains the upper bound');
+  assert.equal(measurePopover({ top: 0 }, { top: 900 }, 0), 440, 'fullscreen menus retain their height cap');
+  assert.equal(measurePopover({ top: 100 }, { top: 130 }, 88), 60, 'short stages retain a scrollable minimum');
   const nodes = () => { const out = []; const visit = node => { if (!node || typeof node !== 'object') return; out.push(node); node.children?.forEach(visit); }; visit(tree); return out; };
   const find = label => nodes().find(node => node.props['aria-label'] === label);
   const contains = (node, target) => node === target || !!node?.children?.some(child => contains(child, target));
