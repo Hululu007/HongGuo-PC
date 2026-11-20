@@ -21,7 +21,7 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/native/renderer-
   require: name => name === 'node:url' ? {
     pathToFileURL: value => url.pathToFileURL(value, { windows: true }),
     fileURLToPath: value => url.fileURLToPath(value, { windows: true }),
-  } : require(name),
+  } : name === './dev-server-url' ? require('../src/native/dev-server-url') : require(name),
 });
 const windows = moduleFixture.exports.createRendererSecurity('c:\\Fixtures\\APP~1\\app.asar\\dist-react\\index.html');
 assert.equal(windows.isTrustedUrl('file:///C:/Fixtures/APP~1/app.asar/dist-react/index.html'), true);

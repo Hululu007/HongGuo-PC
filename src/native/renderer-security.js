@@ -1,4 +1,5 @@
 const { pathToFileURL, fileURLToPath } = require('node:url');
+const { getTrustedDevServerUrl } = require('./dev-server-url');
 
 function createRendererSecurity(entryFile, devUrl) {
   const fileIdentity = url => {
@@ -9,7 +10,7 @@ function createRendererSecurity(entryFile, devUrl) {
     return pathToFileURL(file).href;
   };
   const entry = fileIdentity(pathToFileURL(entryFile));
-  const devOrigin = devUrl ? new URL(devUrl).origin : '';
+  const devOrigin = getTrustedDevServerUrl(devUrl);
   const isTrustedUrl = value => {
     try {
       const url = new URL(value);

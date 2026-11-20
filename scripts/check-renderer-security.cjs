@@ -113,6 +113,8 @@ async function check(name, fn) { try { await fn(); } catch (error) { failures.pu
     const security = createRendererSecurity(path.join(path.dirname(file), 'dist-react/index.html'), 'http://localhost:5173');
     assert.equal(security.isTrustedUrl(event.senderFrame.url + '?arbitrary=1'), false);
     assert.equal(security.isTrustedUrl('http://localhost:5173/settings#player'), true);
+    assert.equal(security.isTrustedUrl('https://evil.invalid/'), false, 'remote environment URLs cannot become trusted renderer origins');
+    assert.equal(security.isTrustedUrl('http://192.168.1.5:5173/'), false, 'LAN origins are not development loopback');
     assert.equal(security.isTrustedUrl('http://localhost:5174/'), false);
     assert.equal(security.isTrustedUrl('http://localhost:5173.evil.invalid/'), false);
     assert.equal(security.isTrustedUrl('http://user:pass@localhost:5173/'), false);

@@ -62,9 +62,13 @@ const { fetchEpisodeComments } = require('./src/native/episode-comments');
 const { fetchDanmaku, setDeviceIdentityFile } = require('./src/native/danmaku');
 const { exportSeriesText } = require('./src/native/text-export');
 const { prepareNasExport, inspectNasEpisode, copyNasEpisode, nasEpisodeFilename, checkNasDirectory } = require('./src/native/nas-export');
-const mediaAccess = require('./src/native/media-access').createMediaAccess(process.env.VITE_DEV_SERVER_URL);
+const { getTrustedDevServerUrl } = require('./src/native/dev-server-url');
+// 只有未打包、且由本地开发启动器提供的 loopback URL 才能启用开发渲染器。
+// 打包版即使继承了同名环境变量，也必须回退到内置 file:// 页面。
+const devServerUrl = getTrustedDevServerUrl(process.env.VITE_DEV_SERVER_URL, app.isPackaged !== false);
+const mediaAccess = require('./src/native/media-access').createMediaAccess(devServerUrl);
 const rendererSecurity = require('./src/native/renderer-security').createRendererSecurity(
-  path.join(__dirname, 'dist-react', 'index.html'), process.env.VITE_DEV_SERVER_URL);
+  path.join(__dirname, 'dist-react', 'index.html'), devServerUrl);
 const attachFloatingPlayerWindow = require('./src/native/floating-player-window');
 const APP_VERSION = app.getVersion() || '1.0.0';
 
@@ -5751,10 +5755,9 @@ function createWindow() {
   });
 
   // 开发模式加载 vite dev server，生产模式加载打包产物
-  const devUrl = process.env.VITE_DEV_SERVER_URL;
   const page = process.platform === 'darwin' ? mainWindow.webContents : mainWindow;
-  if (devUrl) {
-    page.loadURL(devUrl);
+  if (devServerUrl) {
+    page.loadURL(devServerUrl);
   } else {
     page.loadFile(path.join(__dirname, 'dist-react', 'index.html'));
   }
