@@ -25,7 +25,21 @@ assert.ok(ffmpeg && video, 'Set HONGGUO_FFMPEG and HONGGUO_VIDEO_FIXTURE');
   };
   const output = name => path.join(root, name + '.mp4');
   const options = { url:'https://fixture.example/master.m3u8', ffmpeg, request };
-  await remuxHls({ ...options, output:output('ok') });
+  const stagedManifests = new Set();
+  await remuxHls({ ...options, output:output('ok'), checkAccess: () => {
+    for (const entry of fs.readdirSync(root).filter(name => name.startsWith('.hongguo-hls-'))) {
+      const staged = path.join(root, entry);
+      for (const name of fs.readdirSync(staged).filter(name => name.endsWith('.m3u8'))) {
+        stagedManifests.add(fs.readFileSync(path.join(staged, name), 'utf8'));
+      }
+    }
+  } });
+  assert.ok(stagedManifests.size >= 2, 'inspect the staged master and media playlists');
+  for (const text of stagedManifests) {
+    const references = [...text.matchAll(/\bURI="([^"]*)"/g)].map(match => match[1]);
+    references.push(...text.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith('#')));
+    for (const reference of references) assert.match(reference, /^\d+\.[a-z0-9]+$/, 'local HLS references must be generated basenames, with no Windows path escaping');
+  }
   assert.ok(fs.statSync(output('ok')).size > 0);
   assert.ok(requests.some(url => url.endsWith('/key')), 'encrypted keys pass through guarded proxy');
   const ffprobe = process.env.HONGGUO_FFPROBE;
@@ -41,6 +55,14 @@ assert.ok(ffmpeg && video, 'Set HONGGUO_FFMPEG and HONGGUO_VIDEO_FIXTURE');
   await assert.rejects(remuxHls({...options,output:output('privatekey'),request:async(url,args)=>url.endsWith('media.m3u8')
     ? {status:200,headers:{},data:Readable.from(['#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-KEY:METHOD=AES-128,URI="http://192.168.1.1/key"\n#EXTINF:2,\npart0.ts\n#EXT-X-ENDLIST\n']),url}:request(url,args)}),/公网|地址/);
   assert.equal(fs.existsSync(output('privatekey')),false);
+  for (const status of [401, 403, 429, 503]) for (const stage of ['manifest', 'segment']) {
+    await assert.rejects(remuxHls({ ...options, output:output(`status-${stage}-${status}`),
+      request:async(url,args) => (stage === 'manifest' || url.includes('/part'))
+        ? { status, headers:{}, data:Readable.from([]), url } : request(url,args) }),
+    error => error.mediaStatus === status, `preserve ${stage} HTTP ${status} for refusal/retry policy`);
+  }
+  await assert.rejects(remuxHls({ ...options, ffmpeg:null, output:output('no-tool') }),
+    error => error.code === 'LOCAL_MEDIA_TOOL_ERROR', 'missing tools must not trigger repeated provider refresh');
   await assert.rejects(remuxHls({...options,output:output('missing'),request:async(url,args) => url.includes('/part') ? Promise.reject(new Error('missing segment')) : request(url,args)}), /missing segment|分片|媒体/);
   assert.equal(fs.existsSync(output('missing')), false);
   await assert.rejects(remuxHls({...options,output:output('truncated'),request:async(url,args) => url.includes('/part')

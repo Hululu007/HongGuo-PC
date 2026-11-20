@@ -2815,7 +2815,8 @@ async function requestMedia(playInfo, options = {}) {
         hongguo.markWebMediaFailure?.(playInfo);
         throw Object.assign(mediaTransferError('官网片源地址不安全，正在尝试其他片源'), { code: 'ERR_WEB_MEDIA_ADDRESS' });
       }
-      const retryable = web ? [404, 410].includes(status) || status >= 500 && status <= 599 : status === 403;
+      const appSource = ['app', 'api'].includes(playInfo.source);
+      const retryable = web ? [404, 410].includes(status) || status >= 500 && status <= 599 : appSource && status === 403;
       if (!cancelled && attempt === 0 && retryable) {
         if (['app', 'api'].includes(playInfo.source) && config.headers.Referer) delete config.headers.Referer;
         else if (['app', 'api'].includes(playInfo.source) && !config.headers.Referer) config.headers.Referer = hongguo.VIDEO_REFERER;
@@ -2824,7 +2825,7 @@ async function requestMedia(playInfo, options = {}) {
       if (!cancelled && config.method === 'GET' && (retryable || status === 403)) hongguo.markWebMediaFailure?.(playInfo);
       if (!cancelled && status) {
         const failure = new Error(`片源请求失败（HTTP ${status}），请重新连接片源`);
-        failure.mediaRetryable = [403, 404, 408, 410].includes(status) || status >= 500 && status <= 599;
+        failure.mediaRetryable = [404, 408, 410].includes(status) || appSource && status === 403 || status >= 500 && status <= 599;
         failure.mediaStatus = status;
         throw failure;
       }
@@ -2921,11 +2922,20 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
     options.cancelToken?.throwIfRequested();
     if (options.signal?.aborted || controller.signal.aborted) throw Object.assign(new Error('已取消媒体请求'), { code: 'ERR_CANCELED' });
   };
-  const recoverable = error => error?.code === 'SOURCE_UNAVAILABLE'
+  const hongguoId = /^\d{1,30}$/.test(String(vid));
+  // Refresh only known provider identities. Every lookup below rechecks that provider's
+  // current episode access; an old URL never authorizes a newly locked episode.
+  const refreshable = hongguoId
+    || /^hema:\d{1,30}:\d{1,30}$/.test(String(vid))
+    || /^xifan:[a-zA-Z0-9_-]{1,200}:[a-zA-Z0-9_-]{1,200}:[a-zA-Z0-9_-]{1,200}$/.test(String(vid))
+    || /^custom:[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}:\d{1,30}:\d{1,5}:\d{1,5}$/i.test(String(vid));
+  const accessRefused = error => !hongguoId
+    && [401, 403, 429].includes(Number(error?.mediaStatus || error?.status || error?.response?.status));
+  const recoverable = error => !accessRefused(error) && (error?.code === 'SOURCE_UNAVAILABLE'
     ? sourceFailureIsTransient(error)
     : error?.mediaRetryable || error?.code === 'MEDIA_DECODE_ERROR'
-      || ['ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE', 'ERR_BAD_RESPONSE', 'ERR_STREAM_PREMATURE_CLOSE', 'EAI_AGAIN'].includes(error?.code);
-  const rounds = options.recover !== false && /^\d{1,30}$/.test(String(vid)) ? 3 : 1;
+      || ['ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE', 'ERR_BAD_RESPONSE', 'ERR_STREAM_PREMATURE_CLOSE', 'EAI_AGAIN'].includes(error?.code));
+  const rounds = options.recover !== false && refreshable ? 3 : 1;
   let lastError, decodeFailure, transfers = 0;
   try {
     for (let round = 0; round < rounds; round++) {
@@ -2965,6 +2975,8 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
           return value;
         } catch (error) {
           cancelled();
+          // A provider's explicit denial cannot be repaired by changing lines or quality.
+          if (accessRefused(error)) throw error;
           // Local storage/security failures cannot be repaired by trying a lower-quality video.
           const terminal = error?.path || error?.dest
             || /^(?:EACCES|EPERM|ENOSPC|EDQUOT|EROFS|EIO|ENOENT|EEXIST|ENOTDIR|EISDIR|EMFILE|ENFILE|EBUSY|ENAMETOOLONG|EMLINK|EFBIG|LOCAL_MEDIA_TOOL_ERROR|SECURITY_BLOCKED|ERR_WEB_MEDIA_ADDRESS)$/.test(error?.code);
@@ -2973,7 +2985,10 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
           // A bad Web body changes source priority; retry lookup before giving up on App recovery.
           if (error?.code === 'MEDIA_DECODE_ERROR' && candidate.source !== 'web') decodeFailure = error;
           hongguo.markWebMediaFailure?.(candidate);
-          if (transfers >= 4 && !options.allowLowerQuality) throw lastError;
+          if (transfers >= 4 && (!options.allowLowerQuality || !hongguoId)) throw lastError;
+          // Reserve a transfer for a newly resolved address rather than spending
+          // the whole budget on stale third-party lines from the first lookup.
+          if (!hongguoId && round === 0 && rounds > 1 && transfers >= 3) break;
         }
       }
       if (decodeFailure) throw decodeFailure;

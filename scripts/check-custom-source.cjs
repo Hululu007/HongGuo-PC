@@ -82,6 +82,19 @@ test('detail groups direct media lines once; playback candidates keep individual
   assert.equal(new URL(state.calls.at(-1).url).searchParams.get('ids'), '12');
 });
 
+test('ambiguous repeated episode titles never become automatic backup lines', async () => {
+  const { provider, state } = fixture();
+  state.body.list[0].vod_play_from = '主线$$$同名但不确定的备用线';
+  state.body.list[0].vod_play_url = '正片$https://cdn.example/selected.mp4$$$正片$https://backup.example/part-a.mp4#正片$https://backup.example/part-b.mp4';
+  let play = await provider.fetchPlayUrlSingle(`${sid}:0:0`, sid);
+  assert.equal(play.url, 'https://cdn.example/selected.mp4');
+  assert.equal(play.candidates.length, 1, 'a duplicated backup title cannot identify the same episode');
+  state.body.list[0].vod_play_url = '正片$https://cdn.example/part-a.mp4#正片$https://cdn.example/part-b.mp4$$$正片$https://backup.example/selected.mp4';
+  play = await provider.fetchPlayUrlSingle(`${sid}:0:1`, sid);
+  assert.equal(play.url, 'https://cdn.example/part-b.mp4', 'preserve the exact requested line and position');
+  assert.equal(play.candidates.length, 1, 'an ambiguous primary title cannot authorize cross-line replacement');
+});
+
 test('path-only play pages become index.m3u8 candidates; parser and html pages stay excluded', async () => {
   const { provider, state } = fixture();
   state.body.list[0].vod_play_url = '第1集$https://play.example/play/ab12cd34#第2集$https://play.example/play/zz99yy00$$$第1集$https://cdn.example/one.mp4$$$第1集$https://parser.example/?url=x.mp4#第2集$https://web.example/page.html';

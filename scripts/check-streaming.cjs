@@ -352,7 +352,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     for (const source of [undefined, 'xifan', 'hema', 'custom']) {
       const before = requests.length;
       await assert.rejects(h.context.requestMedia({ url: base + '/referer', source }), /HTTP 403/);
-      assert.equal(requests.length - before, 2, '403 retries remain bounded');
+      assert.equal(requests.length - before, 1, 'an explicit denial must stop without repeating a third-party request');
       assert.ok(requests.slice(before).every(request => request.headers.referer === undefined));
     }
   });
