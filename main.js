@@ -2223,16 +2223,53 @@ function readDirectoryIdentity(directory) {
   directory = fs.realpathSync(directory);
   const stat = fs.statSync(directory);
   if (!stat.isDirectory()) throw new Error('下载目录不可用');
-  return { directory, device: stat.dev };
+  return { directory, device: stat.dev, inode: stat.ino };
 }
 
 function validateDirectoryIdentity(identity, file) {
   try {
     const stat = fs.lstatSync(identity.directory);
     if (!stat.isDirectory() || stat.isSymbolicLink() || stat.dev !== identity.device
+      || (identity.inode != null && stat.ino !== identity.inode)
       || fs.realpathSync(identity.directory) !== identity.directory
       || fs.realpathSync(path.dirname(file)) !== identity.directory) throw new Error();
   } catch (_) { throw new Error('下载目录不可用或挂载已变化，已保留文件和任务记录；请确认原目录后重试'); }
+}
+
+/** Capture each actual parent before an async boundary; inferred/legacy paths must not follow directory links. */
+function deletionDirectory(file) {
+  if (typeof file !== 'string' || !path.isAbsolute(file)) throw new Error('文件路径无效，已保留文件和任务记录');
+  const parent = path.dirname(path.resolve(file));
+  const stat = fs.lstatSync(parent, { throwIfNoEntry: false });
+  if (!stat) return null;
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('下载目录是链接或无效目录，已保留文件和任务记录');
+  const directory = fs.realpathSync(parent);
+  // A user-selected root may itself have an alias; links below that root may not redirect a scan/deletion.
+  const root = mediaRoots().find(root => {
+    const relative = path.relative(path.resolve(root), parent);
+    return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+  });
+  const expected = root ? path.resolve(fs.realpathSync(root), path.relative(path.resolve(root), parent)) : parent;
+  if (normalizePathKey(directory) !== normalizePathKey(expected)) throw new Error('下载目录路径已变化，已保留文件和任务记录');
+  return { directory, parent, device: stat.dev, inode: stat.ino };
+}
+
+function snapshotDeletionDirectories(paths) {
+  const directories = new Map();
+  for (const file of paths.filter(Boolean)) {
+    const parent = path.dirname(file);
+    if (!directories.has(parent)) directories.set(parent, deletionDirectory(file));
+  }
+  return file => {
+    const selected = file ? [[path.dirname(file), directories.get(path.dirname(file))]] : directories;
+    for (const [parent, identity] of selected) {
+      if (!identity) {
+        if (fs.lstatSync(parent, { throwIfNoEntry: false })) throw new Error('下载目录已变化，已保留文件和任务记录');
+        continue;
+      }
+      validateDirectoryIdentity(identity, path.join(identity.parent, 'directory-check'));
+    }
+  };
 }
 
 function mediaRoots() {
@@ -2372,9 +2409,12 @@ function repairTaskDestination(task) {
 }
 
 function uniqueEpisodeFilename(settings, title, episode) {
-  const index = String(episode.vid_index).padStart(3, '0');
+  const value = episode?.vid_index, number = Number(value);
+  if (!['string', 'number'].includes(typeof value) || !Number.isSafeInteger(number) || number < 1)
+    throw new Error('分集编号无效');
+  const index = String(number).padStart(3, '0');
   const format = settings.name_format || '';
-  const rendered = renderName(format, title, episode.vid_index, episode.title) || title;
+  const rendered = renderName(format, title, number, episode.title) || sanitizeFolderName(title) || '未命名短剧';
   return `${rendered}${/集数|vid_index/.test(format) ? '' : `_第${index}集`}.mp4`;
 }
 
@@ -2400,14 +2440,24 @@ function collectSeriesEpisodeFiles(seriesId, seriesTitle) {
   );
   const dir = resolveSeriesDir(sid, seriesTitle, tasks);
 
-  const byIndex = new Map();
+  const byIndex = new Map(), checkedDirectories = new Map();
+  let scanFailed = 0;
+  const safeDirectory = file => {
+    const parent = path.dirname(file);
+    if (!checkedDirectories.has(parent)) {
+      try { checkedDirectories.set(parent, !!deletionDirectory(file)); }
+      catch (_) { checkedDirectories.set(parent, false); scanFailed = 1; }
+    }
+    return checkedDirectories.get(parent);
+  };
   const exists = (p) => {
-    try { return fs.existsSync(p) && fs.statSync(p).size > 1024 * 100; } catch (_) { return false; }
+    try { const stat = fs.lstatSync(p); return stat.isFile() && !stat.isSymbolicLink() && stat.size > 1024 * 100; }
+    catch (_) { return false; }
   };
 
   // 1) 任务记录优先（命名模板可能与默认不同）
   for (const t of tasks) {
-    if (!hasCompleteTaskFile(t) || !ownsEpisodeFiles(t.savePath, tasks)) continue;
+    if (!safeDirectory(t.savePath) || !exists(t.savePath) || !hasCompleteTaskFile(t) || !ownsEpisodeFiles(t.savePath, tasks)) continue;
     const idx = Number(t.hongguoInfo.vid_index) || 0;
     if (!idx) continue;
     const prev = byIndex.get(idx);
@@ -2435,8 +2485,8 @@ function collectSeriesEpisodeFiles(seriesId, seriesTitle) {
       episodeNames.set(uniqueEpisodeFilename({ name_format }, seriesTitle, episode), Number(episode.vid_index));
     }
   }
-  let names = [], scanFailed = 0;
-  if (dir) {
+  let names = [];
+  if (dir && safeDirectory(path.join(dir, 'directory-check'))) {
     try { names = fs.readdirSync(dir); } catch (_) { scanFailed = 1; }
     for (const name of episodeNames.keys()) {
       const full = path.join(dir, name);
@@ -4863,9 +4913,12 @@ async function validateNasDeletion(tasks) {
 }
 
 async function removeEpisodeFiles(paths, owners) {
-  let freed = 0, failed = 0, count = 0, warning;
-  try { const checkCurrent = await validateNasDeletion(owners); checkCurrent(); }
-  catch (error) { return { count, freed, failed, warning: error.message }; }
+  let freed = 0, failed = 0, count = 0, warning, checkDirectories;
+  try {
+    checkDirectories = snapshotDeletionDirectories(paths);
+    const checkCurrent = await validateNasDeletion(owners);
+    checkCurrent(); checkDirectories();
+  } catch (error) { return { count, freed, failed, warning: error.message }; }
   for (const file of new Set(paths.filter(Boolean))) {
     const family = episodeFilePaths(file);
     if (!ownsEpisodeFiles(file, owners) || family.some(isFileInUse)
@@ -4875,8 +4928,10 @@ async function removeEpisodeFiles(paths, owners) {
     }
     for (const p of family) {
       try {
-        if (fs.existsSync(p)) {
-          const st = fs.statSync(p);
+        checkDirectories(p);
+        const st = fs.lstatSync(p, { throwIfNoEntry: false });
+        if (st) {
+          if (st.isSymbolicLink() || !st.isFile()) throw new Error('文件已变化，未删除');
           fs.unlinkSync(p);
           freed += st.size; count++;
         }
@@ -4918,7 +4973,7 @@ function isFileInUse(file) {
 }
 
 function removeFinishedRecords(seriesId, saveChanges = false) {
-  const ids = downloadTasks.filter(task => (seriesId == null || String(task.hongguoInfo?.series_id) === String(seriesId)) && !isTaskInFlight(task) && task.status === 'completed' && task.savePath && episodeFilePaths(task.savePath).every(file => !fs.existsSync(file))).map(task => task.id);
+  const ids = downloadTasks.filter(task => (seriesId == null || String(task.hongguoInfo?.series_id) === String(seriesId)) && !isTaskInFlight(task) && task.status === 'completed' && task.savePath && episodeFilePaths(task.savePath).every(file => !fs.lstatSync(file, { throwIfNoEntry: false }))).map(task => task.id);
   if (ids.length || saveChanges) dropTaskRecords(ids);
 }
 
@@ -4990,25 +5045,34 @@ async function deleteSeriesFiles(seriesId, options) {
     const entry = seriesRegistry.find(s => String(s.series_id) === sid);
     const title = entry?.series_title || '';
     const files = collectSeriesEpisodeFiles(sid, title);
+    if (files.scanFailed) return { success: false, count: 0, freed: 0, failed: files.scanFailed, error: '下载目录不可用或扫描失败，已保留文件和任务记录' };
     const { dir } = files;
     const paths = new Set([...files.episodePaths, ...files.temporaryPaths,
       ...(includeMerged ? [...files.mergedPaths, ...files.concatPaths] : [])]);
+    const checkDirectories = snapshotDeletionDirectories([...paths, ...(dir ? [path.join(dir, 'directory-check')] : [])]);
     const checkCurrent = await validateNasDeletion(downloadTasks.filter(task => String(task.hongguoInfo?.series_id) === sid));
-    checkCurrent();
+    checkCurrent(); checkDirectories();
     const cancelledRetries = cancelScheduledRetries(downloadTasks.filter(task => String(task.hongguoInfo?.series_id) === sid));
     let count = 0, freed = 0, failed = files.scanFailed;
     for (const file of paths) {
       if (isFileInUse(file)) continue;
       try {
-        if (!fs.existsSync(file)) continue;
-        const size = fs.statSync(file).size;
+        checkDirectories(file);
+        const stat = fs.lstatSync(file, { throwIfNoEntry: false });
+        if (!stat) continue;
+        if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('文件已变化，未删除');
         fs.unlinkSync(file);
-        freed += size;
+        freed += stat.size;
         count++;
       } catch (_) { failed++; }
     }
     // 只移除本剧空目录；未知文件与仍在下载的临时文件会使目录保留。
-    try { if (dir && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir); } catch (_) {}
+    try {
+      if (dir && fs.existsSync(dir)) {
+        checkDirectories(path.join(dir, 'directory-check'));
+        if (fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);
+      }
+    } catch (_) {}
     try { removeFinishedRecords(sid, cancelledRetries); }
     catch (error) { return { success: false, count, freed, failed, error: `文件清理已执行；任务记录保存失败，原记录已保留：${error.message}${cancelledRetries ? '；自动重试取消状态未保存' : ''}` }; }
     return { success: failed === 0, count, freed, failed, error: failed ? '部分文件删除失败，对应记录已保留' : undefined };
@@ -5029,12 +5093,13 @@ async function deleteEpisodeFile(seriesId, vidIndex) {
     if (tasks.some(isTaskInFlight) || mergeTasks.some(task => task.seriesId === sid && task.status === 'running')) return { success: false, error: '该集正在下载或合并，暂不删除', count: 0, freed: 0 };
     const entry = seriesRegistry.find(item => String(item.series_id) === sid);
     const scanned = collectSeriesEpisodeFiles(sid, entry?.series_title || '');
+    if (scanned.scanFailed) return { success: false, count: 0, freed: 0, failed: scanned.scanFailed, error: '下载目录不可用或扫描失败，已保留文件和任务记录' };
     const paths = [...tasks.map(task => task.savePath), ...scanned.ordered.filter(episode => episode.vid_index === idx).map(episode => episode.path),
       ...(scanned.dir ? [...scanned.episodeNames].filter(([, index]) => index === idx).map(([name]) => path.join(scanned.dir, name)) : [])];
     const cancelledRetries = cancelScheduledRetries(tasks);
     const result = await removeEpisodeFiles(paths, tasks);
     const ids = tasks.filter(task => task.savePath && ownsEpisodeFiles(task.savePath, tasks)
-      && episodeFilePaths(task.savePath).every(file => !fs.existsSync(file))).map(task => task.id);
+      && episodeFilePaths(task.savePath).every(file => !fs.lstatSync(file, { throwIfNoEntry: false }))).map(task => task.id);
     try { if (ids.length || cancelledRetries) dropTaskRecords(ids); }
     catch (error) { return { ...result, success: false, error: `文件清理已执行；任务记录保存失败，原记录已保留：${error.message}${cancelledRetries ? '；自动重试取消状态未保存' : ''}` }; }
     return { ...result, success: result.failed === 0 && !result.warning,

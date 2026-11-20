@@ -2,6 +2,7 @@
 // Adapted from jayeeliu's PR #61, with path, partial-result and concurrent-write fixes (GPL-3.0).
 const fs = require('node:fs');
 const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const { fetchDanmaku } = require('./danmaku');
 const { fetchEpisodeComments } = require('./episode-comments');
 const { fetchPublicDetails } = require('./public-details');
@@ -9,15 +10,66 @@ const { fetchPublicDetails } = require('./public-details');
 const HONGGUO_ID = /^\d{6,30}$/;
 const pending = new Map();
 
-function writeJsonAtomic(target, obj) {
-  const tmp = `${target}.tmp`;
+const sameIdentity = (a, b) => Boolean(a && b && a.dev === b.dev && a.ino === b.ino);
+const sameState = (a, b) => a === b || (sameIdentity(a, b) && a.size === b.size &&
+  a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs);
+
+function fileState(file) {
+  const stat = fs.lstatSync(file, { throwIfNoEntry: false }) || null;
+  if (stat && (stat.isSymbolicLink() || !stat.isFile())) throw new Error('文字导出目标不是普通文件');
+  return stat;
+}
+
+function exportLocation(target) {
+  const parent = path.dirname(target);
+  fs.mkdirSync(parent, { recursive: true });
+  const directory = fs.realpathSync(parent), stat = fs.lstatSync(directory);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('文字导出目录不可用');
+  return { parent, directory, stat, file: path.join(directory, path.basename(target)) };
+}
+
+function checkDirectory(location) {
+  const stat = fs.lstatSync(location.directory);
+  if (stat.isSymbolicLink() || !stat.isDirectory() || !sameIdentity(stat, location.stat) ||
+      fs.realpathSync(location.parent) !== location.directory || fs.realpathSync(location.directory) !== location.directory)
+    throw new Error('文字导出目录已变化，请检查后重试');
+}
+
+function readPrevious(file) {
+  const stat = fileState(file);
+  if (!stat) return { stat, data: null };
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
   try {
-    fs.mkdirSync(path.dirname(target), { recursive: true });
-    fs.writeFileSync(tmp, JSON.stringify(obj, null, 2) + '\n', 'utf8');
-    fs.renameSync(tmp, target);
-  } catch (error) {
-    try { fs.unlinkSync(tmp); } catch (_) {}
-    throw error;
+    if (!sameState(stat, fs.fstatSync(fd))) throw new Error('文字导出目标已变化');
+    const data = JSON.parse(fs.readFileSync(fd, 'utf8'));
+    if (!sameState(stat, fs.fstatSync(fd))) throw new Error('文字导出目标已变化');
+    return { stat, data };
+  } finally { fs.closeSync(fd); }
+}
+
+function writeJsonAtomic(location, obj, previous) {
+  const tmp = path.join(location.directory, `.hongguo-text-${randomUUID()}.tmp`);
+  let fd, owned;
+  try {
+    checkDirectory(location);
+    fd = fs.openSync(tmp, 'wx', 0o600);
+    owned = fs.fstatSync(fd);
+    fs.writeFileSync(fd, JSON.stringify(obj, null, 2) + '\n', 'utf8');
+    fs.fsyncSync(fd);
+    const written = fs.fstatSync(fd);
+    fs.closeSync(fd);
+    fd = undefined;
+    checkDirectory(location);
+    if (!sameState(written, fileState(tmp)) || !sameState(previous, fileState(location.file)))
+      throw new Error('文字导出目标已变化，保留原文件');
+    fs.renameSync(tmp, location.file);
+    owned = undefined;
+  } finally {
+    if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) {} }
+    // Exclusive creation must succeed before cleanup; never remove a foreign collision.
+    if (owned) {
+      try { if (sameIdentity(owned, fs.lstatSync(tmp))) fs.unlinkSync(tmp); } catch (_) {}
+    }
   }
 }
 
@@ -63,28 +115,31 @@ function reviewsDoc({ seriesId, seriesTitle }, reviews, fetchedAt) {
 async function writeOne(target, build, fetch) {
   if (typeof target !== 'string' || !path.isAbsolute(target)) return { status: 'fail' };
   target = path.resolve(target);
-  if (pending.has(target)) return pending.get(target);
+  let location;
+  try { location = exportLocation(target); }
+  catch (_) { return { status: 'fail' }; }
+  const key = process.platform === 'win32' ? location.file.toLowerCase() : location.file;
+  if (pending.has(key)) return pending.get(key);
   const task = (async () => {
     try {
-      let retry = false;
-      try {
-        const previous = JSON.parse(fs.readFileSync(target, 'utf8'));
-        if (previous?.partial !== true) return { status: 'skipped', itemCount: Array.isArray(previous?.items) ? previous.items.length : undefined };
-        retry = true;
-      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+      checkDirectory(location);
+      const previous = readPrevious(location.file);
+      const retry = previous.stat !== null;
+      if (retry && previous.data?.partial !== true)
+        return { status: 'skipped', itemCount: Array.isArray(previous.data?.items) ? previous.data.items.length : undefined };
       const data = await fetch(retry);
       if (data?.success === false && data.source_limited === true && data.code === 'EPISODE_COMMENTS_UNAVAILABLE')
         return { status: 'unavailable' };
       // Failed retries preserve the original partial file, even when the retry returns some items.
       if (!data || (data.success !== true && (retry || data.partial !== true))) return { status: 'fail' };
       const doc = build(data);
-      writeJsonAtomic(target, doc);
+      writeJsonAtomic(location, doc, previous.stat);
       return { status: 'ok', partial: doc.partial === true, itemCount: doc.items.length, target };
     } catch (_) { return { status: 'fail' }; }
   })();
-  pending.set(target, task);
+  pending.set(key, task);
   try { return await task; }
-  finally { pending.delete(target); }
+  finally { pending.delete(key); }
 }
 
 async function exportSeriesText(options = {}) {
