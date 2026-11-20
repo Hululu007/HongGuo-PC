@@ -76,6 +76,7 @@ function DownloadManager({ onNavigate, active = true }) {
   const moreActionsRef = useRef(null);
   const mergeRequestRef = useRef(false);
   const mergeDialogGenerationRef = useRef(0);
+  const confirmReturnToPage = useRef(false);
   const activeRef = useRef(active);
   activeRef.current = active;
   const requests = useRef({ tasks: 0, queue: 0, series: 0, merges: 0 });
@@ -501,7 +502,11 @@ function DownloadManager({ onNavigate, active = true }) {
     [selected, taskById]
   );
 
-  useDialogKeyboard(active && !!(confirmAsk || mergeAsk), () => { setConfirmAsk(null); closeMergeDialog(); }, '.dm-container .player-confirm');
+  useDialogKeyboard(active && !!(confirmAsk || mergeAsk), () => { setConfirmAsk(null); closeMergeDialog(); }, '.dm-container .player-confirm', undefined, () => {
+    if (!confirmReturnToPage.current) return null;
+    confirmReturnToPage.current = false;
+    return document.querySelector('main[data-page="manager"]');
+  });
 
   return (
     <div className="dm-container">
@@ -550,7 +555,13 @@ function DownloadManager({ onNavigate, active = true }) {
           <Zap size={15} />
           {failedCount > 0 ? `重试失败 (${failedCount})` : '重试失败'}
         </button>
-        <details className="dm-more-actions" ref={moreActionsRef}><summary>更多操作</summary><div className="dm-more-menu" onClick={event => { const button = event.target.closest('button'); if (button && !button.disabled) moreActionsRef.current.open = false; }}>
+        <details className="dm-more-actions" ref={moreActionsRef}><summary>更多操作</summary><div className="dm-more-menu" onClick={event => {
+          const button = event.target.closest('button');
+          const disclosure = moreActionsRef.current;
+          if (!button || button.disabled || !disclosure) return;
+          if (event.currentTarget.contains(event.currentTarget.ownerDocument.activeElement)) disclosure.querySelector('summary')?.focus();
+          disclosure.open = false;
+        }}>
         <button
           className="btn btn-outline"
           onClick={selectAllFailed}
@@ -567,12 +578,13 @@ function DownloadManager({ onNavigate, active = true }) {
         <button
           className="btn btn-outline"
           onClick={async () => {
-            const r = await window.electronAPI.rescanDownloads();
-            await refresh();
-            await loadSeriesList();
-            showToast(r && r.success
-              ? (r.count > 0 ? `已从磁盘补回 ${r.count} 条下载记录` : '没有发现未登记的文件')
-              : '扫描失败');
+            try {
+              const result = await window.electronAPI.rescanDownloads();
+              await refresh();
+              await loadSeriesList();
+              if (!result?.success) throw new Error(result?.error || '扫描失败');
+              showToast(result.count > 0 ? `已从磁盘补回 ${result.count} 条下载记录` : '没有发现未登记的文件');
+            } catch (error) { showToast(error.message || '扫描失败，请重试', 'error'); }
           }}
           title="扫描下载目录，把磁盘上已有但列表里没有的文件补登记回来"
         >
@@ -762,7 +774,7 @@ function DownloadManager({ onNavigate, active = true }) {
             const waitingRetry = isWaitingRetry(task);
             const canStop = task.status === 'downloading' || task.status === 'pending' || waitingRetry;
             const canRetry = task.status === 'failed' || task.status === 'stopped';
-            const pct = task.progress || 0;
+            const pct = Math.min(100, Math.max(0, Number(task.progress) || 0));
             return (
               <div key={task.id} className={`dm-task ${isSel ? 'selected' : ''}`} onClick={() => toggleSelect(task.id)}>
                 <input className="dm-task-select" type="checkbox" aria-label={`选择 ${task.title || task.filename}`} checked={isSel} onClick={(e) => e.stopPropagation()} onChange={() => toggleSelect(task.id)} />
@@ -788,7 +800,8 @@ function DownloadManager({ onNavigate, active = true }) {
                   {task.metadataWarning && <div className="dm-error">{task.metadataWarning}</div>}
                   {(task.status === 'downloading' || task.status === 'pending') && (
                     <div className="dm-progress">
-                      <div className="dm-progress-bar">
+                      <div className="dm-progress-bar" role="progressbar" aria-label={`${task.title || task.filename || '下载任务'} 下载进度`}
+                        aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-valuetext={`${STATUS_TEXT[task.status] || task.status}，${pct}%`}>
                         <div className="dm-progress-fill" style={{ width: pct + '%' }}></div>
                       </div>
                       <span className="dm-pct">{pct}%</span>
@@ -845,8 +858,8 @@ function DownloadManager({ onNavigate, active = true }) {
       {/* 合并格式选择 */}
       {mergeAsk && (
         <div className="player-confirm-mask" onClick={closeMergeDialog}>
-          <div className="player-confirm" role="dialog" aria-modal="true" aria-label={confirmAsk ? confirmAsk.title : '合并导出'} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-            <div className="player-confirm-title" style={{ color: 'var(--accent)' }}>
+          <div className="player-confirm" role="dialog" aria-modal="true" aria-labelledby="manager-merge-title" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+            <div className="player-confirm-title" id="manager-merge-title" style={{ color: 'var(--accent)' }}>
               <Layers size={17} />
               合并整部剧
             </div>
@@ -862,7 +875,7 @@ function DownloadManager({ onNavigate, active = true }) {
               <button className="btn btn-outline" onClick={() => doMerge(false, true)} disabled={merging}>
                 高质量分辨率合并
               </button>
-              <button className="btn btn-outline" onClick={closeMergeDialog}>取消</button>
+              <button className="btn btn-outline" data-dialog-initial-focus onClick={closeMergeDialog}>取消</button>
               <button className="btn btn-outline" onClick={() => doMerge(true)} disabled={merging}>
                 兼容合并（H.264）
               </button>
@@ -901,12 +914,13 @@ function DownloadManager({ onNavigate, active = true }) {
               </p>
             </div>
             <div className="player-confirm-foot">
-              <button className="btn btn-outline" onClick={() => setConfirmAsk(null)}>取消</button>
+              <button className="btn btn-outline" data-dialog-initial-focus onClick={() => setConfirmAsk(null)}>取消</button>
               <button
                 className={`btn ${confirmAsk._del ? 'btn-danger-solid' : 'btn-primary'}`}
                 onClick={async () => {
                   const fn = confirmAsk.onOk;
                   const del = !!confirmAsk._del;
+                  confirmReturnToPage.current = true;
                   setConfirmAsk(null);
                   await fn(del);
                 }}

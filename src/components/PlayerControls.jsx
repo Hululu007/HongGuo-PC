@@ -12,6 +12,11 @@ const formatTime = seconds => {
 };
 const Icon = ({ children }) => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>;
 
+export function getPlayerPopoverHeight(stage, controls, scrollportTop = 0, maximum = 440) {
+  return Math.max(60, Math.min(maximum, controls.top - Math.max(8, stage.top, scrollportTop) - 16));
+}
+const scrollportTop = stage => stage?.closest?.('.main-content')?.getBoundingClientRect?.().top || 0;
+
 export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAULT_SHORTCUTS, onToggleFullscreen, videoRef, stageRef, source, available, floating = false, onToggleFloating, continuing = false, autoContinue = false, rate, onRateChange, onError, pictureMode = 'fit', onPictureModeChange, portrait = false, windowFill = false, onWindowFill, seriesTitle = '', episodes = [], currentIndex, onEpisodeChange, onlineQuality = 'auto', supportsOnlineQuality = false, onQualityChange, onOpenSettings }) {
   const [media, setMedia] = useState({ paused: true, ended: false, time: 0, duration: 0, muted: false, volume: 1 });
   const [fullscreen, setFullscreen] = useState(false);
@@ -43,14 +48,15 @@ export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAU
     const measure = () => {
       const stage = stageRef.current?.getBoundingClientRect?.();
       const button = menuButtonRef.current?.getBoundingClientRect?.();
-      if (stage && button) setMenuHeight(Math.max(96, button.top - Math.max(8, stage.top) - 16));
+      if (stage && button) setMenuHeight(getPlayerPopoverHeight(stage, button, scrollportTop(stageRef.current), 480));
     };
     measure();
     const Observer = stageWindow.ResizeObserver;
     const observer = typeof Observer === 'function' ? new Observer(measure) : null;
     if (stageRef.current) observer?.observe(stageRef.current);
     stageWindow.addEventListener('resize', measure);
-    return () => { observer?.disconnect(); stageWindow.removeEventListener('resize', measure); };
+    stageWindow.addEventListener('scroll', measure, true);
+    return () => { observer?.disconnect(); stageWindow.removeEventListener('resize', measure); stageWindow.removeEventListener('scroll', measure, true); };
   }, [menuOpen, fullscreen, windowFill, floating, stageRef]);
 
   useEffect(() => {
@@ -185,7 +191,7 @@ export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAU
   useEffect(() => {
     if (!menuOpen) return;
     const stageDocument = stageRef.current?.ownerDocument || document;
-    speedRef.current?.focus();
+    speedRef.current?.focus({ preventScroll: true });
     const outside = event => { if (!menuRef.current?.contains(event.target)) setMenuOpen(false); };
     const escape = event => {
       if (event.key !== 'Escape') return;
@@ -204,7 +210,7 @@ export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAU
     const measure = () => {
       const stage = stageRef.current?.getBoundingClientRect();
       const controls = controlsRef.current?.getBoundingClientRect();
-      if (stage && controls) setDanmakuHeight(Math.max(60, controls.top - stage.top - 12));
+      if (stage && controls) setDanmakuHeight(getPlayerPopoverHeight(stage, controls, scrollportTop(stageRef.current)));
     };
     const outside = event => {
       if (!danmakuPanelRef.current?.contains(event.target) && !danmakuButtonRef.current?.contains(event.target)) setDanmakuOpen(false);
@@ -214,7 +220,9 @@ export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAU
     if (stageRef.current) observer.observe(stageRef.current);
     if (controlsRef.current) observer.observe(controlsRef.current);
     stageDocument.addEventListener('pointerdown', outside);
-    return () => { observer.disconnect(); stageDocument.removeEventListener('pointerdown', outside); };
+    stageWindow.addEventListener('resize', measure);
+    stageWindow.addEventListener('scroll', measure, true);
+    return () => { observer.disconnect(); stageDocument.removeEventListener('pointerdown', outside); stageWindow.removeEventListener('resize', measure); stageWindow.removeEventListener('scroll', measure, true); };
   }, [danmakuOpen, floating, stageRef]);
 
   useEffect(() => {
@@ -223,11 +231,16 @@ export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAU
     const stageWindow = stageDocument.defaultView || window;
     const selected = selectionRef.current?.querySelector('[aria-current="true"], [aria-pressed="true"]');
     selected?.focus({ preventScroll: true });
-    selected?.scrollIntoView({ block: 'nearest' });
+    const grid = selectionRef.current?.querySelector('.player-episode-grid');
+    if (selected && grid) {
+      const top = selected.offsetTop - grid.offsetTop;
+      if (top < grid.scrollTop) grid.scrollTop = top;
+      else if (top + selected.offsetHeight > grid.scrollTop + grid.clientHeight) grid.scrollTop = top + selected.offsetHeight - grid.clientHeight;
+    }
     const measure = () => {
       const stage = stageRef.current?.getBoundingClientRect?.();
       const controls = controlsRef.current?.getBoundingClientRect?.();
-      if (stage && controls) setSelectionHeight(Math.max(60, Math.min(440, controls.top - stage.top - 16)));
+      if (stage && controls) setSelectionHeight(getPlayerPopoverHeight(stage, controls, scrollportTop(stageRef.current)));
     };
     const outside = event => { if (!selectionRef.current?.contains(event.target)) setSelectionPanel(null); };
     const escape = event => {
@@ -244,11 +257,13 @@ export default function PlayerControls({ danmaku, enhancement, shortcuts = DEFAU
     stageDocument.addEventListener('pointerdown', outside);
     stageDocument.addEventListener('keydown', escape);
     stageWindow.addEventListener('resize', measure);
+    stageWindow.addEventListener('scroll', measure, true);
     return () => {
       observer?.disconnect();
       stageDocument.removeEventListener('pointerdown', outside);
       stageDocument.removeEventListener('keydown', escape);
       stageWindow.removeEventListener('resize', measure);
+      stageWindow.removeEventListener('scroll', measure, true);
     };
   }, [selectionPanel, expanded, floating, stageRef]);
 

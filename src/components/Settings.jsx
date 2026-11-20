@@ -70,7 +70,7 @@ const SETTING_ANCHORS = [
 
 function SettingsPage({ active = true, preview = false, appInfo = null }) {
   const localeApi = typeof useI18n === 'function' ? useI18n() : { t: (_key, fallback) => fallback, setLocaleSetting: () => {} };
-  const { t, setLocaleSetting } = localeApi;
+  const { t, setLocaleSetting, locale = 'zh-CN' } = localeApi;
   const danmakuSource = useDanmakuSource();
   const [activeAnchor, setActiveAnchor] = useState('');
   const [settingsSearch, setSettingsSearch] = useState('');
@@ -305,7 +305,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
 
   return (
     <div className="settings-container">
-      <div className="settings-header">
+      <div className="settings-header" lang={locale}>
         <Settings size={22} />
         <div><h2>{t('settings.title', '设置')}</h2><p className="page-description">{t('settings.subtitle', '让下载、保存和网络连接，按你的习惯运行。')}</p></div>
       </div>
@@ -313,6 +313,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
       <form className="settings-search" role="search" onSubmit={submitSettingsSearch}>
         <Search size={16} />
         <input
+          lang={locale}
           type="search"
           value={settingsSearch}
           onChange={(event) => setSettingsSearch(event.target.value)}
@@ -341,15 +342,15 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
       </nav>
 
       <section className="settings-card" id="settings-anchor-appearance" aria-label="外观设置"><AppearanceSettings active={active} /></section>
-      <section className="settings-card" aria-label={t('settings.language', '语言设置')}>
+      <section className="settings-card" lang={locale} aria-label={t('settings.language', '语言设置')}>
         <div className="settings-group">
           <label className="settings-label" htmlFor="ui-locale">{t('settings.language', '语言 / Language')}</label>
-          <select id="ui-locale" className="input-field select-field" value={settings.locale || 'auto'} onChange={event => update('locale', event.target.value)}>
-            <option value="auto">{t('settings.auto', '自动（当前：{locale}）', { locale: resolveLocaleSafe(settings.locale, typeof navigator === 'undefined' ? [] : navigator.languages || [navigator.language]) })}</option>
-            <option value="zh-CN">简体中文</option>
-            <option value="en-US">English</option>
+          <select id="ui-locale" className="input-field select-field" value={settings.locale || 'auto'} disabled={!active || saving} aria-describedby="ui-locale-hint" onChange={event => update('locale', event.target.value)}>
+            <option value="auto">{t('settings.auto', '自动（当前：{locale}）', { locale: resolveLocaleSafe('auto', typeof navigator === 'undefined' ? [] : navigator.languages || [navigator.language]) })}</option>
+            <option value="zh-CN" lang="zh-CN">简体中文</option>
+            <option value="en-US" lang="en-US">{t('settings.englishPartial', 'English (partial)')}</option>
           </select>
-          <p className="settings-hint">{t('settings.languageHint', '自动模式按浏览器或系统语言选择界面，无法识别时保留中文默认；视频、剧名和来源内容保持原文。')}</p>
+          <p className="settings-hint" id="ui-locale-hint">{t('settings.languageHint', '英文仅覆盖导航与部分设置，其余界面仍为中文。选择后立即预览，点击「保存设置」后会记住语言偏好。')}</p>
         </div>
       </section>
       <div id="settings-anchor-shortcuts"><ShortcutSettings active={active} /></div>

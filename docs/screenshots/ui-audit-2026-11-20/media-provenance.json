@@ -1,0 +1,48 @@
+{
+  "purpose": "Final npm test decoder-regression provenance for the 2026-11-20/21 UI/UX audit",
+  "source": "Hongguo official public player; randomly selected by scripts/fixtures/hongguo-video.cjs",
+  "records": [
+    {
+      "run": "earlier full-suite run",
+      "seriesId": "7706404415887903806",
+      "title": "嫌疑人的秘密2藏金生死线",
+      "episodeId": "7706406239239932952",
+      "episodeIndex": 1,
+      "publicPlayerPage": "https://hongguoduanju.com/player/7706404415887903806",
+      "downloadedAt": "2026-11-20T14:11:16.435Z",
+      "bytes": 1748163,
+      "sha256": "089192c0b5fb39d3316602e78ce6d9f6326dc39e9f109c4be0efd43762141490"
+    },
+    {
+      "run": "interim full-suite run",
+      "seriesId": "7701652979782257689",
+      "title": "她那么骄",
+      "episodeId": "7701654934441184280",
+      "episodeIndex": 1,
+      "publicPlayerPage": "https://hongguoduanju.com/player/7701652979782257689",
+      "downloadedAt": "2026-11-20T16:17:40.458Z",
+      "bytes": 527224,
+      "sha256": "ab8682b56c567fb1332496ae72b355c2cdafb49f9bfa707879d8652394b41db4"
+    },
+    {
+      "run": "final clean full-suite run (unit tests and 107 platform checks passed)",
+      "seriesId": "7703822281448901656",
+      "title": "温柔以待，终有回甘",
+      "episodeId": "7703824211655019582",
+      "episodeIndex": 1,
+      "publicPlayerPage": "https://hongguoduanju.com/player/7703822281448901656",
+      "downloadedAt": "2026-11-20T16:24:09.737Z",
+      "bytes": 857948,
+      "sha256": "e9ea8a7cd09e070bad4b95ac1712244210a81c8eb55015aed84391f18ca535f4"
+    }
+  ],
+  "steps": [
+    "Run npm test with existing isolated temporary media fixtures.",
+    "Each run randomly selects and downloads genuine public Hongguo footage; no color bars or synthetic video.",
+    "Run decoder recovery and HLS remux regression checks with actual FFmpeg/ffprobe.",
+    "Do not play audio or use the formal application's profile or download directory."
+  ],
+  "result": "Final clean npm test succeeded; decoder recovery and real HLS remux checks passed.",
+  "limitation": "官网公开片段，可能仅为预览；用于解码回归，不代表完整分集播放、连播、画中画或自动删除验收。全程不播放音频。",
+  "privacy": "No credentials, keys or signed media URL are recorded."
+}

@@ -4710,7 +4710,7 @@ ipcMain.handle('select-folder', async () => {
   return result.filePaths[0];
 });
 
-const SETTINGS_KEYS = ['root', 'name_format', 'max_concurrent', 'download_quality', 'download_metadata', 'export_text', 'auto_delete_watched', 'compat_mode', 'cache_next_episode', 'picture_in_picture_mode', 'show_danmaku_controls', 'app_updates_enabled', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password'];
+const SETTINGS_KEYS = ['locale', 'root', 'name_format', 'max_concurrent', 'download_quality', 'download_metadata', 'export_text', 'auto_delete_watched', 'compat_mode', 'cache_next_episode', 'picture_in_picture_mode', 'show_danmaku_controls', 'app_updates_enabled', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password'];
 
 function normalizeTextExportKinds(value) {
   return { danmaku: value?.danmaku === true, comments: value?.comments === true, reviews: value?.reviews === true };
@@ -4725,6 +4725,8 @@ function settingsForRenderer(settings) {
 
 function applyEditableSettings(current, incoming) {
   const source = normalizeProxySettings(incoming && typeof incoming === 'object' ? incoming : {});
+  if (Object.prototype.hasOwnProperty.call(source, 'locale')
+    && !['auto', 'zh-CN', 'en-US'].includes(source.locale)) throw new Error('不支持的语言设置');
   if (Object.prototype.hasOwnProperty.call(source, 'picture_in_picture_mode')
     && !['native', 'custom'].includes(source.picture_in_picture_mode)) throw new Error('不支持的画中画小窗模式');
   const merged = { ...current };

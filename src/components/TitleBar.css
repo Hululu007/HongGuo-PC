@@ -118,15 +118,15 @@
 
 .titlebar-community {
   cursor: pointer;
-  color: #4da3ff;
+  color: var(--info);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: -.04em;
 }
 
 .titlebar-community:hover {
-  color: #8bc7ff;
-  background: rgba(77, 163, 255, .14);
+  color: var(--info);
+  background: var(--tech-blue-soft);
 }
 
 /* 最大化 / 还原图标：双图标叠放，旋转缩放交叉过渡 */

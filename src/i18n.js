@@ -39,7 +39,8 @@ const MESSAGES = {
     'settings.search': '搜索设置，例如：下载、弹幕、代理',
     'settings.language': '语言 / Language',
     'settings.auto': '自动（当前：{locale}）',
-    'settings.languageHint': '自动模式按浏览器或系统语言选择界面，无法识别时保留中文默认；视频、剧名和来源内容保持原文。',
+    'settings.englishPartial': 'English (partial)',
+    'settings.languageHint': '自动模式按浏览器或系统语言选择，无法识别时默认中文。目前仅导航与部分设置提供英文，其余界面仍为中文；视频、剧名和来源内容保持原文。选择后立即预览，点击「保存设置」后会记住语言偏好。',
     'settings.reload': '重新加载',
     'settings.loading': '加载中…',
     'settings.close': '关闭提示',
@@ -73,7 +74,8 @@ const MESSAGES = {
     'settings.search': 'Search settings, for example: downloads, danmaku, proxy',
     'settings.language': 'Language / 语言',
     'settings.auto': 'Auto (current: {locale})',
-    'settings.languageHint': 'Auto follows the browser or system language and falls back to Chinese; video titles, drama names, and source content stay original.',
+    'settings.englishPartial': 'English (partial)',
+    'settings.languageHint': 'Auto follows the browser or system language and falls back to Chinese. Only navigation and some settings are translated into English; the rest of the interface remains Chinese. Video titles, drama names, and source content stay original. Changes preview immediately; click “保存设置” (Save settings) to remember your language preference.',
     'settings.reload': 'Reload',
     'settings.loading': 'Loading…',
     'settings.close': 'Dismiss',
@@ -96,7 +98,9 @@ const listeners = new Set();
 function applyGlobalSetting(next) {
   currentSetting = next === 'zh-CN' || next === 'en-US' ? next : 'auto';
   currentLocale = resolveLocale(currentSetting, browserCandidates());
-  if (typeof document !== 'undefined') document.documentElement.lang = currentLocale;
+  // English is partial: most screens and source content remain Chinese.
+  // Keep the document's primary language honest; translated regions can use locale as their lang.
+  if (typeof document !== 'undefined') document.documentElement.lang = 'zh-CN';
   listeners.forEach((listener) => listener());
 }
 

@@ -18,7 +18,9 @@
 
 .season-chip.season-current {
   border-color: var(--accent);
-  color: var(--primary);
+  color: var(--accent-text);
   background: var(--accent-soft);
+  /* 当前季仍不可点击，但标签是需要读清的选中状态。 */
+  opacity: 1;
   cursor: default;
 }

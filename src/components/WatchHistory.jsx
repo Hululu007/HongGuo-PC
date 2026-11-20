@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Play, RefreshCw, Clock, CheckSquare, Trash2, X } from './icons';
 import './WatchHistory.css';
 import { groupHistory } from './historyGroups.mjs';
+import useDialogKeyboard from './useDialogKeyboard';
 
 const PREFERENCES_KEY = 'hongguo:watch-history-preferences';
 
@@ -42,6 +43,7 @@ export default function WatchHistory({ active = true, onNavigate }) {
   const request = useRef(0);
   const openingRef = useRef(false);
   const openingRequest = useRef(0);
+  const confirmReturnToPage = useRef(false);
   const groups = groupHistory(rows, decisions);
   const groupById = new Map(groups.flatMap(items => items.map(row => [row.series_id, items])));
   const listedRows = groups.flatMap(items => hideLowSeasons && !expanded[items[0].series_id] ? items.slice(0, 1) : items);
@@ -56,12 +58,11 @@ export default function WatchHistory({ active = true, onNavigate }) {
     setSelected(previous => new Set([...previous].filter(id => ids.has(id))));
   }, [rows]);
 
-  useEffect(() => {
-    if (!confirmBatchRemove) return undefined;
-    const close = event => { if (event.key === 'Escape') setConfirmBatchRemove(false); };
-    document.addEventListener('keydown', close);
-    return () => document.removeEventListener('keydown', close);
-  }, [confirmBatchRemove]);
+  useDialogKeyboard(active && confirmBatchRemove && selected.size > 0, () => setConfirmBatchRemove(false), '.history-confirm', undefined, () => {
+    if (!confirmReturnToPage.current) return null;
+    confirmReturnToPage.current = false;
+    return document.querySelector('main[data-page="history"]');
+  });
 
   const savePreferences = next => {
     setPreferences(next);
@@ -156,6 +157,7 @@ export default function WatchHistory({ active = true, onNavigate }) {
   const removeSelected = async () => {
     const ids = rows.filter(row => selected.has(String(row.series_id))).map(row => String(row.series_id));
     if (!ids.length || batchRemoving) return;
+    confirmReturnToPage.current = true;
     setBatchRemoving(true); setConfirmBatchRemove(false); setError(''); setStatus('');
     try {
       const result = await window.electronAPI.removeWatchHistoryBatch(ids);
@@ -298,9 +300,9 @@ export default function WatchHistory({ active = true, onNavigate }) {
     </li>)}</ul>}
     {confirmBatchRemove && selected.size > 0 && (
       <div className="history-confirm-mask" onClick={() => !batchRemoving && setConfirmBatchRemove(false)}>
-        <div className="history-confirm" role="dialog" aria-modal="true" aria-labelledby="history-confirm-title" onClick={event => event.stopPropagation()}>
+        <div className="history-confirm" role="dialog" aria-modal="true" aria-labelledby="history-confirm-title" aria-describedby="history-confirm-description" tabIndex={-1} onClick={event => event.stopPropagation()}>
           <div className="history-confirm-title" id="history-confirm-title"><Trash2 size={17} />移除观看记录</div>
-          <p>确定移除已选的 {selected.size} 条观看记录吗？视频文件、下载任务和本地剧库不会受影响。</p>
+          <p id="history-confirm-description">确定移除已选的 {selected.size} 条观看记录吗？视频文件、下载任务和本地剧库不会受影响。</p>
           <div className="history-confirm-foot">
             <button type="button" className="btn btn-outline" onClick={() => setConfirmBatchRemove(false)} disabled={batchRemoving}>取消</button>
             <button type="button" className="btn btn-danger-solid" onClick={removeSelected} disabled={batchRemoving}>{batchRemoving ? '移除中…' : '确认移除'}</button>

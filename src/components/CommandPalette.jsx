@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Home, Film, Search, Play, Clock, Bookmark, Download, User, Settings, Megaphone, Clock as ClockIcon, Heart, X } from './icons';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Home, Film, Search, Play, Clock, Bookmark, Download, User, Settings, Megaphone, Clock as ClockIcon, Heart } from './icons';
+import useDialogKeyboard from './useDialogKeyboard';
 import { readSearchHistory } from '../searchHistory';
 import { readLocalLibrary } from '../localLibrary';
 
@@ -31,7 +32,8 @@ export default function CommandPalette({ open, onClose, onNavigate, onSearch }) 
   const [library, setLibrary] = useState({ items: [] });
   const [active, setActive] = useState(0);
   const listRef = useRef(null);
-  const inputRef = useRef(null);
+  const resultsId = useId();
+  useDialogKeyboard(open, onClose, '.command-palette');
 
   useEffect(() => {
     if (!open) return;
@@ -41,8 +43,6 @@ export default function CommandPalette({ open, onClose, onNavigate, onSearch }) 
     window.electronAPI?.getWatchHistory?.().then(result => {
       setHistoryRows(result?.success && Array.isArray(result.results) ? result.results : []);
     }).catch(() => {});
-    const timer = setTimeout(() => inputRef.current?.focus(), 30);
-    return () => clearTimeout(timer);
   }, [open]);
 
   const query = term.trim();
@@ -69,6 +69,7 @@ export default function CommandPalette({ open, onClose, onNavigate, onSearch }) 
   }, [query, historyRows, library]);
 
   const selectable = useMemo(() => results.filter(item => item.kind !== 'group'), [results]);
+  const activeIndex = Math.min(active, Math.max(0, selectable.length - 1));
   useEffect(() => { setActive(current => Math.min(current, Math.max(0, selectable.length - 1))); }, [selectable.length]);
   useEffect(() => {
     listRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
@@ -83,32 +84,35 @@ export default function CommandPalette({ open, onClose, onNavigate, onSearch }) 
   }, [onNavigate, onSearch, onClose]);
 
   const onKeyDown = (event) => {
-    if (event.key === 'Escape') { event.preventDefault(); onClose(); return; }
-    if (event.key === 'ArrowDown') { event.preventDefault(); setActive(i => Math.min(i + 1, selectable.length - 1)); return; }
-    if (event.key === 'ArrowUp') { event.preventDefault(); setActive(i => Math.max(i - 1, 0)); return; }
-    if (event.key === 'Enter') { event.preventDefault(); run(selectable[active]); }
+    if (event.isComposing || event.nativeEvent?.isComposing || event.keyCode === 229 || event.nativeEvent?.keyCode === 229) return;
+    if (event.key === 'ArrowDown') { event.preventDefault(); event.stopPropagation(); setActive(i => Math.min(i + 1, Math.max(0, selectable.length - 1))); return; }
+    if (event.key === 'ArrowUp') { event.preventDefault(); event.stopPropagation(); setActive(i => Math.max(i - 1, 0)); return; }
+    if (event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); run(selectable[activeIndex]); }
   };
 
   if (!open) return null;
   let selectableIndex = -1;
   return <div className="command-palette-mask" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <div className="command-palette" role="dialog" aria-modal="true" aria-label="全局搜索" onKeyDown={onKeyDown}>
+    <div className="command-palette" role="dialog" aria-modal="true" aria-label="全局搜索" tabIndex={-1}>
       <div className="command-palette-input-row">
         <Search size={17} />
-        <input ref={inputRef} className="command-palette-input" placeholder="搜索页面、剧集或历史记录…"
-          value={term} onChange={(event) => { setTerm(event.target.value); setActive(0); }} aria-label="搜索" />
+        <input className="command-palette-input" placeholder="搜索页面、剧集或历史记录…"
+          value={term} onChange={(event) => { setTerm(event.target.value); setActive(0); }} onKeyDown={onKeyDown}
+          role="combobox" aria-label="搜索" aria-autocomplete="list" aria-expanded={open} aria-controls={resultsId}
+          aria-activedescendant={selectable.length ? `${resultsId}-option-${activeIndex}` : undefined} aria-describedby={`${resultsId}-help`} />
         <kbd>Esc</kbd>
       </div>
-      <div className="command-palette-list" ref={listRef} role="listbox" aria-label="搜索结果">
+      <div className="command-palette-list" ref={listRef} id={resultsId} role="listbox" aria-label="搜索结果">
         {!selectable.length && <div className="command-empty">{query ? `没有找到与「${query}」相关的内容` : '输入关键词，或直接选择页面'}</div>}
         {results.map((item, index) => {
-          if (item.kind === 'group') return <div className="command-group-label" key={`g:${item.label}:${index}`}>{item.label}</div>;
+          if (item.kind === 'group') return <div className="command-group-label" role="presentation" key={`g:${item.label}:${index}`}>{item.label}</div>;
           selectableIndex++;
           const itemIndex = selectableIndex;
-          const isSelected = itemIndex === active;
+          const isSelected = itemIndex === activeIndex;
           return <button key={`${item.kind}:${item.id || item.row?.series_id || item.item?.id || item.value}:${index}`}
+            type="button" id={`${resultsId}-option-${itemIndex}`} tabIndex={-1}
             className={`command-item ${isSelected ? 'active' : ''}`} aria-selected={isSelected} role="option"
-            onMouseEnter={() => setActive(itemIndex)} onClick={() => run(item)}>
+            onMouseDown={event => event.preventDefault()} onMouseEnter={() => setActive(itemIndex)} onClick={() => run(item)}>
             {item.kind === 'page' && <item.Icon size={16} />}
             {item.kind === 'history' && <ClockIcon size={16} />}
             {item.kind === 'library' && <Heart size={16} />}
@@ -121,7 +125,7 @@ export default function CommandPalette({ open, onClose, onNavigate, onSearch }) 
           </button>;
         })}
       </div>
-      <div className="command-palette-foot"><kbd>↑↓</kbd><span>选择</span><kbd>↵</kbd><span>打开</span><kbd>Esc</kbd><span>关闭</span></div>
+      <div className="command-palette-foot" id={`${resultsId}-help`}><kbd>↑↓</kbd><span>选择</span><kbd>↵</kbd><span>打开</span><kbd>Esc</kbd><span>关闭</span></div>
     </div>
   </div>;
 }
