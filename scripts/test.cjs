@@ -33,6 +33,10 @@ function run(args) {
   return result.status === 0;
 }
 
+// Electron can extract its binary lazily on first require. Resolve it once
+// before parallel test workers can race for the same files on Windows.
+require('electron');
+
 const checks = fs.readdirSync(__dirname)
   .filter((name) => name.startsWith('check-') && name.endsWith('.cjs') && !skip.has(name))
   .sort();

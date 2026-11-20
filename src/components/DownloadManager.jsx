@@ -21,6 +21,16 @@ const STATUS_ORDER = {
 
 const isWaitingRetry = task => task.status === 'failed' && !!task.retryAt;
 const needsManualRetry = task => task.status === 'stopped' || task.status === 'failed' && !isWaitingRetry(task);
+const canStopTask = task => task.status === 'downloading' || task.status === 'pending' || isWaitingRetry(task);
+const canRetryTask = task => task.status === 'failed' || task.status === 'stopped';
+
+const STATUS_FILTERS = [
+  ['all', '全部状态', () => true],
+  ['active', '进行中', task => task.status === 'downloading' || task.status === 'pending'],
+  ['retrying', '等待重试', isWaitingRetry],
+  ['failed', '失败 / 已停止', needsManualRetry],
+  ['completed', '已完成', task => task.status === 'completed'],
+];
 
 function sortTasks(list) {
   const key = task => task.hongguoInfo?.series_id != null ? `series:${task.hongguoInfo.series_id}` : `task:${task.id}`;
@@ -72,6 +82,8 @@ function DownloadManager({ onNavigate, active = true }) {
   const [page, setPage] = useState(1);
   const [orderVersion, setOrderVersion] = useState(0);
   const [loadError, setLoadError] = useState('');
+  const [keyword, setKeyword] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const toastTimerRef = useRef(null);
   const moreActionsRef = useRef(null);
   const mergeRequestRef = useRef(false);
@@ -254,8 +266,19 @@ function DownloadManager({ onNavigate, active = true }) {
   };
 
   const clearSelection = () => setSelected(new Set());
-  const selectAll = () => setSelected(new Set(tasks.map((task) => task.id)));
-  const allSelected = tasks.length > 0 && tasks.every((task) => selected.has(task.id));
+  const toggleMatchingSelection = () => setSelected(previous => {
+    const next = new Set(previous);
+    for (const id of matchingIds) {
+      if (allSelected) next.delete(id);
+      else next.add(id);
+    }
+    return next;
+  });
+  const resetFilters = () => {
+    setKeyword('');
+    setStatusFilter('all');
+    setPage(1);
+  };
 
   const fmtSize = (b) => {
     if (!b || b <= 0) return '0 B';
@@ -297,27 +320,25 @@ function DownloadManager({ onNavigate, active = true }) {
   };
 
   const deleteSelected = async () => {
-    if (selected.size === 0) return;
-    askDelete(tasks.filter((t) => selected.has(t.id)), '删除选中任务');
+    askDelete(matchingSelectedTasks, '删除选中任务');
   };
   const retrySelected = async () => {
-    const ids = tasks
-      .filter((task) => selected.has(task.id) && (task.status === 'failed' || task.status === 'stopped'))
-      .map((task) => task.id);
+    const ids = matchingSelectedTasks.filter(canRetryTask).map(task => task.id);
     if (ids.length === 0) return;
-    const res = await window.electronAPI.retryTasks(ids);
-    setSelected(new Set());
-    await refresh();
-    if (res && res.success) {
+    try {
+      const res = await window.electronAPI.retryTasks(ids);
+      if (!res?.success) throw new Error(res?.error || '重试失败');
+      setSelected(previous => {
+        const next = new Set(previous);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+      await refresh();
       showToast(res.count > 0 ? `已重新加入队列：${res.count} 项` : '选中项中没有可重试的任务');
-    } else {
-      showToast((res && res.error) || '重试失败', 'error');
-    }
+    } catch (error) { showToast(error.message || '重试失败', 'error'); }
   };
   const stopSelected = async () => {
-    const stoppable = tasks.filter((task) => selected.has(task.id) && (
-      task.status === 'downloading' || task.status === 'pending' || isWaitingRetry(task)
-    ));
+    const stoppable = matchingSelectedTasks.filter(canStopTask);
     if (stoppable.length === 0) return;
     try {
       const results = await Promise.allSettled(stoppable.map((task) => window.electronAPI.stopDownload(task.id)));
@@ -459,9 +480,24 @@ function DownloadManager({ onNavigate, active = true }) {
   const sortedIds = useMemo(() => sortTasks(tasks).map(task => task.id), [orderVersion]);
   const taskById = useMemo(() => new Map(tasks.map(task => [task.id, task])), [tasks]);
   taskIndex.current = taskById;
-  const pageCount = Math.max(1, Math.ceil(sortedIds.length / PAGE_SIZE));
+  const query = keyword.trim().toLocaleLowerCase();
+  const filtered = Boolean(query) || statusFilter !== 'all';
+  const matchingIds = useMemo(() => {
+    if (!filtered) return sortedIds;
+    const matchesStatus = STATUS_FILTERS.find(([value]) => value === statusFilter)?.[2] || STATUS_FILTERS[0][2];
+    return sortedIds.filter(id => {
+      const task = taskById.get(id);
+      return task && matchesStatus(task) && (!query || [task.hongguoInfo?.series_title, task.title, task.filename]
+        .some(value => typeof value === 'string' && value.toLocaleLowerCase().includes(query)));
+    });
+  }, [filtered, sortedIds, taskById, statusFilter, query]);
+  const pageCount = Math.max(1, Math.ceil(matchingIds.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const visibleTasks = sortedIds.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(id => taskById.get(id)).filter(Boolean);
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+  const firstVisibleIndex = (currentPage - 1) * PAGE_SIZE;
+  const visibleTasks = matchingIds.slice(firstVisibleIndex, firstVisibleIndex + PAGE_SIZE).map(id => taskById.get(id)).filter(Boolean);
 
   const activeCount = tasks.filter((t) => t.status === 'downloading' || t.status === 'pending').length;
   const completedCount = tasks.filter((t) => t.status === 'completed').length;
@@ -483,24 +519,15 @@ function DownloadManager({ onNavigate, active = true }) {
     [tasks, selected]
   );
 
-  // 已选中项里真正可重试的数量
-  const retryableSelectedCount = useMemo(
-    () =>
-      Array.from(selected).filter((id) => {
-        const t = taskById.get(id);
-        return t && (t.status === 'failed' || t.status === 'stopped');
-      }).length,
-    [selected, taskById]
-  );
-
-  const stoppableSelectedCount = useMemo(
-    () =>
-      Array.from(selected).filter((id) => {
-        const t = taskById.get(id);
-        return t && (t.status === 'downloading' || t.status === 'pending' || isWaitingRetry(t));
-      }).length,
-    [selected, taskById]
-  );
+  // Batch actions include every matching page, never selections hidden by filters.
+  const matchingSelectedTasks = useMemo(() => {
+    if (selected.size === 0) return [];
+    return matchingIds.filter(id => selected.has(id)).map(id => taskById.get(id)).filter(Boolean);
+  }, [matchingIds, selected, taskById]);
+  const allSelected = matchingIds.length > 0 && matchingSelectedTasks.length === matchingIds.length;
+  const hiddenSelectedCount = selectedTaskCount - matchingSelectedTasks.length;
+  const retryableSelectedCount = matchingSelectedTasks.filter(canRetryTask).length;
+  const stoppableSelectedCount = matchingSelectedTasks.filter(canStopTask).length;
 
   useDialogKeyboard(active && !!(confirmAsk || mergeAsk), () => { setConfirmAsk(null); closeMergeDialog(); }, '.dm-container .player-confirm', undefined, () => {
     if (!confirmReturnToPage.current) return null;
@@ -626,7 +653,7 @@ function DownloadManager({ onNavigate, active = true }) {
           <div className="dm-selection-info">
             <CheckSquare size={16} />
             <b>已选 {selectedTaskCount} 项</b>
-            <span>跨分页保留选择</span>
+            <span>{hiddenSelectedCount > 0 ? `${hiddenSelectedCount} 项不符合当前筛选，不会参与批量操作` : '跨分页保留选择'}</span>
           </div>
           <div className="dm-selection-actions">
             <button className="btn btn-outline btn-sm" onClick={stopSelected} disabled={stoppableSelectedCount === 0}
@@ -637,8 +664,8 @@ function DownloadManager({ onNavigate, active = true }) {
               title="重新排队选中的失败或已停止任务">
               <RefreshCw size={14} />重试选中{retryableSelectedCount > 0 ? ` (${retryableSelectedCount})` : ''}
             </button>
-            <button className="btn btn-outline btn-sm" onClick={deleteSelected}
-              title="删除选中的任务，确认时可选择是否同时删除本地文件">
+            <button className="btn btn-outline btn-sm" onClick={deleteSelected} disabled={matchingSelectedTasks.length === 0}
+              title="删除符合当前筛选的选中任务，确认时可选择是否同时删除本地文件">
               <Trash2 size={14} />删除选中
             </button>
             <button className="btn btn-outline btn-sm" onClick={clearSelection}>
@@ -740,23 +767,38 @@ function DownloadManager({ onNavigate, active = true }) {
       )}
 
       {loadError && <div className="alert alert-error" role="alert">{loadError}<button className="btn btn-outline btn-sm" onClick={refresh}>重新加载</button></div>}
+      {tasks.length > 0 && (
+        <div className="dm-filters" role="group" aria-label="筛选下载任务">
+          <label className="dm-filter-keyword">
+            查找任务
+            <input className="input-field" type="search" placeholder="剧名或文件名" value={keyword} onChange={event => { setKeyword(event.target.value); setPage(1); }} />
+          </label>
+          <label>
+            下载状态
+            <select className="input-field" value={statusFilter} onChange={event => { setStatusFilter(event.target.value); setPage(1); }}>
+              {STATUS_FILTERS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <button className="btn btn-outline btn-sm" onClick={resetFilters} disabled={!keyword && statusFilter === 'all'}>清除筛选</button>
+        </div>
+      )}
       {tasks.length > 0 && <div className="dm-pagination">
         <div className="dm-selection-summary">
-          <button className="btn btn-outline btn-sm" onClick={allSelected ? clearSelection : selectAll}
-            title={allSelected ? '取消所有分页中的选择' : `选中全部 ${tasks.length} 项，包含其他分页`}>
-            <CheckSquare size={15} />{allSelected ? '取消全选' : '全选'}
+          <button className="btn btn-outline btn-sm" onClick={toggleMatchingSelection} disabled={matchingIds.length === 0}
+            title={allSelected ? '取消当前筛选结果的选择，包含其他分页' : `选中当前筛选结果 ${matchingIds.length} 项，包含其他分页`}>
+            <CheckSquare size={15} />{allSelected ? (filtered ? '取消全选结果' : '取消全选') : (filtered ? '全选结果' : '全选')}
           </button>
-          <button className="btn btn-outline btn-sm" onClick={deleteSelected} disabled={selected.size === 0}
-            title="删除所有分页中已选的任务，确认时可选择是否同时删除本地文件">
-            <Trash2 size={15} />删除已选（{selected.size}项）
+          <button className="btn btn-outline btn-sm" onClick={deleteSelected} disabled={matchingSelectedTasks.length === 0}
+            title="删除当前筛选结果中已选的任务，确认时可选择是否同时删除本地文件">
+            <Trash2 size={15} />删除已选（{matchingSelectedTasks.length}项）
           </button>
-        <span>共 {tasks.length} 项 · 当前 {(currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, tasks.length)} 项{selected.size > 0 ? ` · 已选 ${selected.size} 项（跨页保留）` : ''}</span>
+          <span role="status">{filtered ? `匹配 ${matchingIds.length} / ${tasks.length} 项` : `共 ${tasks.length} 项`}{visibleTasks.length > 0 ? ` · 当前 ${firstVisibleIndex + 1}-${firstVisibleIndex + visibleTasks.length} 项` : ''}</span>
         </div>
-        <nav aria-label="下载任务分页">
+        {matchingIds.length > 0 && <nav aria-label="下载任务分页">
           <button className="btn btn-outline btn-sm" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>上一页</button>
           <span>第 {currentPage} / {pageCount} 页</span>
           <button className="btn btn-outline btn-sm" disabled={currentPage >= pageCount} onClick={() => setPage(currentPage + 1)}>下一页</button>
-        </nav>
+        </nav>}
       </div>}
 
       {tasks.length === 0 ? (
@@ -766,14 +808,19 @@ function DownloadManager({ onNavigate, active = true }) {
           <p className="dm-empty-sub">搜索剧名或粘贴分享链接，选择想保存的集数。</p>
           {onNavigate && <button className="btn btn-primary" onClick={() => onNavigate('download')}>添加第一部短剧</button>}
         </div>
+      ) : matchingIds.length === 0 ? (
+        <div className="dm-empty">
+          <p>没有符合筛选条件的任务</p>
+          <p className="dm-empty-sub">试试缩短关键词，或选择其他下载状态。</p>
+        </div>
       ) : (
         <div className="dm-list">
           {visibleTasks.map((task) => {
 
             const isSel = selected.has(task.id);
             const waitingRetry = isWaitingRetry(task);
-            const canStop = task.status === 'downloading' || task.status === 'pending' || waitingRetry;
-            const canRetry = task.status === 'failed' || task.status === 'stopped';
+            const canStop = canStopTask(task);
+            const canRetry = canRetryTask(task);
             const pct = Math.min(100, Math.max(0, Number(task.progress) || 0));
             return (
               <div key={task.id} className={`dm-task ${isSel ? 'selected' : ''}`} onClick={() => toggleSelect(task.id)}>

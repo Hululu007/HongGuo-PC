@@ -155,6 +155,98 @@ const runningMerge = () => ({ id: 'm', status: 'running', total: 2, done: 0, pro
     ui.button('取消全选').props.onClick(); ui.render(); assert.ok(rows(ui).every(r => !r.props.className.includes('selected'))); assert.equal(ui.button('删除已选').props.disabled, true);
     rows(ui)[0].props.onClick(); ui.render(); ui.button('全选').props.onClick(); ui.render(); assert.ok(ui.text().includes('已选 205 项')); ui.unmount();
   });
+  await test('filters compose across pages, preserve selection and exclude hidden tasks from deletion', async () => {
+    const deleting = [];
+    const entries = Array.from({ length: 102 }, (_, index) => {
+      const item = task(index + 1, 'completed');
+      item.hongguoInfo.series_title = '短剧 Alpha';
+      return item;
+    });
+    const stopped = { ...task(103, 'stopped'), filename: 'Alpha-备用.mp4' };
+    const unrelated = { ...task(104, 'completed'), filename: 'Beta-完整版.mp4' };
+    const ui = mount({ getDownloadTasks: async () => [...entries, stopped, unrelated],
+      deleteTasksWithFiles: async (ids, files) => { deleting.push({ ids: [...ids], files }); return { success: false, error: '保持选中' }; } });
+    await ui.flush();
+    const change = (type, value) => { ui.find(n => n.type === type && n.props.className === 'input-field' && (type !== 'input' || n.props.type === 'search')).props.onChange({ target: { value } }); ui.render(); };
+    ui.button('全选').props.onClick(); ui.render();
+    ui.button('下一页').props.onClick(); ui.render();
+    change('input', '  ALPHA  ');
+    assert.match(ui.text(), /匹配 103 \/ 104 项 · 当前 1-100 项/);
+    change('select', 'completed');
+    assert.match(ui.text(), /匹配 102 \/ 104 项/);
+    assert.match(ui.text(), /2 项不符合当前筛选/);
+    ui.button('取消全选结果').props.onClick(); ui.render();
+    assert.ok(rows(ui).every(row => !row.props.className.includes('selected')));
+    assert.equal(ui.button('删除已选').props.disabled, true);
+    ui.button('全选结果').props.onClick(); ui.render();
+    ui.button('下一页').props.onClick(); ui.render();
+    assert.equal(rows(ui).length, 2);
+    assert.ok(rows(ui).every(row => row.props.className.includes('selected')));
+    ui.button('删除已选').props.onClick(); ui.render();
+    assert.equal(deleting.length, 0);
+    assert.match(ui.text(), /共 102 个任务/);
+    await ui.button('仅删除记录').props.onClick(); await ui.flush();
+    assert.deepEqual(deleting, [{ ids: entries.map(entry => entry.id), files: false }]);
+    change('input', '不存在');
+    assert.equal(rows(ui).length, 0);
+    assert.ok(ui.text().includes('没有符合筛选条件的任务'));
+    assert.equal(ui.button('全选结果').props.disabled, true);
+    assert.equal(ui.button('删除已选').props.disabled, true);
+    ui.button('清除筛选').props.onClick(); ui.render();
+    assert.match(ui.text(), /共 104 项 · 当前 1-100 项/);
+    assert.match(ui.text(), /删除已选（104项）/);
+    ui.unmount();
+  });
+  await test('a shorter task list clamps the saved page without jumping back when it grows', async () => {
+    const full = Array.from({ length: 205 }, (_, i) => task(i + 1, 'completed'));
+    let list = full;
+    const ui = mount({ getDownloadTasks: async () => list });
+    await ui.flush();
+    ui.button('下一页').props.onClick(); ui.render();
+    ui.button('下一页').props.onClick(); ui.render();
+    assert.match(ui.text(), /第 3 \/ 3 页/);
+    list = full.slice(0, 99);
+    ui.advance(15000); await ui.flush();
+    assert.match(ui.text(), /第 1 \/ 1 页/);
+    list = full;
+    ui.advance(15000); await ui.flush();
+    assert.match(ui.text(), /第 1 \/ 3 页/);
+    ui.unmount();
+  });
+  await test('live retry state changes filters and scoped retry failure preserves selections', async () => {
+    const retried = [], stopped = [];
+    let rejectRetry = true;
+    const entries = [task(1, 'downloading'), task(2, 'stopped'), task(3, 'pending')];
+    const ui = mount({ getDownloadTasks: async () => entries,
+      stopDownload: async id => { stopped.push(id); return { success: true }; },
+      retryTasks: async ids => {
+        retried.push([...ids]);
+        if (rejectRetry) throw new Error('暂时无法重试');
+        return { success: true, count: ids.length };
+      } });
+    await ui.flush();
+    ui.button('全选').props.onClick(); ui.render();
+    const status = value => { ui.find(n => n.type === 'select' && n.props.className === 'input-field').props.onChange({ target: { value } }); ui.render(); };
+    status('retrying');
+    assert.equal(rows(ui).length, 0);
+    entries[0] = { ...entries[0], status: 'failed', retryAt: Date.now() + 10000, sourceRetries: 1 };
+    ui.emit('onDownloadFailed', { id: 't1', error: '网络断开', retryAt: entries[0].retryAt, sourceRetries: 1 });
+    ui.advance(250); await ui.flush();
+    assert.equal(rows(ui).length, 1);
+    await ui.button('停止选中').props.onClick(); await ui.flush();
+    assert.deepEqual(stopped, ['t1']);
+    status('failed');
+    assert.equal(rows(ui).length, 1);
+    await ui.button('重试选中').props.onClick(); ui.render();
+    assert.ok(ui.text().includes('暂时无法重试'));
+    assert.match(ui.text(), /已选 3 项/);
+    rejectRetry = false;
+    await ui.button('重试选中').props.onClick(); await ui.flush();
+    assert.deepEqual(retried, [['t2'], ['t2']]);
+    assert.match(ui.text(), /已选 2 项/);
+    assert.equal(ui.button('删除已选').props.disabled, true);
+    ui.unmount();
+  });
   await test('whole-series merge needs no checked tasks and identifies its series', async () => {
     let sent;
     const ui = mount({ getDownloadTasks: async () => [task(1, 'completed'), task(2, 'completed')], getSeriesList: async () => [{ series_id: 'A', series_title: '整部示例剧' }], mergeSeries: async (...args) => { sent = args; return { success: true, count: 2, totalBytes: 1000 }; } }); await ui.flush();

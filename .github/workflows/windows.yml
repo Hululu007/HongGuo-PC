@@ -60,13 +60,7 @@ jobs:
           Copy-Item media/bin/* build/ffmpeg/ -Force
           Copy-Item media/ffmpeg-9.0.2-x264-b35605a-win-x64-corresponding-source.tar.gz build/ffmpeg/ -Force
           Copy-Item media/ffmpeg-9.0.2-x264-b35605a-win-x64-corresponding-source.tar.gz build/ffmpeg/FFmpeg-Corresponding-Source.tar.gz -Force
-      - name: Run unit and platform checks
-        if: ${{ !inputs.build_only }}
-        run: npm test
-      - name: Check Windows FFmpeg discovery
-        if: ${{ !inputs.build_only }}
-        run: node scripts/check-ffmpeg-resolution.cjs
-      - name: Validate FFmpeg corresponding-source archive
+      - name: Validate FFmpeg corresponding-source archive before executing the binaries
         shell: pwsh
         run: |
           $source = 'build/ffmpeg/FFmpeg-Corresponding-Source.tar.gz'
@@ -85,6 +79,12 @@ jobs:
             $sha256 = (Get-FileHash -Algorithm SHA256 "build/ffmpeg/$name").Hash.ToLowerInvariant()
             if ($actual -notcontains "$sha256 $name") { throw "$name does not match the corresponding-source hash manifest" }
           }
+      - name: Run unit and platform checks
+        if: ${{ !inputs.build_only }}
+        run: npm test
+      - name: Check Windows FFmpeg discovery
+        if: ${{ !inputs.build_only }}
+        run: node scripts/check-ffmpeg-resolution.cjs
       - shell: pwsh
         run: |
           npm run build:react

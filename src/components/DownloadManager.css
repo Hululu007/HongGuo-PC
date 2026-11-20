@@ -432,6 +432,17 @@
 .dm-progress-bar { height: 4px; }
 .dm-error { white-space: normal; overflow-wrap: anywhere; }
 .dm-task-meta { flex-wrap: wrap; }
+.dm-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+.dm-filters label { display: grid; gap: 6px; min-width: 0; max-width: 100%; font-size: var(--fs-sm); }
+.dm-filters .dm-filter-keyword { flex: 1 1 16rem; }
+.dm-filters .input-field { width: 100%; min-width: 0; }
+
 .dm-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 16px 0; color: var(--text-secondary); font-size: 12px; font-variant-numeric: tabular-nums; }
 .dm-pagination nav { display: flex; align-items: center; gap: 10px; }
 .dm-container .alert .btn { margin-left: 12px; }
