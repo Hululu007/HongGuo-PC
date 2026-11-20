@@ -12,4 +12,4 @@
 
 **验证**：新增回归全过；全量 `npm test` 通过（292 单元 / 106 平台，见 CI）；`npm run build:react` 通过。独立代码复核代理提出的 5 个 P1/P2 意见均已落实或评估采纳（批次预校验、文件身份快照、记录保留、批次绑定、旧身份兼容）。
 
-**发布**：6.20（内部 6.20.0）；流程与回执见 [docs/release-6.20.md](docs/release-6.20.md) 与 [RELEASING.md](docs/RELEASING.md)。
+**发布**：6.20（内部 6.20.0）已正式发布——PR #22 全部检查通过后合并（`1606a28`），标签 Test 44796108130 与 Windows 候选 44796108261（含安装/重装/1.80 升级）成功，发布流水线 44798090478 全流程成功（含公开入口探测，较 6.18 的 403 已消除）；公开资产恰好两项（安装 EXE 146,462,386 字节 + latest.yml 380 字节，SHA-256 见回执），`/releases/latest` 已指向 v6.20。回执见 [docs/release-6.20.md](docs/release-6.20.md) 与 [RELEASING.md](docs/RELEASING.md)。
