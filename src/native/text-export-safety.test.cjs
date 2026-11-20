@@ -123,3 +123,22 @@ test('exclusive temporary creation never removes another writer\'s colliding fil
   assert.equal(fs.existsSync(target), false);
   assert.deepEqual(fs.readdirSync(directory), [path.basename(collision)]);
 });
+
+test('a directory swapped during an earlier batch wait fails later exports instead of following it', async t => {
+  const { root, directory, options, fetchers } = fixture(t);
+  const outside = path.join(root, 'unrelated');
+  fs.mkdirSync(outside);
+  options.kinds = { reviews: true, danmaku: true };
+  options.reviewsPath = path.join(directory, 'series.reviews.json');
+  fetchers.fetchPublicDetails = async () => {
+    fs.renameSync(directory, `${directory}-original`);
+    fs.symlinkSync(outside, directory, process.platform === 'win32' ? 'junction' : 'dir');
+    return { success: true, reviews: { total: 1, items: [{ author: 'u', content: 'x' }] } };
+  };
+  const result = await exportSeriesText(options);
+  assert.equal(result.reviews.ok, 0, 'the swap is detected before the first write');
+  assert.equal(result.danmaku.ok, 0);
+  assert.equal(result.danmaku.fail, 1);
+  assert.deepEqual(fs.readdirSync(outside), [], 'the swapped directory must not receive exports');
+  assert.deepEqual(fs.readdirSync(`${directory}-original`), []);
+});

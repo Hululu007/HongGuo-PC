@@ -15,7 +15,7 @@ const sameState = (a, b) => a === b || (sameIdentity(a, b) && a.size === b.size 
   a.mtimeMs === b.mtimeMs && a.ctimeMs === b.ctimeMs);
 
 function fileState(file) {
-  const stat = fs.lstatSync(file, { throwIfNoEntry: false }) || null;
+  const stat = fs.lstatSync(file, { throwIfNoEntry: false, bigint: true }) || null;
   if (stat && (stat.isSymbolicLink() || !stat.isFile())) throw new Error('文字导出目标不是普通文件');
   return stat;
 }
@@ -23,13 +23,13 @@ function fileState(file) {
 function exportLocation(target) {
   const parent = path.dirname(target);
   fs.mkdirSync(parent, { recursive: true });
-  const directory = fs.realpathSync(parent), stat = fs.lstatSync(directory);
+  const directory = fs.realpathSync(parent), stat = fs.lstatSync(directory, { bigint: true });
   if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('文字导出目录不可用');
   return { parent, directory, stat, file: path.join(directory, path.basename(target)) };
 }
 
 function checkDirectory(location) {
-  const stat = fs.lstatSync(location.directory);
+  const stat = fs.lstatSync(location.directory, { bigint: true });
   if (stat.isSymbolicLink() || !stat.isDirectory() || !sameIdentity(stat, location.stat) ||
       fs.realpathSync(location.parent) !== location.directory || fs.realpathSync(location.directory) !== location.directory)
     throw new Error('文字导出目录已变化，请检查后重试');
@@ -40,9 +40,9 @@ function readPrevious(file) {
   if (!stat) return { stat, data: null };
   const fd = fs.openSync(file, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
   try {
-    if (!sameState(stat, fs.fstatSync(fd))) throw new Error('文字导出目标已变化');
+    if (!sameState(stat, fs.fstatSync(fd, { bigint: true }))) throw new Error('文字导出目标已变化');
     const data = JSON.parse(fs.readFileSync(fd, 'utf8'));
-    if (!sameState(stat, fs.fstatSync(fd))) throw new Error('文字导出目标已变化');
+    if (!sameState(stat, fs.fstatSync(fd, { bigint: true }))) throw new Error('文字导出目标已变化');
     return { stat, data };
   } finally { fs.closeSync(fd); }
 }
@@ -53,10 +53,10 @@ function writeJsonAtomic(location, obj, previous) {
   try {
     checkDirectory(location);
     fd = fs.openSync(tmp, 'wx', 0o600);
-    owned = fs.fstatSync(fd);
+    owned = fs.fstatSync(fd, { bigint: true });
     fs.writeFileSync(fd, JSON.stringify(obj, null, 2) + '\n', 'utf8');
     fs.fsyncSync(fd);
-    const written = fs.fstatSync(fd);
+    const written = fs.fstatSync(fd, { bigint: true });
     fs.closeSync(fd);
     fd = undefined;
     checkDirectory(location);
@@ -68,7 +68,7 @@ function writeJsonAtomic(location, obj, previous) {
     if (fd !== undefined) { try { fs.closeSync(fd); } catch (_) {} }
     // Exclusive creation must succeed before cleanup; never remove a foreign collision.
     if (owned) {
-      try { if (sameIdentity(owned, fs.lstatSync(tmp))) fs.unlinkSync(tmp); } catch (_) {}
+      try { if (sameIdentity(owned, fs.lstatSync(tmp, { throwIfNoEntry: false, bigint: true }))) fs.unlinkSync(tmp); } catch (_) {}
     }
   }
 }
@@ -112,12 +112,8 @@ function reviewsDoc({ seriesId, seriesTitle }, reviews, fetchedAt) {
       content: it.content, created_at: it.created_at ?? null, likes: it.likes ?? null, rating: it.rating ?? null })) };
 }
 
-async function writeOne(target, build, fetch) {
-  if (typeof target !== 'string' || !path.isAbsolute(target)) return { status: 'fail' };
-  target = path.resolve(target);
-  let location;
-  try { location = exportLocation(target); }
-  catch (_) { return { status: 'fail' }; }
+async function writeOne(location, build, fetch) {
+  if (!location) return { status: 'fail' };
   const key = process.platform === 'win32' ? location.file.toLowerCase() : location.file;
   if (pending.has(key)) return pending.get(key);
   const task = (async () => {
@@ -134,7 +130,7 @@ async function writeOne(target, build, fetch) {
       if (!data || (data.success !== true && (retry || data.partial !== true))) return { status: 'fail' };
       const doc = build(data);
       writeJsonAtomic(location, doc, previous.stat);
-      return { status: 'ok', partial: doc.partial === true, itemCount: doc.items.length, target };
+      return { status: 'ok', partial: doc.partial === true, itemCount: doc.items.length, target: location.file };
     } catch (_) { return { status: 'fail' }; }
   })();
   pending.set(key, task);
@@ -170,19 +166,33 @@ async function exportSeriesText(options = {}) {
       if (!out.files.includes(result.target)) out.files.push(result.target);
     }
   };
-  if (wantReviews) record('reviews', await writeOne(reviewsPath,
+  // Bind every planned destination to its directory identity before any network
+  // wait, so a directory swap mid-batch cannot redirect later writes.
+  const plannedLocation = target => {
+    if (typeof target !== 'string' || !path.isAbsolute(target)) return null;
+    try { return exportLocation(path.resolve(target)); }
+    catch (_) { return null; }
+  };
+  const episodePlans = episodes.map(ep => {
+    const stem = typeof ep?.savePath === 'string' && path.isAbsolute(ep.savePath) && /\.mp4$/i.test(ep.savePath)
+      ? ep.savePath.slice(0, -4) : null;
+    return { ep,
+      danmaku: wantDanmaku ? plannedLocation(stem ? `${stem}.danmaku.json` : null) : null,
+      comments: wantComments ? plannedLocation(stem ? `${stem}.comments.json` : null) : null };
+  });
+  const reviewsLocation = wantReviews ? plannedLocation(reviewsPath) : null;
+
+  if (wantReviews) record('reviews', await writeOne(reviewsLocation,
     d => reviewsDoc({ seriesId, seriesTitle }, d.reviews, now()),
     () => fetchers.fetchPublicDetails(String(seriesId), '', { reviewsLimit })));
 
   if (wantDanmaku || wantComments) {
-    const results = await mapLimit(episodes, concurrency, async ep => {
-      const stem = typeof ep?.savePath === 'string' && path.isAbsolute(ep.savePath) && /\.mp4$/i.test(ep.savePath)
-        ? ep.savePath.slice(0, -4) : null;
+    const results = await mapLimit(episodePlans, concurrency, async ({ ep, danmaku, comments }) => {
       const cell = {};
-      if (wantDanmaku) cell.danmaku = await writeOne(stem ? `${stem}.danmaku.json` : null,
+      if (wantDanmaku) cell.danmaku = await writeOne(danmaku,
         d => danmakuDoc({ seriesId, seriesTitle, ep }, d, now()),
         fresh => fetchers.fetchDanmaku({ seriesId: String(seriesId), vid: ep.vid, fresh }));
-      if (wantComments) cell.comments = await writeOne(stem ? `${stem}.comments.json` : null,
+      if (wantComments) cell.comments = await writeOne(comments,
         d => commentsDoc({ seriesId, seriesTitle, ep }, d, now()),
         () => fetchers.fetchEpisodeComments({ seriesId: String(seriesId), episodeId: ep.vid, cursor: null, limit: 30 }));
       return cell;

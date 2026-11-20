@@ -40,7 +40,7 @@ function fixture(t) {
   const invoke = channel => channel === 'delete-task' ? handlers[channel]({}, 'one', { deleteFiles: true })
     : channel === 'delete-tasks' ? handlers[channel]({}, ['one'], { deleteFiles: true })
     : handlers[channel]({}, 'S', 1);
-  return { context, run, directory, unrelated, foreign, original, filename, link, record, invoke };
+  return { context, handlers, run, directory, unrelated, foreign, original, filename, link, record, invoke };
 }
 
 for (const channel of ['delete-series-files', 'delete-all-downloaded', 'delete-episode-file', 'cleanup-watched-episode']) {
@@ -89,6 +89,38 @@ for (const channel of ['delete-task', 'delete-series-files', 'delete-episode-fil
     assert.equal(h.run('downloadTasks.length'), 1);
   });
 }
+
+for (const channel of ['delete-task', 'delete-series-files', 'delete-episode-file']) {
+  test(`${channel} refuses a final file replaced during asynchronous validation`, async t => {
+    const h = fixture(t);
+    fs.mkdirSync(h.directory);
+    fs.writeFileSync(path.join(h.directory, h.filename), h.original);
+    h.record();
+    const validate = h.context.validateNasDeletion;
+    h.context.validateNasDeletion = async tasks => {
+      const check = await validate(tasks);
+      fs.writeFileSync(path.join(h.directory, h.filename), Buffer.alloc(120001, 9));
+      return check;
+    };
+    const result = await h.invoke(channel);
+    assert.deepEqual(fs.readFileSync(path.join(h.directory, h.filename)), Buffer.alloc(120001, 9));
+    assert.equal(result.success, false, result.error);
+    assert.equal(result.freed || 0, 0);
+    assert.equal(h.run('downloadTasks.length'), 1);
+  });
+}
+
+test('a malformed episode index aborts the whole batch before queueing', async t => {
+  const h = fixture(t);
+  h.record();
+  const before = h.run('downloadTasks.length');
+  const result = await h.handlers['hongguo-download-batch']({}, { seriesId: 'S', seriesTitle: 'Short',
+    episodes: [{ vid: 'two', vid_index: 2 }, { vid: 'bad', vid_index: '../escape' }] });
+  assert.equal(result.success, false);
+  assert.match(result.error, /分集|编号/);
+  assert.equal(h.run('downloadTasks.length'), before, 'no partial batch may be enqueued');
+  assert.equal(fs.existsSync(h.directory), false, 'no destination directory may be created');
+});
 
 test('episode filenames reject malformed indexes before constructing a path', t => {
   const h = fixture(t);
