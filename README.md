@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.20](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.20)** · 2026-11-21
+**[v6.20](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.20)** · 2026-11-20
 
-修复文字导出与删除下载内容时的本地文件边界校验：目标文件或目录在操作期间被替换时保留原文件和任务记录，不再可能改写同名 `.tmp` 或跟随目录链接。
+修复文字导出（弹幕/评论/剧评 JSON）的临时文件安全：改用本进程独占创建的随机临时文件，导出期间目标文件或所在目录被替换时保留原文件并报告失败，不再可能改写同名 .tmp 或跟随目录链接。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
