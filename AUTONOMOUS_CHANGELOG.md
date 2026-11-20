@@ -1,5 +1,19 @@
 # 自主开发变更记录
 
+## 2026-11-21 · 下载管理与设置边界（发行 6.21）
+
+**巡检结论**：下载管理筛选和批量任务操作、设置卡片搜索与代理保存边界已进入 `main`，并绑定正式标签 `v6.21`。Windows 候选、源码 Test 和 main CodeQL 均通过；正式 Release 已公开且不可变。发布工作流最后的匿名公开入口探测因 runner 收到 HTTP 403 失败，但发布后的 GitHub API 与本机公开 URL 核验确认目标资产已公开；该差异已记录在 [6.21 回执](docs/release-6.21.md)，不将流水线记为全流程成功。
+
+**代码变更**（随 `83fb32c` 进入 main）：
+
+1. `src/components/DownloadManager.jsx`：筛选、状态分组、跨页选择和批量停止／重试／删除边界。
+2. `src/components/Settings.jsx`：实际卡片过滤、多词匹配、键盘定位、草稿保留、代理字段隔离和迟到读取保护。
+3. `scripts/check-ui-theme.cjs` 及设置／下载回归：使用固定导航程序，补充执行边界；Windows 首次使用 FFmpeg 前校验对应源码与二进制摘要。
+
+**验证**：标签 Test [44827042678](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44827042678)、Windows 候选 [44827042693](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44827042693)、main CodeQL [44827029274](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44827029274) 成功；`npm test` 通过单元测试与 110 项平台检查，React 构建及生产依赖审计通过。研究了 6 个开源参考项目，结论见本轮交付报告。
+
+**后续优先项**：限制生产环境对 `VITE_DEV_SERVER_URL` 的信任范围，补充负向回归；随后处理发布签名验收、Electron fuse、下载任务状态机和 GUI／真实媒体更新链路。
+
 ## 2026-11-21 · 文件边界安全加固（发行 6.20）
 
 **巡检结论**：远程无开放 Issue/PR；Dependabot 0；官方 registry 生产依赖 audit 0；渲染构建产物逆向暴露面扫描 A（无 source map、无明文秘密）。发现 6.18 发布流水线末步公开入口探测 HTTP 403（资产已公开、下游 6.19 流水线全绿，判断为瞬时/限流类问题）；发现 6.19 引入 3 个 CodeQL 中危告警（测试脚本）；核心代码审查确认两处 P1 本地文件边界风险。

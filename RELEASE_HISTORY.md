@@ -4,6 +4,7 @@
 
 | 公开版本 | 内部版本 | 日期 | 标签 | 冻结源码 | 回执 |
 |---|---|---|---|---|---|
+| 6.21 | 6.21.0 | 2026-11-21 06:28 | v6.21 | 83fb32ca6dfe3a8bd98217206cffdc87853d98ac | [release-6.21.md](docs/release-6.21.md) |
 | 6.20 | 6.20.0 | 2026-11-21 03:01 | v6.20 | 1606a28c25abee61cd15d6c22b6bc0ba5fef1161 | [release-6.20.md](docs/release-6.20.md) |
 | 6.19 | 6.19.0 | 2026-11-21 | v6.19 | affc03b01997d28d91e4880594cd54c32efd6059 | [release-6.19.md](docs/release-6.19.md) |
 | 6.18 | 6.18.0 | 2026-11-20 | v6.18 | 967d5ab3f4c9352c1eec0bf418b206fb631b2aa6 | [release-6.18.md](docs/release-6.18.md) |
