@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.18](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.18)** · 2026-11-20
+**[v6.19](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.19)** · 2026-11-20
 
-修复 Windows 加密 HLS 临时密钥路径、部分来源播放地址恢复及采集源访问/集数匹配问题。红果完整分集播放尚未恢复。
+全面整理浅色/深色双主题界面：提升文字、按钮、焦点指示与状态角标的对比度，修复深色残留样式和浅色主题下错用深色外观的控件。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
