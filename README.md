@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.19](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.19)** · 2026-11-20
+**[v6.20](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.20)** · 2026-11-21
 
-全面整理浅色/深色双主题界面：提升文字、按钮、焦点指示与状态角标的对比度，修复深色残留样式和浅色主题下错用深色外观的控件。
+修复文字导出与删除下载内容时的本地文件边界校验：目标文件或目录在操作期间被替换时保留原文件和任务记录，不再可能改写同名 `.tmp` 或跟随目录链接。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
@@ -268,7 +268,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.19.md](docs/release-6.19.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.20.md](docs/release-6.20.md)。
 
 </details>
 

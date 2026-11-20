@@ -2221,18 +2221,98 @@ function pathInside(root, target) {
 
 function readDirectoryIdentity(directory) {
   directory = fs.realpathSync(directory);
-  const stat = fs.statSync(directory);
+  const stat = fs.lstatSync(directory, { bigint: true });
   if (!stat.isDirectory()) throw new Error('下载目录不可用');
-  return { directory, device: stat.dev };
+  return { directory, device: Number(stat.dev), inode: String(stat.ino) };
 }
 
 function validateDirectoryIdentity(identity, file) {
   try {
-    const stat = fs.lstatSync(identity.directory);
-    if (!stat.isDirectory() || stat.isSymbolicLink() || stat.dev !== identity.device
+    const stat = fs.lstatSync(identity.directory, { bigint: true });
+    if (!stat.isDirectory() || stat.isSymbolicLink() || Number(stat.dev) !== identity.device
+      || (identity.inode != null && String(stat.ino) !== String(identity.inode))
       || fs.realpathSync(identity.directory) !== identity.directory
       || fs.realpathSync(path.dirname(file)) !== identity.directory) throw new Error();
   } catch (_) { throw new Error('下载目录不可用或挂载已变化，已保留文件和任务记录；请确认原目录后重试'); }
+}
+
+/** Current regular-file identity as JSON-safe primitives, or null when absent. */
+function deletionFileState(file) {
+  const stat = fs.lstatSync(file, { throwIfNoEntry: false, bigint: true });
+  if (!stat) return null;
+  if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('下载目标不是普通文件，已保留文件和任务记录');
+  return { ino: String(stat.ino), size: Number(stat.size), mtimeMs: Number(stat.mtimeMs) };
+}
+
+function sameFileState(before, now) {
+  if (before === null) return now === null;
+  return now !== null && before.ino === now.ino && before.size === now.size && before.mtimeMs === now.mtimeMs;
+}
+
+/** Capture each actual parent and file identity before an async boundary; inferred/legacy paths must not follow directory links. */
+function deletionDirectory(file) {
+  if (typeof file !== 'string' || !path.isAbsolute(file)) throw new Error('文件路径无效，已保留文件和任务记录');
+  const parent = path.dirname(path.resolve(file));
+  const stat = fs.lstatSync(parent, { throwIfNoEntry: false, bigint: true });
+  if (!stat) return null;
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('下载目录是链接或无效目录，已保留文件和任务记录');
+  const identity = { directory: fs.realpathSync(parent), parent, device: Number(stat.dev), inode: String(stat.ino) };
+  // A task recorded before the download root moved keeps its own persisted
+  // identity; it is authoritative even when the root resolves through an alias.
+  const owner = downloadTasks.find(task => normalizePathKey(task.savePath) === normalizePathKey(file));
+  if (owner?.directoryIdentity) {
+    validateDirectoryIdentity(owner.directoryIdentity, file);
+    return identity;
+  }
+  // Otherwise a user-selected root may itself have an alias; links below that
+  // root may not redirect a scan/deletion.
+  const root = mediaRoots().find(root => {
+    const relative = path.relative(path.resolve(root), parent);
+    return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+  });
+  const expected = root ? path.resolve(fs.realpathSync(root), path.relative(path.resolve(root), parent)) : parent;
+  if (normalizePathKey(identity.directory) !== normalizePathKey(expected)) throw new Error('下载目录路径已变化，已保留文件和任务记录');
+  return identity;
+}
+
+function snapshotDeletionState(paths) {
+  const directories = new Map(), files = new Map();
+  for (const file of paths.filter(Boolean)) {
+    const parent = path.dirname(file);
+    if (!directories.has(parent)) {
+      let identity = null;
+      try { identity = deletionDirectory(file); }
+      catch (error) { directories.set(parent, error); }
+      if (identity) directories.set(parent, identity);
+    }
+    if (directories.get(parent) instanceof Error) continue;
+    // Track identity only for the final files; transient .enc.tmp family
+    // members may legitimately change while a download is being stopped.
+    if (!files.has(file)) files.set(file, deletionFileState(file));
+    for (const family of episodeFilePaths(file)) {
+      const familyParent = path.dirname(family);
+      if (!directories.has(familyParent)) directories.set(familyParent, directories.get(parent));
+    }
+  }
+  return file => {
+    const selected = file ? [[path.dirname(file), directories.get(path.dirname(file))]] : [...directories];
+    for (const [parent, identity] of selected) {
+      if (identity instanceof Error) throw identity;
+      if (!identity) {
+        if (fs.lstatSync(parent, { throwIfNoEntry: false })) throw new Error('下载目录已变化，已保留文件和任务记录');
+        continue;
+      }
+      validateDirectoryIdentity(identity, path.join(identity.parent, 'directory-check'));
+    }
+    if (file) {
+      if (files.has(file) && !sameFileState(files.get(file), deletionFileState(file)))
+        throw new Error('文件已变化，已保留文件和任务记录');
+    } else {
+      for (const [watched, before] of files) {
+        if (!sameFileState(before, deletionFileState(watched))) throw new Error('文件已变化，已保留文件和任务记录');
+      }
+    }
+  };
 }
 
 function mediaRoots() {
@@ -2363,18 +2443,27 @@ function repairTaskDestination(task) {
   if (task.nasDestination) return;
   const settings = getCurrentSettings(), info = task.hongguoInfo || {};
   task.customDir = seriesDownloadDir(settings.root || app.getPath('downloads'), info.series_id, info.series_title);
-  const filename = uniqueEpisodeFilename(settings, info.series_title, { vid_index: info.vid_index, title: info.ep_title });
-  const suffix = createHash('sha256').update(String(info.vid)).digest('hex').slice(0, 8);
-  task.filename = filename.replace(/\.mp4$/, `-${suffix}.mp4`);
-  task.savePath = path.join(task.customDir, task.filename);
+  try {
+    const filename = uniqueEpisodeFilename(settings, info.series_title, { vid_index: info.vid_index, title: info.ep_title });
+    const suffix = createHash('sha256').update(String(info.vid)).digest('hex').slice(0, 8);
+    task.filename = filename.replace(/\.mp4$/, `-${suffix}.mp4`);
+    task.savePath = path.join(task.customDir, task.filename);
+  } catch (_) {
+    // A malformed legacy record keeps its conflict flag instead of being
+    // silently rewritten; downloads stay blocked for it.
+    return;
+  }
   if (task.directoryIdentity && path.resolve(task.customDir) !== path.resolve(task.directoryIdentity.directory)) delete task.directoryIdentity;
   task.pathConflict = false;
 }
 
 function uniqueEpisodeFilename(settings, title, episode) {
-  const index = String(episode.vid_index).padStart(3, '0');
+  const value = episode?.vid_index, number = Number(value);
+  if (!['string', 'number'].includes(typeof value) || !Number.isSafeInteger(number) || number < 1)
+    throw new Error('分集编号无效');
+  const index = String(number).padStart(3, '0');
   const format = settings.name_format || '';
-  const rendered = renderName(format, title, episode.vid_index, episode.title) || title;
+  const rendered = renderName(format, title, number, episode.title) || sanitizeFolderName(title) || '未命名短剧';
   return `${rendered}${/集数|vid_index/.test(format) ? '' : `_第${index}集`}.mp4`;
 }
 
@@ -2400,14 +2489,24 @@ function collectSeriesEpisodeFiles(seriesId, seriesTitle) {
   );
   const dir = resolveSeriesDir(sid, seriesTitle, tasks);
 
-  const byIndex = new Map();
+  const byIndex = new Map(), checkedDirectories = new Map();
+  let scanFailed = 0;
+  const safeDirectory = file => {
+    const parent = path.dirname(file);
+    if (!checkedDirectories.has(parent)) {
+      try { checkedDirectories.set(parent, !!deletionDirectory(file)); }
+      catch (_) { checkedDirectories.set(parent, false); scanFailed = 1; }
+    }
+    return checkedDirectories.get(parent);
+  };
   const exists = (p) => {
-    try { return fs.existsSync(p) && fs.statSync(p).size > 1024 * 100; } catch (_) { return false; }
+    try { const stat = fs.lstatSync(p); return stat.isFile() && !stat.isSymbolicLink() && stat.size > 1024 * 100; }
+    catch (_) { return false; }
   };
 
   // 1) 任务记录优先（命名模板可能与默认不同）
   for (const t of tasks) {
-    if (!hasCompleteTaskFile(t) || !ownsEpisodeFiles(t.savePath, tasks)) continue;
+    if (!safeDirectory(t.savePath) || !exists(t.savePath) || !hasCompleteTaskFile(t) || !ownsEpisodeFiles(t.savePath, tasks)) continue;
     const idx = Number(t.hongguoInfo.vid_index) || 0;
     if (!idx) continue;
     const prev = byIndex.get(idx);
@@ -2432,11 +2531,16 @@ function collectSeriesEpisodeFiles(seriesId, seriesTitle) {
   if (!ambiguousTitle) for (const episode of entry?.episodes || []) {
     for (const name_format of formats) {
       if (sharedDirectory && !/剧名|\bseries_title\b/.test(name_format || '')) continue;
-      episodeNames.set(uniqueEpisodeFilename({ name_format }, seriesTitle, episode), Number(episode.vid_index));
+      // A legacy archive may contain an invalid episode index; skip name-based
+      // matching for it instead of failing the whole scan.
+      let rendered;
+      try { rendered = uniqueEpisodeFilename({ name_format }, seriesTitle, episode); }
+      catch (_) { continue; }
+      episodeNames.set(rendered, Number(episode.vid_index));
     }
   }
-  let names = [], scanFailed = 0;
-  if (dir) {
+  let names = [];
+  if (dir && safeDirectory(path.join(dir, 'directory-check'))) {
     try { names = fs.readdirSync(dir); } catch (_) { scanFailed = 1; }
     for (const name of episodeNames.keys()) {
       const full = path.join(dir, name);
@@ -3981,6 +4085,10 @@ async function enqueueEpisodes({ seriesId, seriesTitle, episodes, cover, quality
   const root = (settings.root && String(settings.root).trim()) ? String(settings.root).trim() : app.getPath('downloads');
   const cleanSeriesTitle = sanitizeFolderName(seriesTitle) || '红果短剧';
   const downloadDir = nasDestination ? nasDestination.directory : seriesDownloadDir(root, seriesId, cleanSeriesTitle);
+  // Derive every destination before touching queue state or disk, so one
+  // malformed episode cannot half-enqueue the batch.
+  const plan = episodes.map(ep => ({ ep,
+    filename: nasDestination ? nasEpisodeFilename(nasDestination, ep) : uniqueEpisodeFilename(settings, cleanSeriesTitle, ep) }));
   if (!nasDestination) fs.mkdirSync(downloadDir, { recursive: true });
   const directoryIdentity = nasDestination ? null : readDirectoryIdentity(downloadDir);
   let metadataWarning = '';
@@ -4009,9 +4117,8 @@ async function enqueueEpisodes({ seriesId, seriesTitle, episodes, cover, quality
   let created = 0;
   const changedTasks = [];
   const previousQueue = downloadQueue.slice();
-  for (const ep of episodes) {
+  for (const { ep, filename } of plan) {
     const epIndexStr = String(ep.vid_index).padStart(3, '0');
-    const filename = nasDestination ? nasEpisodeFilename(nasDestination, ep) : uniqueEpisodeFilename(settings, cleanSeriesTitle, ep);
     const finalPath = path.join(downloadDir, filename);
 
     // 已有同一集在队列/已完成，避免重复建任务
@@ -4864,10 +4971,13 @@ async function validateNasDeletion(tasks) {
   };
 }
 
-async function removeEpisodeFiles(paths, owners) {
-  let freed = 0, failed = 0, count = 0, warning;
-  try { const checkCurrent = await validateNasDeletion(owners); checkCurrent(); }
-  catch (error) { return { count, freed, failed, warning: error.message }; }
+async function removeEpisodeFiles(paths, owners, guard) {
+  let freed = 0, failed = 0, count = 0, warning, checkState;
+  try {
+    checkState = guard || snapshotDeletionState(paths);
+    const checkCurrent = await validateNasDeletion(owners);
+    checkCurrent(); checkState();
+  } catch (error) { return { count, freed, failed, warning: error.message }; }
   for (const file of new Set(paths.filter(Boolean))) {
     const family = episodeFilePaths(file);
     if (!ownsEpisodeFiles(file, owners) || family.some(isFileInUse)
@@ -4877,10 +4987,12 @@ async function removeEpisodeFiles(paths, owners) {
     }
     for (const p of family) {
       try {
-        if (fs.existsSync(p)) {
-          const st = fs.statSync(p);
+        checkState(p);
+        const st = fs.lstatSync(p, { throwIfNoEntry: false, bigint: true });
+        if (st) {
+          if (st.isSymbolicLink() || !st.isFile()) throw new Error('文件已变化，未删除');
           fs.unlinkSync(p);
-          freed += st.size; count++;
+          freed += Number(st.size); count++;
         }
       } catch (_) { failed++; }
     }
@@ -4920,7 +5032,7 @@ function isFileInUse(file) {
 }
 
 function removeFinishedRecords(seriesId, saveChanges = false) {
-  const ids = downloadTasks.filter(task => (seriesId == null || String(task.hongguoInfo?.series_id) === String(seriesId)) && !isTaskInFlight(task) && task.status === 'completed' && task.savePath && episodeFilePaths(task.savePath).every(file => !fs.existsSync(file))).map(task => task.id);
+  const ids = downloadTasks.filter(task => (seriesId == null || String(task.hongguoInfo?.series_id) === String(seriesId)) && !isTaskInFlight(task) && task.status === 'completed' && task.savePath && episodeFilePaths(task.savePath).every(file => !fs.lstatSync(file, { throwIfNoEntry: false }))).map(task => task.id);
   if (ids.length || saveChanges) dropTaskRecords(ids);
 }
 
@@ -4949,6 +5061,9 @@ async function deleteTaskRecords(taskIds, options) {
     try {
       cancelledRetries = cancelScheduledRetries([task]) || cancelledRetries;
       clearSourceRetry(task);
+      // Snapshot directory and final-file identity before the cancellation wait,
+      // so a swap during the wait cannot redirect the later deletion.
+      const guard = deleteFiles ? snapshotDeletionState([task.savePath]) : null;
       if (isTaskInFlight(task)) {
         await stopTaskAndWait(task);
         if (!downloadTasks.includes(task) || isTaskInFlight(task) || task.cancelled === false || task.retryAt) {
@@ -4956,7 +5071,7 @@ async function deleteTaskRecords(taskIds, options) {
         }
       }
       if (deleteFiles) {
-        const result = await removeEpisodeFiles([task.savePath], [task]);
+        const result = await removeEpisodeFiles([task.savePath], [task], guard);
         freed += result.freed; fileCount += result.count; failed += result.failed;
         if (result.warning) { warnings.push(result.warning); errors.push(result.warning); }
         if (result.failed) { errors.push('部分文件删除失败，对应任务记录已保留'); continue; }
@@ -4992,25 +5107,34 @@ async function deleteSeriesFiles(seriesId, options) {
     const entry = seriesRegistry.find(s => String(s.series_id) === sid);
     const title = entry?.series_title || '';
     const files = collectSeriesEpisodeFiles(sid, title);
+    if (files.scanFailed) return { success: false, count: 0, freed: 0, failed: files.scanFailed, error: '下载目录不可用或扫描失败，已保留文件和任务记录' };
     const { dir } = files;
     const paths = new Set([...files.episodePaths, ...files.temporaryPaths,
       ...(includeMerged ? [...files.mergedPaths, ...files.concatPaths] : [])]);
+    const checkState = snapshotDeletionState([...paths, ...(dir ? [path.join(dir, 'directory-check')] : [])]);
     const checkCurrent = await validateNasDeletion(downloadTasks.filter(task => String(task.hongguoInfo?.series_id) === sid));
-    checkCurrent();
+    checkCurrent(); checkState();
     const cancelledRetries = cancelScheduledRetries(downloadTasks.filter(task => String(task.hongguoInfo?.series_id) === sid));
-    let count = 0, freed = 0, failed = files.scanFailed;
+    let count = 0, freed = 0, failed = 0;
     for (const file of paths) {
       if (isFileInUse(file)) continue;
       try {
-        if (!fs.existsSync(file)) continue;
-        const size = fs.statSync(file).size;
+        checkState(file);
+        const stat = fs.lstatSync(file, { throwIfNoEntry: false, bigint: true });
+        if (!stat) continue;
+        if (stat.isSymbolicLink() || !stat.isFile()) throw new Error('文件已变化，未删除');
         fs.unlinkSync(file);
-        freed += size;
+        freed += Number(stat.size);
         count++;
       } catch (_) { failed++; }
     }
     // 只移除本剧空目录；未知文件与仍在下载的临时文件会使目录保留。
-    try { if (dir && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) fs.rmdirSync(dir); } catch (_) {}
+    try {
+      if (dir && fs.existsSync(dir)) {
+        checkState(path.join(dir, 'directory-check'));
+        if (fs.readdirSync(dir).length === 0) fs.rmdirSync(dir);
+      }
+    } catch (_) {}
     try { removeFinishedRecords(sid, cancelledRetries); }
     catch (error) { return { success: false, count, freed, failed, error: `文件清理已执行；任务记录保存失败，原记录已保留：${error.message}${cancelledRetries ? '；自动重试取消状态未保存' : ''}` }; }
     return { success: failed === 0, count, freed, failed, error: failed ? '部分文件删除失败，对应记录已保留' : undefined };
@@ -5031,12 +5155,16 @@ async function deleteEpisodeFile(seriesId, vidIndex) {
     if (tasks.some(isTaskInFlight) || mergeTasks.some(task => task.seriesId === sid && task.status === 'running')) return { success: false, error: '该集正在下载或合并，暂不删除', count: 0, freed: 0 };
     const entry = seriesRegistry.find(item => String(item.series_id) === sid);
     const scanned = collectSeriesEpisodeFiles(sid, entry?.series_title || '');
+    if (scanned.scanFailed) return { success: false, count: 0, freed: 0, failed: scanned.scanFailed, error: '下载目录不可用或扫描失败，已保留文件和任务记录' };
     const paths = [...tasks.map(task => task.savePath), ...scanned.ordered.filter(episode => episode.vid_index === idx).map(episode => episode.path),
       ...(scanned.dir ? [...scanned.episodeNames].filter(([, index]) => index === idx).map(([name]) => path.join(scanned.dir, name)) : [])];
     const cancelledRetries = cancelScheduledRetries(tasks);
     const result = await removeEpisodeFiles(paths, tasks);
-    const ids = tasks.filter(task => task.savePath && ownsEpisodeFiles(task.savePath, tasks)
-      && episodeFilePaths(task.savePath).every(file => !fs.existsSync(file))).map(task => task.id);
+    // A boundary or usage warning means the delete did not complete; records
+    // must survive so the episode can be retried later.
+    const boundaryFailure = Boolean(result.warning) || result.failed > 0;
+    const ids = boundaryFailure ? [] : tasks.filter(task => task.savePath && ownsEpisodeFiles(task.savePath, tasks)
+      && episodeFilePaths(task.savePath).every(file => !fs.lstatSync(file, { throwIfNoEntry: false }))).map(task => task.id);
     try { if (ids.length || cancelledRetries) dropTaskRecords(ids); }
     catch (error) { return { ...result, success: false, error: `文件清理已执行；任务记录保存失败，原记录已保留：${error.message}${cancelledRetries ? '；自动重试取消状态未保存' : ''}` }; }
     return { ...result, success: result.failed === 0 && !result.warning,
