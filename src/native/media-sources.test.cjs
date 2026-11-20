@@ -32,6 +32,27 @@ test('builtin source preferences persist without changing custom sources or othe
   assert.throws(() => setBuiltinSourceEnabled(settings, 'xifan', 'false'));
 });
 
+test('collect access uses the same defaults and explicit switches as the visible source list', () => {
+  const filename = path.join(__dirname, 'custom-source.js');
+  const dependency = require('node:module').createRequire(filename);
+  let settings = {};
+  const context = { module: { exports: {} }, URL, Buffer,
+    require: name => name === '../store' ? { getSettings: () => settings } : dependency(name) };
+  vm.runInNewContext(fs.readFileSync(filename, 'utf8'), context, { filename });
+  const { assertEnabled } = context.module.exports;
+  const { COLLECT_SOURCES } = require('./media-sources');
+  for (const source of COLLECT_SOURCES) {
+    settings = {};
+    assert.equal(getMediaSources(settings).some(item => item.id === source.id), source.defaultOn);
+    if (source.defaultOn) assert.equal(assertEnabled(source.id).url, source.url);
+    else assert.throws(() => assertEnabled(source.id), /来源已关闭/);
+    settings = { builtin_sources: { [source.id]: true } };
+    assert.equal(assertEnabled(source.id).url, source.url);
+    settings = { builtin_sources: { [source.id]: false } };
+    assert.throws(() => assertEnabled(source.id), /来源已关闭/);
+  }
+});
+
 test('IPC persists source changes, notifies every window, and blocks disabled search and catalogs', async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hongguo-sources-'));
   const store = require('../store');

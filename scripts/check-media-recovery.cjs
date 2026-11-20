@@ -39,7 +39,10 @@ function load(fetchPlayUrlSingle, overrides = {}) {
   const hits = [];
   const server = http.createServer((r, s) => {
     hits.push({url:r.url, headers:r.headers});
-    if (r.url === '/missing') { s.writeHead(404); s.end(); return; }
+    if (r.url.split('?')[0] === '/missing') { s.writeHead(404); s.end(); return; }
+    if (r.url === '/unauthorized') { s.writeHead(401); s.end(); return; }
+    if (r.url === '/forbidden') { s.writeHead(403); s.end(); return; }
+    if (r.url === '/limited') { s.writeHead(429); s.end(); return; }
     if (r.url === '/html') { s.setHeader('Content-Type','text/html'); s.end('bad'); return; }
     if (r.url === '/broken') { s.writeHead(200, {'Content-Length':'999'}); s.write('partial'); setTimeout(() => s.destroy(), 5); return; }
     if (r.url === '/race') {
@@ -187,6 +190,80 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     await h.handlers['release-online-play']({}, {requestId:'timeout'});await pending;
     assert.ok(deadlines.includes(30000),'source lookup must retain its 30-second deadline');
     assert.ok(!result.unbounded,'source lookup never settled within its time budget');assert.equal(result.success,false);assert.match(result.error,/超时/);
+  });
+  const refreshProviders = [
+    { source: 'hema', vid: 'hema:1:11', sid: 'hema:1' },
+    { source: 'xifan', vid: 'xifan:jiuzhou:1:11', sid: 'xifan:jiuzhou:1' },
+    { source: 'custom', vid: 'custom:a1e93f2c-6b47-4d58-9c30-2f4a6d8e0b11:1:0:0', sid: 'custom:a1e93f2c-6b47-4d58-9c30-2f4a6d8e0b11:1' },
+  ];
+  for (const provider of refreshProviders) {
+    const overrides = { './src/native/custom-source': { assertEnabled() {} } };
+    const playInfo = route => ({ ...info(route, provider.source), vid: provider.vid });
+    const consume = h => async value => {
+      const response = await h.context.requestMedia(value);
+      const chunks = [];
+      for await (const chunk of response.data) chunks.push(chunk);
+      return Buffer.concat(chunks).toString('utf8');
+    };
+    await check(`${provider.source} refreshes an expired media address with the same episode and fresh access check`, async () => {
+      const calls = [];
+      const h = harness(async (vid, sid, options) => { calls.push({ vid, sid, options }); return playInfo('/ok'); }, overrides);
+      const result = await h.context.withMediaRecovery(provider.vid, provider.sid, { playInfo: playInfo('/missing') }, consume(h));
+      assert.equal(result, 'complete-media');
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].vid, provider.vid); assert.equal(calls[0].sid, provider.sid);
+      assert.equal(calls[0].options.force, true);
+    });
+    await check(`${provider.source} refreshed access denial stops before another media transfer`, async () => {
+      let lookups = 0, transfers = 0;
+      const h = harness(async () => { lookups++; return { url: null, locked: true, error: 'episode now locked' }; }, overrides);
+      await assert.rejects(h.context.withMediaRecovery(provider.vid, provider.sid, { playInfo: playInfo('/missing') }, async value => { transfers++; return consume(h)(value); }), /now locked/);
+      assert.equal(lookups, 1); assert.equal(transfers, 1);
+    });
+    await check(`${provider.source} repeated expired addresses stop after three bounded rounds`, async () => {
+      let lookups = 0, transfers = 0;
+      const h = harness(async () => { lookups++; return playInfo('/missing'); }, overrides);
+      await assert.rejects(h.context.withMediaRecovery(provider.vid, provider.sid, { playInfo: playInfo('/missing') }, async value => { transfers++; return consume(h)(value); }), /HTTP 404/);
+      assert.equal(lookups, 2); assert.equal(transfers, 3);
+    });
+    for (const route of ['/unauthorized', '/forbidden', '/limited']) await check(`${provider.source} ${route.slice(1)} media never refreshes or switches lines`, async () => {
+      let lookups = 0;
+      const h = harness(async () => { lookups++; return playInfo('/ok'); }, overrides);
+      const denied = playInfo(route); denied.candidates = [playInfo('/ok')];
+      await assert.rejects(h.context.withMediaRecovery(provider.vid, provider.sid, { playInfo: denied }, consume(h)), /HTTP (401|403|429)/);
+      assert.equal(lookups, 0);
+    });
+  }
+  await check('stale custom backup lines leave one transfer for a fresh same-episode address', async () => {
+    const provider = refreshProviders[2]; let lookups = 0, transfers = 0;
+    const h = harness(async () => { lookups++; return { ...info('/ok', 'custom'), vid: provider.vid }; },
+      { './src/native/custom-source': { assertEnabled() {} } });
+    const stale = { ...info('/missing?line=0', 'custom'), vid: provider.vid };
+    stale.candidates = [1, 2, 3, 4].map(line => ({ ...info(`/missing?line=${line}`, 'custom'), vid: provider.vid }));
+    const result = await h.context.withMediaRecovery(provider.vid, provider.sid, { playInfo: stale }, async value => {
+      transfers++; const response = await h.context.requestMedia(value); const chunks = [];
+      for await (const chunk of response.data) chunks.push(chunk);
+      return Buffer.concat(chunks).toString('utf8');
+    });
+    assert.equal(result, 'complete-media'); assert.equal(lookups, 1); assert.equal(transfers, 4);
+  });
+  for (const status of [401, 403, 429]) await check(`HLS HTTP ${status} stops without a backup or provider refresh`, async () => {
+    const provider = refreshProviders[2]; let lookups = 0, remuxes = 0;
+    const h = harness(async () => { lookups++; return info('/ok', 'custom'); }, {
+      './src/native/custom-source': { assertEnabled() {} },
+      './src/native/hls-media': { remuxHls: async () => { remuxes++; throw Object.assign(new Error('HLS refused'), { mediaStatus: status }); } },
+    });
+    const denied = { ...info('/missing', 'custom'), vid: provider.vid, format: 'hls' };
+    denied.candidates = [{ ...info('/ok', 'custom'), vid: provider.vid, format: 'hls' }];
+    await assert.rejects(h.context.withMediaRecovery(provider.vid, provider.sid, { playInfo: denied },
+      value => h.context.prepareHlsFile(value, path.join(root, 'refused.mp4'))), /HLS refused/);
+    assert.equal(lookups, 0); assert.equal(remuxes, 1);
+  });
+  await check('unknown provider identities never acquire automatic refresh', async () => {
+    let lookups = 0;
+    const h = harness(async () => { lookups++; return info('/ok'); });
+    await assert.rejects(h.context.withMediaRecovery('other:11', 'other:1', { playInfo: info('/missing') }, async value => h.context.requestMedia(value)), /HTTP 404/);
+    assert.equal(lookups, 0);
   });
   for(const h of harnesses) {
     h.context.clearOnlineCache();

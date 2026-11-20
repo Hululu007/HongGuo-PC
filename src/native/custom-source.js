@@ -37,7 +37,7 @@ function assertEnabled(value) {
   // 开关状态读 builtin_sources（缺省取各自的 defaultOn）。
   const builtin = collectSourceById(`custom:${id}`);
   if (builtin) {
-    if (store.getSettings().builtin_sources?.[builtin.id] === false) throw new Error('此来源已关闭，可在设置中重新开启');
+    if ((store.getSettings().builtin_sources?.[builtin.id] ?? builtin.defaultOn) !== true) throw new Error('此来源已关闭，可在设置中重新开启');
     return validateSource({ id: builtin.uuid, name: builtin.label, url: builtin.url });
   }
   const sources = store.getSettings().custom_sources;
@@ -218,7 +218,13 @@ async function fetchPlayUrlSingle(vid, sid) {
     const lines = mediaLines(item);
     const selected = lines.find(line => line.line === id.line)?.episodes.find(episode => episode.episode === id.episode);
     if (!selected) throw new Error('自定义源未找到可直接播放的分集');
-    const candidates = [selected, ...lines.flatMap(line => line.episodes.filter(episode => episode.key === selected.key))]
+    const primary = lines.find(line => line.line === id.line);
+    const unambiguous = primary.episodes.filter(episode => episode.key === selected.key).length === 1;
+    const alternatives = unambiguous ? lines.flatMap(line => {
+      const matches = line.episodes.filter(episode => episode.key === selected.key);
+      return matches.length === 1 ? matches : [];
+    }) : [];
+    const candidates = [selected, ...alternatives]
       .filter((episode, index, all) => all.findIndex(other => other.url === episode.url) === index)
       .map(episode => {
         // 网页播放页先给同目录 index.m3u8 直链候选；真正的页面地址本身不可播放，不作为候选。

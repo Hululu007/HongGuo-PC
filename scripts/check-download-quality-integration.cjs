@@ -11,6 +11,7 @@ const { execFileSync } = require('node:child_process');
 const source = path.resolve(__dirname, '../main.js');
 const req = createRequire(source);
 const dirs = [];
+let genuineMediaFixture;
 function fixture({ width = 1080, height = 1920, quality = 'auto', realMedia = false } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hongguo-quality-'));
   dirs.push(root);
@@ -46,6 +47,7 @@ const checks = [
     assert.ok(ffmpeg && h.context.resolveFfmpeg('ffprobe'), 'local FFmpeg and ffprobe are required');
     const valid = path.join(h.root, 'valid.mp4'), broken = path.join(h.root, 'broken.mp4');
     const original = await require('./fixtures/hongguo-video.cjs').downloadTestMedia(h.root);
+    genuineMediaFixture = { video:original, ffmpeg, ffprobe:h.context.resolveFfmpeg('ffprobe') };
     execFileSync(ffmpeg, ['-v', 'error', '-nostdin', '-i', original, '-t', '1', '-vf', 'scale=640:360', '-an',
       '-c:v', 'libx264', '-preset', 'ultrafast', '-qp', '0', '-pix_fmt', 'yuv420p', valid],
       { stdio: ['ignore', 'pipe', 'pipe'], timeout: 15000 });
@@ -105,6 +107,14 @@ const checks = [
     assert.equal(fs.existsSync(failed.savePath), false);
     assert.equal(fs.existsSync(failed.savePath + '.enc.tmp'), false);
     assert.equal(bad.events.filter(event => event.channel === 'download-completed').length, 0);
+  }],
+  ['real HLS remux covers Windows-safe paths, denial states and decoding using the same genuine footage', () => {
+    assert.ok(genuineMediaFixture, 'the preceding real-media download must succeed; never substitute synthetic footage');
+    execFileSync(process.execPath, [path.join(__dirname, 'check-hls-media.cjs')], {
+      cwd:path.resolve(__dirname, '..'), stdio:'inherit', timeout:120000,
+      env:{ ...process.env, HONGGUO_VIDEO_FIXTURE:genuineMediaFixture.video,
+        HONGGUO_FFMPEG:genuineMediaFixture.ffmpeg, HONGGUO_FFPROBE:genuineMediaFixture.ffprobe },
+    });
   }],
   ['batch snapshots chosen quality and passes it through to source lookup', async () => {
     const h = fixture({ quality: '720p' });

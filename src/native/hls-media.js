@@ -15,7 +15,7 @@ async function requestHls(url, { signal, headers }) {
 
 // The bundled FFmpeg has no HTTP transport: stage guarded HLS resources on disk and allow local protocols only.
 async function remuxHls({ url, output, ffmpeg, signal, cancelToken, request = requestHls, checkAccess = () => {}, headers = {}, onProgress, tempCapacityBytes }) {
-  if (!ffmpeg) throw new Error('未找到 FFmpeg，无法准备 HLS 视频');
+  if (!ffmpeg) throw Object.assign(new Error('未找到 FFmpeg，无法准备 HLS 视频'), { code:'LOCAL_MEDIA_TOOL_ERROR' });
   webMediaRequestOptions(url);
   const controller = new AbortController(), files = new Map();
   let temporary, child, failure, killed, killTimer, spaceTimer, diskJob, writer;
@@ -53,7 +53,7 @@ async function remuxHls({ url, output, ffmpeg, signal, cancelToken, request = re
     try {
       upstream = await request(remote, { signal:controller.signal, headers:{...headers,'Accept-Encoding':'identity'} });
       check();
-      if (upstream.status !== 200) throw new Error('HLS 媒体请求失败或内容不完整');
+      if (upstream.status !== 200) throw Object.assign(new Error('HLS 媒体请求失败或内容不完整'), { mediaStatus:upstream.status });
       const type = String(upstream.headers['content-type'] || '');
       if (playlist || /mpegurl/i.test(type)) {
         const parts = [];
@@ -84,7 +84,7 @@ async function remuxHls({ url, output, ffmpeg, signal, cancelToken, request = re
           check(); const value = line.trim();
           if (!value) { rewritten.push(line); continue; }
           if (!value.startsWith('#')) {
-            rewritten.push(await stage(new URL(value,base).href,variant,chain)); variant = false; continue;
+            rewritten.push(path.basename(await stage(new URL(value,base).href,variant,chain))); variant = false; continue;
           }
           variant = value.startsWith('#EXT-X-STREAM-INF:');
           if (value.startsWith('#EXT-X-DEFINE:')) throw new Error('不支持含动态地址变量的 HLS 清单');
@@ -94,7 +94,9 @@ async function remuxHls({ url, output, ffmpeg, signal, cancelToken, request = re
           for (const match of matches) {
             const file = await stage(new URL(match[1],base).href,/^#EXT-X-(?:MEDIA|I-FRAME-STREAM-INF):/.test(value),chain);
             if (/^#EXT-X-(?:SESSION-)?KEY:/.test(value) && fs.statSync(file).size !== 16) throw new Error('HLS 密钥长度无效');
-            result = result.replace(match[0],`URI="${file}"`);
+            // All staged resources share this directory. Relative names avoid Windows
+            // backslashes being consumed as escapes by FFmpeg's HLS attribute parser.
+            result = result.replace(match[0],`URI="${path.basename(file)}"`);
           }
           rewritten.push(result);
         }
@@ -145,7 +147,7 @@ async function remuxHls({ url, output, ffmpeg, signal, cancelToken, request = re
         '-i',input,'-map','0:v:0','-map','0:a?','-c','copy','-movflags','+faststart','-f','mp4',output],
       {windowsHide:true,stdio:['ignore','ignore','pipe']});
       child.stderr.on('data',() => {});
-      child.once('error',() => reject(new Error('无法启动 FFmpeg')));
+      child.once('error',() => reject(Object.assign(new Error('无法启动 FFmpeg'), { code:'LOCAL_MEDIA_TOOL_ERROR' })));
       child.once('close',code => { clearTimeout(killTimer); failure ? reject(failure) : code === 0 ? resolve() : reject(new Error('HLS 媒体转换失败')); });
       if (controller.signal.aborted) stopChild();
     });
