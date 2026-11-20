@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[源码目标 6.22](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.22)** · 2026-11-21
+**[v6.22](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.22)** · 2026-11-20
 
-打包应用忽略继承的开发服务器地址；开发模式只信任 loopback renderer，防止远程或局域网环境变量扩大主进程 IPC 与媒体访问信任边界。正式发布后替换为实际发行链接。
+收紧开发渲染器信任边界：打包应用忽略继承的 VITE\_DEV\_SERVER\_URL，开发模式只接受 HTTP loopback 地址。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
