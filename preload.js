@@ -221,6 +221,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setEpisodePanelOpen: (value) => ipcRenderer.invoke('set-episode-panel-open', value),
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  getStorageRecovery: () => ipcRenderer.invoke('get-storage-recovery'),
+  restoreStorageBackup: () => ipcRenderer.invoke('restore-storage-backup'),
   getDiagnostics: () => ipcRenderer.invoke('get-diagnostics'),
   exportDiagnostics: () => ipcRenderer.invoke('export-diagnostics'),
   onStorageError: (cb) => {

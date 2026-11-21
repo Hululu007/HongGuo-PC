@@ -209,8 +209,11 @@ const checks = [
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hongguo-store-retry-')); dirs.push(root);
     const file = path.join(root, 'data.json'), events = [], store = req('./src/store');
     store.setErrorHandler(value => events.push(value)); store.init(file);
-    fs.mkdirSync(file + '.tmp'); assert.throws(() => store.saveSettings({ keep: false }));
-    fs.rmdirSync(file + '.tmp'); store.saveSettings({ keep: true });
+    const realRename = fs.renameSync;
+    fs.renameSync = () => { throw Object.assign(new Error('busy'), { code: 'EPERM' }); };
+    try { assert.throws(() => store.saveSettings({ keep: false })); }
+    finally { fs.renameSync = realRename; }
+    store.saveSettings({ keep: true });
     assert.equal(events.at(-1), null, 'write failure remains latched after successful save');
     fs.writeFileSync(file, '{bad'); store.init(file);
     assert.throws(() => store.saveSettings({ lost: true }), /读取本地数据/);

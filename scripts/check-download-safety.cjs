@@ -564,7 +564,7 @@ async function check(name, run) { try { await run(); console.log('PASS ' + name)
   await check('store save failure is reported and retains the durable snapshot', () => {
     const dir = path.join(root, 'store'); fs.mkdirSync(dir); const target = path.join(dir, 'data.json');
     let fail = false; const fakeFs = Object.create(fs); fakeFs.writeFileSync = (...args) => { if (fail) throw new Error('simulated disk full'); return fs.writeFileSync(...args); };
-    const context = vm.createContext({ require: name => name === 'fs' ? fakeFs : req(name), module: { exports: {} }, Buffer, URL, structuredClone, console: { error() {} } });
+    const context = vm.createContext({ require: name => name === 'fs' ? fakeFs : req(name), module: { exports: {} }, Buffer, URL, structuredClone, console: { error() {} }, process: { pid: 12345 } });
     vm.runInContext(fs.readFileSync(path.resolve(__dirname, '../src/store.js'), 'utf8'), context);
     const store = context.module.exports; store.init(target); store.saveTasks([{ id: 'saved' }]); const before = fs.readFileSync(target, 'utf8'); fail = true;
     assert.throws(() => store.saveTasks([{ id: 'unsaved' }]), /simulated disk full/);

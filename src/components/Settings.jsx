@@ -91,6 +91,8 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
   const [loadError, setLoadError] = useState('');
   const [diagnosticsBusy, setDiagnosticsBusy] = useState(false);
   const [diagnosticsNotice, setDiagnosticsNotice] = useState('');
+  const [recovery, setRecovery] = useState(null);
+  const [restoreState, setRestoreState] = useState({ busy: false, armed: false, notice: '', error: '' });
   const testVersion = useRef(0);
   const savingRef = useRef(false);
   const pictureModeRequest = useRef({ pending: false, version: 0 });
@@ -139,6 +141,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
       return;
     }
     void refreshSettings();
+    window.electronAPI.getStorageRecovery?.().then(setRecovery).catch(() => {});
   }, [active]);
 
   const update = (key, value) => {
@@ -263,8 +266,33 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
     }
   };
 
-  const scrollToSection = (id) => {
-    const el = document.getElementById(`settings-anchor-${id}`);
+  // 数据备份恢复：仅在主进程检测到「数据文件损坏 + 有效备份」时出现；两步点击防止误触。
+  const requestBackupRestore = async () => {
+    if (restoreState.busy) return;
+    if (!restoreState.armed) {
+      setRestoreState(state => ({ ...state, armed: true, notice: '', error: '' }));
+      return;
+    }
+    setRestoreState(state => ({ ...state, busy: true, error: '' }));
+    try {
+      const result = await window.electronAPI.restoreStorageBackup?.();
+      if (result?.success) {
+        setRecovery({ available: false });
+        setRestoreState({
+          busy: false,
+          armed: false,
+          notice: `已恢复备份${result.preservedFile ? `，损坏的原文件保留为 ${result.preservedFile}` : ''}；请重启应用加载恢复后的资料。`,
+          error: '',
+        });
+      } else {
+        setRestoreState(state => ({ ...state, busy: false, armed: false, error: result?.error || '恢复备份失败；原文件未更改。' }));
+      }
+    } catch (error) {
+      setRestoreState(state => ({ ...state, busy: false, armed: false, error: error?.message || '恢复备份失败；原文件未更改。' }));
+    }
+  };
+
+  const scrollToSection = (id) => {    const el = document.getElementById(`settings-anchor-${id}`);
     if (!el || el.hidden) return;
     setActiveAnchor(id);
     el.focus({ preventScroll: true });
@@ -584,6 +612,18 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
             <span className="settings-hint" role="status">仅包含版本、运行状态、任务统计和工具可用性，不包含密码、媒体地址或本地路径。</span>
           </div>
           {diagnosticsNotice && <p className="settings-hint" role="status">{diagnosticsNotice}</p>}
+          {recovery?.available && (
+            <div className="settings-inline-save" role="alert">
+              <button type="button" className="btn btn-outline btn-sm" onClick={requestBackupRestore} disabled={restoreState.busy}>
+                {restoreState.busy ? '正在恢复…' : restoreState.armed ? '确认恢复备份' : '恢复数据备份'}
+              </button>
+              <span className="settings-hint">
+                检测到可恢复的数据备份{Number.isFinite(recovery.size) ? `（约 ${Math.max(1, Math.round(recovery.size / 1024))} KB）` : ''}；当前数据文件读取失败，应用处于只读保护。恢复会用备份替换损坏文件并保留原文件，完成后需重启应用。
+              </span>
+            </div>
+          )}
+          {restoreState.notice && <p className="settings-hint" role="status">{restoreState.notice}</p>}
+          {restoreState.error && <p className="alert alert-error" role="alert">{restoreState.error}</p>}
         </div>
 
         {preview && <div className="settings-group" hidden={!visibleAnchors.has('storage')}>

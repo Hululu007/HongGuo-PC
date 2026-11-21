@@ -4860,6 +4860,25 @@ ipcMain.handle('save-settings', (_event, settings) => {
   return result.finally(() => { settingsSaving--; });
 });
 
+// ===== IPC：数据备份恢复（data.json 损坏只读时的受控出口）=====
+ipcMain.handle('get-storage-recovery', () => {
+  try { return store.getRecoveryInfo?.() || { available: false }; }
+  catch { return { available: false }; }
+});
+ipcMain.handle('restore-storage-backup', () => {
+  const result = settingsSaveQueue.then(() => {
+    const restored = store.restoreFromBackup?.(true) || { success: false, error: '当前版本不支持备份恢复。' };
+    if (restored.success) {
+      // 恢复成功后旧会话缓存已失效：提示重启加载，期间保存仍被只读保护拦下，不会覆盖恢复结果。
+      storageError = { error: '备份已恢复为当前数据文件；请重启应用加载恢复后的资料。', recovery: { available: false } };
+      sendToRenderer('storage-error', storageError);
+    }
+    return restored;
+  });
+  settingsSaveQueue = result.catch(() => {});
+  return result;
+});
+
 // ===== IPC：网络代理 =====
 ipcMain.handle('get-proxy-status', async () => {
   const settings = getCurrentSettings();

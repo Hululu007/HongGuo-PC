@@ -1,6 +1,6 @@
 {
   "name": "hongguo-downloader",
-  "version": "6.22.0",
+  "version": "6.23.0",
   "description": "红果短剧播放与下载",
   "main": "main.js",
   "license": "GPL-3.0",
@@ -78,7 +78,7 @@
       "build/icon.ico"
     ],
     "asar": true,
-    "artifactName": "hongguo-downloader-6.22-${os}-${arch}.${ext}",
+    "artifactName": "hongguo-downloader-6.23-${os}-${arch}.${ext}",
     "win": {
       "target": [
         {
@@ -123,7 +123,7 @@
       ]
     },
     "portable": {
-      "artifactName": "${productName}-6.22-便携版.${ext}"
+      "artifactName": "${productName}-6.23-便携版.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -131,7 +131,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "红果短剧下载器",
-      "artifactName": "hongguo-downloader-6.22-win-x64-setup.${ext}"
+      "artifactName": "hongguo-downloader-6.23-win-x64-setup.${ext}"
     },
     "mac": {
       "target": [

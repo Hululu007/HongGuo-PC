@@ -95,10 +95,11 @@ try {
   check('storage write failure leaves existing data intact and does not cancel close', () => {
     const { win } = setup();
     const before = fs.readFileSync(file, 'utf8');
-    fs.mkdirSync(file + '.tmp');
-    assert.doesNotThrow(() => win.emit('close'));
+    const realRename = fs.renameSync;
+    fs.renameSync = () => { throw Object.assign(new Error('busy'), { code: 'EPERM' }); };
+    try { assert.doesNotThrow(() => win.emit('close')); }
+    finally { fs.renameSync = realRename; }
     assert.equal(fs.readFileSync(file, 'utf8'), before);
-    fs.rmdirSync(file + '.tmp');
   });
   console.log(`PASS ${checks} main-window state checks`);
 } finally { fs.rmSync(root, { recursive: true, force: true }); }
