@@ -13,8 +13,9 @@
 | Windows x64 候选 | [44865673598](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673598) 成功；含 111 项平台检查、FFmpeg/x264 对应源码与媒体摘要校验、x64 NSIS 隔离安装、重装和真实 1.80.0 → 6.25.0 安装器升级资料保留（`Windows NSIS smoke: PASS`） |
 | 发布工作流 | [44866645422](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44866645422) 成功（47 秒），公开前校验仓库、标签、提交、工作流来源、安装回执与资产摘要 |
 | 公开状态（独立核验） | API 返回 `v6.25`、非草稿、非预发布、`immutable: true`；`/releases/latest` 已指向 `v6.25` |
-| 资产独立核验 | `latest.yml`：匿名入口瞬时超时，改经认证资产 API 逐字节下载（380 字节，SHA-256 与 GitHub 资产 digest 一致，声明版本/文件名/大小与 EXE 匹配）；安装 EXE：匿名公开 HEAD 302→200、Content-Length `146467517` 与资产一致，全量字节 SHA-256 核验见下节 |
+| 资产独立核验 | `latest.yml`：匿名入口瞬时超时，改经认证资产 API 逐字节下载（380 字节，SHA-256 与 GitHub 资产 digest 一致，声明版本/文件名/大小与 EXE 匹配）；安装 EXE：匿名公开 HEAD 302→200、Content-Length `146467517` 与资产一致。全量字节 SHA-256 本地复算未完成——release CDN 链路持续限速且下载任务两次被外部中断（46MB/146MB 处终止）；发布流水线已在公开前完成安装器 SHA-256 校验，GitHub 资产 digest、`latest.yml` 声明 SHA-512/大小与公开入口 HEAD 为本机独立证据，四路证据类别分别记录、不互相冒充 |
 | README 同步 | 「Sync release to README」[44866718017](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44866718017) 成功，`github-release:start` 块已指向 v6.25 |
+| 回执推送回归 | 本回执提交触发 main Test [44867401290](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44867401290) 成功（2m20s） |
 | 签名 | `NotSigned`（EXE 未签名，见下） |
 
 ## 正式资产
