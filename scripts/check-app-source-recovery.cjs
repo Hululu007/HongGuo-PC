@@ -122,20 +122,20 @@ function row(definition, width, height, suffix) {
     return identities[recoveryRegistrations - 1];
   } });
   assert.equal((await recovery.fetchAppPlayUrl(vid)).url, plain.main_url, 'empty model response renews the device and recovers');
-  assert.equal(recoverCalls, 2, 'a fresh identity on the V5 endpoint recovers after one empty response');
+  assert.equal(recoverCalls, 4, 'one empty response walks the ladder (both hosts, video_tab GET) before a renewed identity recovers');
   assert.equal(renewals, 1);
   for (const status of [200, 403, 404]) {
     let calls = 0, registrations = 0;
     const unavailable = load(async () => { calls++; return { status, headers: {}, data: '' }; },
       { registerPlaybackDevice: async () => identities[registrations++] });
     await assert.rejects(unavailable.fetchAppPlayUrl(vid), error => status === 200 ? error.code === 'EMPTY_RESPONSE' : error.status === status);
-    assert.equal(calls, status === 200 ? 5 : 1, 'empty responses retry with fresh V5 identities and stay bounded');
+    assert.equal(calls, status === 200 ? 15 : 1, 'each empty round walks POST, alternate host and video_tab before renewing');
     assert.equal(registrations, status === 200 ? 5 : 1, `registration count for HTTP ${status}`);
   }
   let cooldownCalls = 0;
   await assert.rejects(load(async () => { cooldownCalls++; return { status: 200, headers: {}, data: '' }; },
     { getPlaybackDevice: async () => identities[0] }).fetchAppPlayUrl(vid), error => error.code === 'EMPTY_RESPONSE');
-  assert.equal(cooldownCalls, 5, 'empty response is retried on kept V5 endpoint with fresh devices');
+  assert.equal(cooldownCalls, 15, 'the ladder stays bounded across renewed V5 identities');
   let clock = Date.now(), slowCalls = 0;
   const slowRegistration = load(async config => {
     slowCalls++;
@@ -220,5 +220,58 @@ function row(definition, width, height, suffix) {
   assert.equal(modelCalls, 2);
   assert.ok(simultaneous.every(result => result.url === plain.main_url));
   assert.doesNotMatch(JSON.stringify(simultaneous), /synthetic-unused-token/);
-  console.log('PASS app source recovery: empty response, legacy quality lock, inline URLs/keys and trust boundaries');
+
+  // video_tab GET recovery: both POST routes stay empty, then the signed GET recovers.
+  const ladderCalls = [];
+  const videoTab = { video_list: { '0': plain }, video_duration: 3600, video_id: vid };
+  const tabRecovery = load(async config => {
+    ladderCalls.push({ method: config.method, url: new URL(config.url), headers: config.headers, data: config.data });
+    if (ladderCalls.length < 3) return { status: 200, headers: {}, data: '' };
+    return { status: 200, headers: {}, data: JSON.stringify({ code: 0,
+      data: { video_model_data: { [vid]: { video_model: JSON.stringify(videoTab) } } } }) };
+  }, { getPlaybackDevice: async () => identities[0] });
+  const tabResult = await tabRecovery.fetchAppPlayUrl(vid);
+  assert.equal(tabResult.url, plain.main_url, 'the video_tab GET recovers after both POST routes stay empty');
+  assert.deepEqual(ladderCalls.map(call => call.method), ['POST', 'POST', 'GET']);
+  const [firstPost, alternatePost, tabGet] = ladderCalls;
+  assert.notEqual(firstPost.url.hostname, alternatePost.url.hostname, 'the second POST uses the alternate official host');
+  assert.equal(tabGet.url.pathname, '/reading/bookapi/video_tab/multi_video_model/v1/');
+  assert.equal(tabGet.url.searchParams.get('video_id'), vid);
+  assert.equal(tabGet.url.searchParams.get('video_id_type'), '0');
+  assert.equal(tabGet.url.searchParams.get('from_video_id'), '');
+  assert.equal(tabGet.url.searchParams.get('video_platform'), '1024');
+  assert.equal(tabGet.url.searchParams.get('version_name'), '7.4.3.32');
+  assert.equal(tabGet.data ?? undefined, undefined, 'the video_tab request sends no POST body');
+  assert.equal(tabGet.headers['x-ss-stub'], undefined, 'a no-body signature omits the POST digest header');
+  assert.ok(tabGet.headers['x-medusa'], 'the video_tab GET still carries the player-family signature');
+  assert.ok(tabGet.headers['x-khronos']);
+
+  // Model entries may arrive as JSON strings and array-shaped video_list; only the
+  // requested episode id may match, never a sibling episode.
+  for (const [label, entry] of [
+    ['string model', { video_model: JSON.stringify({ video_list: [plain] }) }],
+    ['array video_list', { video_model: { video_list: [plain], fallback_api: 'https://vod.snssdk.com/must-not-fetch' } }],
+  ]) {
+    const shaped = load(async config => {
+      if (config.method !== 'GET') return { status: 200, headers: {}, data: '' };
+      return { status: 200, headers: {}, data: JSON.stringify({ code: 0, data: { video_model_data: { [vid]: entry } } }) };
+    }, { getPlaybackDevice: async () => identities[0] });
+    assert.equal((await shaped.fetchAppPlayUrl(vid)).url, plain.main_url, `the video_tab response parses a ${label}`);
+  }
+  await assert.rejects(load(async config => {
+    if (config.method !== 'GET') return { status: 200, headers: {}, data: '' };
+    return { status: 200, headers: {}, data: JSON.stringify({ code: 0,
+      data: { video_model_data: { '999': { video_model: JSON.stringify({ video_list: [plain] }) } } } }) };
+  }, { getPlaybackDevice: async () => identities[0] }).fetchAppPlayUrl(vid), error => error.code === 'MISSING_MODEL');
+  assert.ok(ladderCalls.length >= 3, 'ladder evidence retained for the sibling-episode guard');
+
+  // Non-empty failures never advance the ladder: the POST failure surfaces directly.
+  let refusalCalls = 0;
+  await assert.rejects(load(async () => {
+    refusalCalls++;
+    return { status: 403, headers: {}, data: '' };
+  }, { getPlaybackDevice: async () => identities[0] }).fetchAppPlayUrl(vid), error => error.status === 403);
+  assert.equal(refusalCalls, 1, 'explicit HTTP refusals stop before the alternate host and video_tab');
+
+  console.log('PASS app source recovery: empty response ladder with video_tab GET, legacy quality lock, inline URLs/keys and trust boundaries');
 })().catch(error => { console.error(error.stack || error.message); process.exitCode = 1; });

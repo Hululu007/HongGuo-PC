@@ -181,6 +181,30 @@ function playbackRequest(payload, identity, videoId = '', alternate = false) {
     return { url, body, headers, method: 'POST' };
 }
 
+const VIDEO_TAB_API = 'https://api5-normal-sinfonlineb.fqnovel.com/reading/bookapi/video_tab/multi_video_model/v1/';
+
+function videoTabRequest(identity, videoId) {
+    // video_tab belongs to the player family; generic Argus/Ladon signing is rejected with an empty body.
+    // Route and parameters follow jackotom/hongguo-drama 7.7 (issue #130), referencing the
+    // GPL-3.0-only tsukiyo-zero/hongguoTV tabVideoModel response shape.
+    const signed = signPlaybackV5({
+        base: VIDEO_TAB_API,
+        values: {
+            aid: '8662', app_name: 'novelread', version_code: '74332', version_name: '7.4.3.32',
+            channel: 'vivo_8662_64', device_platform: 'android', device_type: 'PGT-AN10',
+            os_version: '12', update_version_code: '74332',
+            iid: identity.iid, cdid: identity.cdid, device_id: identity.device_id,
+            video_id: String(videoId), video_id_type: '0', device_level: '1',
+            need_all_video_definition: '1', need_mp4_align: '0', use_os_player: '0',
+            video_platform: '1024', source: '0', from_video_id: '',
+        },
+        body: null,
+        now: Date.now(),
+    });
+    return { url: signed.url, body: null, method: 'GET',
+        headers: { ...signed.headers, 'User-Agent': VIDEO_UA.replace(DEVICE.version_code, '73932'), Accept: 'application/json' } };
+}
+
 function parseSearchInteger(value) {
     if (typeof value !== 'number' && (typeof value !== 'string' || !/^\d+$/.test(value.trim()))) return null;
     const number = Number(value);
@@ -456,12 +480,30 @@ async function fetchAppPlayUrlFresh(vid, options) {
             // Each model request keeps its own bounded 12s budget; the overall
             // deadline only limits the total time spent across retries.
             deadline = attempt === 0 ? firstDeadline : Math.min(Date.now() + 12000, overallDeadline);
-            // Always use the current V5 endpoint. Alternate official hosts on
-            // consecutive attempts so a host-specific rejection cannot persist.
-            const signed = playbackRequest(payload, identity, vid, Boolean(attempt % 2));
+            // Empty HTTP 200 responses recover through a fixed ladder inside each
+            // round: the current V5 POST, the same request on the alternate
+            // official host, then the signed video_tab GET. Only EMPTY_RESPONSE
+            // advances the ladder, and each step keeps ≥1s of the attempt budget.
+            const signed = playbackRequest(payload, identity, vid);
             signed.headers.Connection = 'close';
             try {
-                response = await requestJson(signed.url, { method: signed.method, headers: signed.headers, data: signed.body }, deadline, signal);
+                try {
+                    response = await requestJson(signed.url, { method: signed.method, headers: signed.headers, data: signed.body }, deadline, signal);
+                } catch (error) {
+                    throwIfAborted(signal);
+                    if (error.code === 'ERR_CANCELED') throw error;
+                    if (error.code !== 'EMPTY_RESPONSE' || deadline - Date.now() < 1000) throw error;
+                    const alternate = playbackRequest(payload, identity, vid, true);
+                    try {
+                        response = await requestJson(alternate.url, { method: alternate.method, headers: alternate.headers, data: alternate.body }, deadline, signal);
+                    } catch (alternateError) {
+                        throwIfAborted(signal);
+                        if (alternateError.code === 'ERR_CANCELED') throw alternateError;
+                        if (alternateError.code !== 'EMPTY_RESPONSE' || deadline - Date.now() < 1000) throw alternateError;
+                        const tab = videoTabRequest(identity, vid);
+                        response = await requestJson(tab.url, { method: tab.method, headers: tab.headers, data: tab.body }, deadline, signal);
+                    }
+                }
                 throwIfAborted(signal);
                 break;
             } catch (error) {

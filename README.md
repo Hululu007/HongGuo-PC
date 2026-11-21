@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.23](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.23)** · 2026-11-21
+**[源码目标 6.24](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.24)** · 2026-11-21
 
-本地数据文件损坏后可从自动备份恢复；保存流程改用独占暂存文件，不再覆盖历史遗留的 `data.json.tmp`。
+修复红果完整分集取源的空响应问题：按「V5 请求 → 备用主机 → 签名 video_tab GET」阶梯恢复，真实剧集验证可重新播放。正式发布后替换为实际发行链接。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 

@@ -279,12 +279,16 @@ function signPlaybackV5(input) {
   }
   if (!Number.isSafeInteger(now) || now < 0 || Math.floor(now / 1000) > 0x7fffffff) throw new RangeError('V5 now must be nonnegative integer milliseconds within signed timestamp range');
   const who = validatedValues(values);
-  if (!Buffer.isBuffer(body)) throw new TypeError('V5 body must be the original gzip Buffer');
-  if (body.length < 18 || body.length > 2 * 1024 * 1024 || body[0] !== 0x1f || body[1] !== 0x8b || body[2] !== 8) {
+  // body:null signs the no-POST-content video_tab GET; the hash branch binds md5 of the
+  // empty buffer and x-ss-stub is omitted. No-body mode follows jackotom/hongguo-drama
+  // 7.7 (issue #130, commit 92df757ed); the signer stays the N3urda/hongguoTV 18c37c2 port.
+  if (body !== null && !Buffer.isBuffer(body)) throw new TypeError('V5 body must be the original gzip Buffer or null');
+  const hasBody = body !== null;
+  if (hasBody && (body.length < 18 || body.length > 2 * 1024 * 1024 || body[0] !== 0x1f || body[1] !== 0x8b || body[2] !== 8)) {
     throw new TypeError('V5 body must be a bounded gzip Buffer');
   }
-  try { gunzipSync(body, { maxOutputLength: 2 * 1024 * 1024 }); } catch { throw new TypeError('V5 body must contain valid bounded gzip data'); }
-  const ts = Math.floor(now / 1000), bodyHash = md5(body);
+  if (hasBody) try { gunzipSync(body, { maxOutputLength: 2 * 1024 * 1024 }); } catch { throw new TypeError('V5 body must contain valid bounded gzip data'); }
+  const ts = Math.floor(now / 1000), bodyHash = hasBody ? md5(body) : md5(Buffer.alloc(0));
   if (Object.hasOwn(who, 'ts')) who.ts = String(ts);
   for (let offset = 0; offset < 1024; offset++) {
     const ticket = String(now + offset);
@@ -294,7 +298,7 @@ function signPlaybackV5(input) {
     const f13 = hashF13(queryHash, bodyHash, ts);
     return { url: `${parsed.href}?${query}`, headers: {
       'x-khronos': String(ts), 'x-helios': helios(ts), 'x-medusa': medusa(queryHash, f13, ts, who),
-      'x-ss-stub': bodyHash.toString('hex').toUpperCase(), 'x-ss-req-ticket': ticket,
+      ...(hasBody ? { 'x-ss-stub': bodyHash.toString('hex').toUpperCase() } : {}), 'x-ss-req-ticket': ticket,
     } };
   }
   throw new Error('Unable to select V5 playback signature branch within 1024 tickets');

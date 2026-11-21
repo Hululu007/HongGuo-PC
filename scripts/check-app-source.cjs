@@ -228,13 +228,13 @@ const checks = [
     assert.equal(result.quality, '720P');
     assert.equal(calls.length, 2);
   }],
-  ['empty current route rotates the anonymous device and retries V5', async () => {
+  ['empty current route recovers on the alternate host before rotating the device', async () => {
     const f = fixture({ tabEmpty: true });
     const result = await f.fetch('11');
     assert.equal(result.source, 'app');
-    assert.equal(f.registrations, 2, 'a blank response window must renew the playback identity once');
+    assert.equal(f.registrations, 1, 'the ladder recovers inside one round, before renewing the playback identity');
     assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/player/v1?')).length, 2,
-      'the V5 endpoint is retried after the identity rotation');
+      'the empty V5 response is retried on the alternate official host');
     assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/v1/?')).length, 0,
       'recovery stays on V5 and never downgrades to the legacy endpoint');
   }],
