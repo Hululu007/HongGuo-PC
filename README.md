@@ -53,7 +53,7 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 **[v6.24](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.24)** · 2026-11-21
 
-修复部分剧集提示「App：播放接口空响应」无法在线播放的问题：空响应后按「当前 V5 请求 → 备用官方主机 → 签名 video\_tab GET」阶梯恢复，已在多部真实剧集验证可重新取得完整分集。
+修复红果完整分集取源的空响应问题：按「V5 请求 → 备用主机 → 签名 video_tab GET」阶梯恢复，真实剧集验证可重新播放。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
@@ -268,7 +268,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.23.md](docs/release-6.23.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.24.md](docs/release-6.24.md)。
 
 </details>
 

@@ -1,5 +1,21 @@
 # 自主开发变更记录
 
+## 2026-11-21 · video_tab 取源阶梯恢复完整分集播放（发行 6.24）
+
+**巡检结论**：用户报告《嫌疑人的秘密2藏金生死线》取源失败；只读诊断确认上游 App 接口对随机剧与报告剧均返回空响应（同上游 7.7 issue #130 现象）。对比上游后移植其 7.7 的 `video_tab` GET 恢复路径与无正文签名，AT-04 就此闭环：修复后三部真实剧集（报告剧、此前失败剧、随机剧）均在约 1 秒内 `sourceAvailable: true`。
+
+**代码变更**：
+
+1. `src/native/playback-v5.js`：`signPlaybackV5` 支持 `body: null` 无正文模式（空缓冲 MD5 分支、省略 `x-ss-stub`），签名算法保持 N3urda/hongguoTV 18c37c2 移植不变。
+2. `src/native/app-source.js`：新增 `VIDEO_TAB_API` 与 `videoTabRequest`（播放器家族签名、版本字段 `7.4.3.32`、空 `from_video_id`）；空响应恢复改为「V5 POST → 备用主机 POST → video_tab GET」轮次内阶梯，明确拒绝不进阶梯，整轮失败才轮换匿名身份。
+3. `scripts/check-app-source-recovery.cjs` 新增阶梯/形态/邻居分集断言；`scripts/check-app-source.cjs` 空响应用例按新阶梯更新。
+
+**验证与发布**：真实只读诊断三部剧集修复前后对照（修复前全部 `EMPTY_RESPONSE`，修复后全部 `OK`）；`npm test` 全量通过；标签 Test [44855635995](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44855635995)、Windows 候选 [44855636055](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44855636055) 成功；发布工作流 [44856863451](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44856863451) **全流程成功**（含末步公开入口探测，6.18/6.21/6.23 的失败模式本轮未复现）。安装器 146,466,902 字节，SHA-256 `7cbcef9affc03cb3dc0a0819860fe4a2dad12c8c7e553bbd1c30cd156f6ab7ff`；`NotSigned`。
+
+**致谢**：恢复路径与参数对照 `jackotom/hongguo-drama` 7.7（issue #130）移植，其文档致谢 N3urda、ermilylu、WEP-56 及参考 GPL-3.0-only 的 `tsukiyo-zero/hongguoTV` tabVideoModel；本项目保留同一 GPL-3.0 许可链。
+
+**后续优先项**：AT-02 导出 fsync 性能、AT-03 真实应用内更新链路、AT-05 EV-004/005/006/008、AT-06 Windows 签名、AT-07 发布探测改造。
+
 ## 2026-11-21 · 数据备份恢复与保存暂存安全（发行 6.23）
 
 **巡检结论**：完成此前两轮被归档中断的遗留项——EV-003 存储备份恢复（`sess_c62183d1` 留下的 store.js 草稿）与 `data.json.tmp` 独占暂存修复（`sess_e8baf50d` 未落地的方案）。6.23 已绑定冻结提交 `7a22cff46c7b48dee15383cb720d9813c69a9826` 并正式公开。
