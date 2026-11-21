@@ -8,7 +8,7 @@
  *   4. 下载管理：进度推送、暂停/取消、重试、删除、打开所在文件夹
  *   5. 设置：下载目录、命名规则、并发数（JSON 文件持久化）
  */
-const { app, BrowserWindow, BaseWindow, View, WebContentsView, globalShortcut, ipcMain: rawIpcMain, dialog, shell, session, protocol, Menu, Notification, screen, safeStorage } = require('electron');
+const { app, BrowserWindow, BaseWindow, View, WebContentsView, globalShortcut, ipcMain: rawIpcMain, dialog, shell, session, protocol, Menu, Notification, Tray, nativeImage, screen, safeStorage } = require('electron');
 const path = require('path');
 const IS_PREVIEW = require('./package.json').name === 'hongguo-experience-preview';
 if (IS_PREVIEW) {
@@ -52,6 +52,7 @@ const { createAccountService, safeMessage: accountSafeMessage } = require('./src
 const seriesSearch = require('./src/native/series-search');
 const { searchHongguo } = require('./src/native/hongguo-search');
 const { fitWindowBounds, getWindowScale, saveWindowZoom, restoreMainWindowBounds, rememberMainWindowBounds } = require('./src/native/window-layout');
+const { resolveCloseAction } = require('./src/native/close-to-tray');
 const { createEpisodePanelController } = require('./src/native/episode-panel');
 const { availableRelease } = require('./src/native/app-update');
 const { buildDiagnostics } = require('./src/native/diagnostics');
@@ -87,6 +88,10 @@ let updateDownloadGeneration = 0;
 let pendingUpdateOperations = 0;
 let quitCleanup = null;
 let quitReady = false;
+// 关闭按钮默认收进托盘：tray 持有托盘图标，isQuitting 标记真正退出（允许窗口销毁）。
+let tray = null;
+let isQuitting = false;
+let trayBalloonShown = false;
 let mergeTempCleanup = null;
 const MAINTENANCE_CHANNELS = new Set(['delete-task', 'delete-tasks', 'delete-series-files', 'delete-episode-file',
   'cleanup-watched-episode', 'delete-all-downloaded', 'clear-series-playback-cache', 'forget-series', 'clear-online-cache', 'clear-compat-cache']);
@@ -277,6 +282,8 @@ function getDefaultSettings() {
     proxy_port: 7890,
     proxy_username: '',
     proxy_password: '',
+    // 点关闭按钮时收进系统托盘后台运行（下载不中断），而非直接退出。
+    close_to_tray: true,
   };
 }
 
@@ -4771,7 +4778,7 @@ ipcMain.handle('select-folder', async () => {
   return result.filePaths[0];
 });
 
-const SETTINGS_KEYS = ['locale', 'root', 'name_format', 'max_concurrent', 'download_quality', 'download_metadata', 'export_text', 'auto_delete_watched', 'compat_mode', 'cache_next_episode', 'picture_in_picture_mode', 'show_danmaku_controls', 'app_updates_enabled', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password'];
+const SETTINGS_KEYS = ['locale', 'root', 'name_format', 'max_concurrent', 'download_quality', 'download_metadata', 'export_text', 'auto_delete_watched', 'compat_mode', 'cache_next_episode', 'picture_in_picture_mode', 'show_danmaku_controls', 'app_updates_enabled', 'watch_updates_enabled', 'watch_sequels_enabled', 'watch_notifications_enabled', 'search_app_enabled', 'close_to_tray', 'proxy_enabled', 'proxy_mode', 'proxy_host', 'proxy_port', 'proxy_username', 'proxy_password'];
 
 function normalizeTextExportKinds(value) {
   return { danmaku: value?.danmaku === true, comments: value?.comments === true, reviews: value?.reviews === true };
@@ -4796,6 +4803,7 @@ function applyEditableSettings(current, incoming) {
     if (Object.prototype.hasOwnProperty.call(source, key)) merged[key] = source[key];
   }
   if (Object.prototype.hasOwnProperty.call(source, 'export_text')) merged.export_text = normalizeTextExportKinds(source.export_text);
+  if (Object.prototype.hasOwnProperty.call(source, 'close_to_tray')) merged.close_to_tray = source.close_to_tray === true;
   if (source.clear_proxy_password === true) merged.proxy_password = '';
   else if (typeof source.proxy_password === 'string' && source.proxy_password.length > 0) merged.proxy_password = source.proxy_password;
   else merged.proxy_password = current.proxy_password || '';
@@ -5628,7 +5636,7 @@ ipcMain.handle('set-boss-key', (_event, value) => {
   settingsSaveQueue = result.then(() => {});
   return result;
 });
-app.on('will-quit', () => bossKey.dispose());
+app.on('will-quit', () => { destroyTray(); bossKey.dispose(); });
 function syncMainWindowScale() {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   const scale = getWindowScale(getCurrentSettings().ui_zoom);
@@ -5694,6 +5702,62 @@ ipcMain.handle('set-window-layout', async (event, mode) => {
     return { success: false, error: error.message };
   } finally { layoutChanging = false; }
 });
+
+// ===== 系统托盘：关闭按钮收进托盘后台继续运行，不直接退出 =====
+// 设置项 close_to_tray 默认开启；关闭时用户从托盘右键「退出应用」才真正退出。
+function closeToTrayEnabled() {
+  return getCurrentSettings().close_to_tray !== false;
+}
+
+// 托盘点击、通知点击、二次启动都走这里：恢复老板键/隐身小窗，还原并聚焦主窗口。
+function revealMainWindow() {
+  if (bossKey.hidden && bossKey.restore()) return;
+  stealth.setEnabled(false);
+  syncMainWindowScale();
+  if (!mainWindow || mainWindow.isDestroyed()) createWindow();
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+function hideMainWindowToTray() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.hide();
+  if (tray && process.platform === 'win32' && !trayBalloonShown) {
+    trayBalloonShown = true;
+    try {
+      tray.displayBalloon({ title: APP_TITLE,
+        content: '已缩小到系统托盘，程序仍在后台运行。点击托盘图标可重新打开，右键可退出应用。' });
+    } catch (_) { /* 气泡提示可选，失败不影响隐藏 */ }
+  }
+}
+
+function destroyTray() {
+  if (!tray) return;
+  try { tray.destroy(); } catch (_) { /* 退出阶段忽略销毁异常 */ }
+  tray = null;
+}
+
+function createTray() {
+  if (tray || process.platform === 'darwin') return;
+  // 图标缺失或 Tray 不可用时只降级为无托盘（用户仍可用任务栏/二次启动唤回），不影响启动。
+  try {
+    const icoPath = path.join(__dirname, 'build', 'icon.ico');
+    const pngPath = path.join(__dirname, 'build', 'icon.png');
+    let image = nativeImage.createEmpty();
+    if (fs.existsSync(icoPath)) image = nativeImage.createFromPath(icoPath);
+    if (image.isEmpty() && fs.existsSync(pngPath)) image = nativeImage.createFromPath(pngPath);
+    tray = new Tray(image);
+  } catch (error) { console.warn('[Tray] 托盘图标创建失败:', error.message); tray = null; return; }
+  tray.setToolTip(APP_TITLE);
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '显示主窗口', click: () => revealMainWindow() },
+    { type: 'separator' },
+    { label: '退出应用', click: () => { isQuitting = true; app.quit(); } },
+  ]));
+  tray.on('click', () => revealMainWindow());
+  tray.on('double-click', () => revealMainWindow());
+}
 
 // ===== 窗口创建 =====
 function createWindow() {
@@ -5782,10 +5846,11 @@ function createWindow() {
   }
 
   mainWindow.on('close', event => {
-    if (process.platform !== 'darwin' && !quitReady) {
-      event.preventDefault();
-      app.quit();
-    }
+    const action = resolveCloseAction({ platform: process.platform, quitReady, isQuitting, closeToTray: closeToTrayEnabled() });
+    if (action === 'destroy') return;
+    event.preventDefault();
+    if (action === 'hide') hideMainWindowToTray();
+    else app.quit();
   });
   // 渲染进程崩溃 / 被强制重载时不会发出 release-online-play：
   // 在线会话持有整集 buffer（上限 300MB）和 %TEMP%/hongguo-online-* 目录，
@@ -5855,16 +5920,7 @@ if (hasSingleInstanceLock) app.whenReady().then(async () => {
       }
     }
 
-    app.on('activate', () => {
-      if (bossKey.hidden && bossKey.restore()) return;
-      stealth.setEnabled(false);
-      syncMainWindowScale();
-      // 搜索窗口可能仍在后台，不能用所有窗口数量判断主窗口是否存在。
-      if (!mainWindow || mainWindow.isDestroyed()) createWindow();
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    });
+    app.on('activate', () => revealMainWindow());
 
     if (process.platform === 'darwin') {
       app.setAboutPanelOptions?.({ applicationVersion: APP_VERSION.replace(/^(\d+\.\d+)\.0$/, '$1'), version: '' });
@@ -5907,6 +5963,7 @@ if (hasSingleInstanceLock) app.whenReady().then(async () => {
     }
     startupStage = '创建主窗口';
     createWindow();
+    createTray();
     if (proxyStartup.fallback) {
       // 只停自动任务；窗口仍打开，用户可在设置中修复代理或明确关闭代理。
       setTimeout(() => {

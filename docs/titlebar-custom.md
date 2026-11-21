@@ -29,6 +29,7 @@
 - 双击空白区：最大化 / 还原（显式 `onDoubleClick`，带同一延迟）。
 - 按钮：真实 button 元素，键盘可达（Tab + Enter 已验证），aria-label 完整。
 - 最大化补偿：渲染端按 `outerWidth/Height - screen.availWidth/Height` 实测溢出设置 `--titlebar-comp-x/y`；本机 Electron 44 最大化正好等于工作区，实测溢出为 0，不补偿；旧系统若溢出则自动生效。
+- 关闭按钮（2026-11-21 起，Windows）：默认收进系统托盘后台运行而非退出。主进程 `close` 事件按 `src/native/close-to-tray.js` 的 `resolveCloseAction` 分支——`quitReady`（before-quit 就绪）或 `isQuitting`（托盘「退出应用」）放行销毁；否则 `close_to_tray !== false` 时 `hide()` 并首次弹一次托盘气泡，设置关闭该选项时回退直接退出。托盘菜单：显示主窗口 / 退出应用；单击托盘图标恢复窗口（与 `activate` 共用 `revealMainWindow`，含老板键/隐身小窗恢复）。设置页新增「窗口」卡片承载该开关（`close_to_tray`，保存后生效）。
 
 ## 验收记录（计算机实测）
 
@@ -36,4 +37,8 @@
 
 ## 回归
 
-`check-ui-state.cjs`「custom title bar wires window controls and follows maximize state changes」覆盖渲染、三个按钮的 IPC 调用（含延迟，测试推进桩定时器 130ms）与最大化状态跟随；`check-renderer-security.cjs` 的窗口事件桩补了 `webContents.isDestroyed`。
+`check-ui-state.cjs`「custom title bar wires window controls and follows maximize state changes」覆盖渲染、三个按钮的 IPC 调用（含延迟，测试推进桩定时器 130ms）与最大化状态跟随；`check-renderer-security.cjs` 的窗口事件桩补了 `webContents.isDestroyed`。`scripts/check-close-to-tray.cjs` 覆盖关闭决策分支（默认收托盘、quitReady/isQuitting 放行、关闭选项回退退出、macOS 维持原行为）、main.js 托盘装配与设置页开关的静态核验；`scripts/check-settings-search.cjs` 的可见分类计数随「窗口」卡片更新为 13。
+
+## 托盘验收边界
+
+`scripts/check-close-to-tray.cjs` 为决策与装配静态核验；托盘图标的真实显示、单击恢复、右键菜单退出、下载中收托盘不中断，需真机 GUI 验收（Electron Tray 无法在无头检查中观察）。

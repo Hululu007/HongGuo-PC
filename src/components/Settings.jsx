@@ -56,6 +56,7 @@ function describeProxy(settings) {
 // 设置页顶部锚点导航：点击平滑滚动到对应卡片并高亮。
 const SETTING_ANCHORS = [
   { id: 'appearance', label: '外观', keywords: '主题 缩放 字号 海报 theme dark light' },
+  { id: 'window', label: '窗口', keywords: '关闭 托盘 最小化 后台 退出 close tray' },
   { id: 'language', label: '语言', keywords: '简体中文 英文 English locale language' },
   { id: 'shortcuts', label: '快捷键', keywords: '播放 老板键 按键' },
   { id: 'pip', label: '画中画', keywords: '小窗 原生 置顶' },
@@ -109,7 +110,7 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
     const version = ++readVersion.current;
     const modeVersion = pictureModeRequest.current.version;
     try {
-      const fresh = { download_quality: 'auto', picture_in_picture_mode: 'custom', ...await window.electronAPI.getSettings() };
+      const fresh = { download_quality: 'auto', picture_in_picture_mode: 'custom', close_to_tray: true, ...await window.electronAPI.getSettings() };
       if (version !== readVersion.current) return;
       setSettings(prev => {
         if (!prev) return fresh;
@@ -435,6 +436,16 @@ function SettingsPage({ active = true, preview = false, appInfo = null }) {
         <button type="button" className="btn btn-outline" onClick={clearSearch}>显示全部设置</button>
       </div>}
       <section className="settings-card" {...anchorProps('appearance')} aria-label="外观设置"><AppearanceSettings active={active} /></section>
+      <section className="settings-card" {...anchorProps('window')} aria-label="窗口设置">
+        <div className="settings-group">
+          <span className="settings-label">关闭按钮</span>
+          <label className="proxy-switch-row">
+            <input type="checkbox" aria-label="关闭时最小化到系统托盘" checked={settings.close_to_tray !== false}
+              onChange={event => update('close_to_tray', event.target.checked)} />
+            <span className="proxy-switch-text">关闭时最小化到系统托盘<em>默认开启。点右上角关闭按钮后窗口收进托盘，应用继续在后台运行（下载不断）；点击托盘图标恢复窗口，右键托盘图标可退出应用。保存后生效。</em></span>
+          </label>
+        </div>
+      </section>
       <section className="settings-card" lang={locale} {...anchorProps('language')} aria-label={t('settings.language', '语言设置')}>
         <div className="settings-group">
           <label className="settings-label" htmlFor="ui-locale">{t('settings.language', '语言 / Language')}</label>

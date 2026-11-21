@@ -27,7 +27,7 @@ const saveButton = ui => ui.find(n => n.type === 'button' && n.props.onClick && 
   } }, 'Settings');
   try {
     await ui.flush();
-    assert.equal(visibleIds(ui).length, 12);
+    assert.equal(visibleIds(ui).length, 13);
     rootInput(ui).props.onChange({ target: { value: '/unsaved' } }); await ui.flush();
     await setSearch(ui, '代理');
     assert.deepEqual(visibleIds(ui), ['proxy']);
@@ -54,7 +54,7 @@ const saveButton = ui => ui.find(n => n.type === 'button' && n.props.onClick && 
     search(ui).props.onKeyDown({ key: 'Escape', nativeEvent: { isComposing: true }, preventDefault() { assert.fail('IME Escape must not clear'); } });
     await ui.flush(); assert.equal(search(ui).props.value, 'no-matching-setting');
     search(ui).props.onKeyDown({ key: 'Escape', nativeEvent: { isComposing: false }, preventDefault() {}, stopPropagation() {} });
-    await ui.flush(); assert.equal(visibleIds(ui).length, 12); assert.ok(searchFocused);
+    await ui.flush(); assert.equal(visibleIds(ui).length, 13); assert.ok(searchFocused);
     assert.equal(rootInput(ui).props.value, '/unsaved');
 
     await ui.button('配置代理').props.onClick(); await ui.flush();

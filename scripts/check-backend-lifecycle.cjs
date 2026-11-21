@@ -14,6 +14,8 @@ function fixture(platform = 'darwin', options = {}) {
     constructor(options) { super(); this.options = options; windows.push(this); this.webContents = new EventEmitter(); this.webContents.setWindowOpenHandler = () => {}; this.webContents.setZoomFactor = value => { this.zoomFactor = value; }; }
     getContentSize() { return [this.options.width, this.options.height]; }
     setMenuBarVisibility() {} loadFile() {} isDestroyed() { return false; }
+    hide() { this.hidden = true; } show() { this.hidden = false; } isVisible() { return this.hidden !== true; }
+    isMinimized() { return false; } restore() {} focus() {}
   }
   const axios = Object.assign(async config => {
     state.requests.push({ ...config.headers });
@@ -110,14 +112,20 @@ const checks = [
     reject(new Error('fixture failure')); await settled; await flush();
     assert.equal(blocker(), '');
   }],
-  ['Windows main close requests normal quit even when a hidden search window survives', async () => {
+  ['Windows main close hides to tray by default and keeps the old quit path when the preference is off', async () => {
     const h = fixture('win32');
     h.context.createWindow();
     assert.equal(h.windows[0].zoomFactor, 1, 'main window initializes default font size');
     h.context.getSearchWindow(true);
     let prevented = false;
     h.windows[0].emit('close', { preventDefault: () => prevented = true });
-    assert.equal(prevented, true, 'main window must remain available while before-quit decides');
+    assert.equal(prevented, true, 'close button is intercepted while the tray preference is on');
+    assert.equal(h.windows[0].hidden, true, 'main window hides into the tray instead of quitting');
+    assert.equal(h.state.quits, 0, 'hiding must not request quit; downloads keep running');
+    h.run(`store.getSettings = () => ({ root: ${JSON.stringify(h.root)}, close_to_tray: false });`);
+    h.windows[0].hidden = false;
+    h.windows[0].emit('close', { preventDefault: () => prevented = true });
+    assert.equal(prevented, true, 'preference-off close still routes through before-quit');
     assert.equal(h.state.quits, 1, 'hidden browser must not keep an invisible Windows app alive');
     h.app.emit('before-quit', { preventDefault() { throw new Error('idle quit should pass'); } });
     h.windows[0].emit('close', { preventDefault() { throw new Error('approved quit must close'); } });
