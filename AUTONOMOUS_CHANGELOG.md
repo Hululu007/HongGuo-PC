@@ -1,5 +1,20 @@
 # 自主开发变更记录
 
+## 2026-11-21 · 关闭按钮收进系统托盘（发行 6.25）
+
+**需求来源**：用户反馈「点关闭按钮直接退出，没有缩小化」。确认为最小化到系统托盘后台运行：点 × 收起窗口、下载不中断、托盘可恢复与退出。
+
+**代码变更**：
+
+1. `src/native/close-to-tray.js`（新）：`resolveCloseAction` 关闭决策（hide/quit/destroy），macOS 维持关窗不退出。
+2. `main.js`：Tray 装配（`createTray`/`destroyTray`/`revealMainWindow`/`hideMainWindowToTray`）、`close` 事件决策分支、首次收托盘一次性气泡、`will-quit` 销毁托盘；`close_to_tray` 默认开启并纳入可保存设置白名单（布尔归一）。
+3. `src/components/Settings.jsx`：新增「窗口」分类与「关闭时最小化到系统托盘」开关（保存后生效）。
+4. `scripts/check-close-to-tray.cjs`（新）+ `check-backend-lifecycle.cjs` 关闭契约更新 + `check-settings-search.cjs` 分类计数 12→13。
+
+**验证与发布**：全量 `npm test` 通过（单元 + 111 平台检查）；生产依赖官方 registry 审计 0 漏洞；版本回归扩至 6.25。标签 Test [44865673587](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673587)、Windows 候选 [44865673598](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673598)（含真实 1.80→6.25 安装器升级资料保留回执）、发布工作流 [44866645422](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44866645422) 均成功。安装器 146,467,517 字节，SHA-256 `05691b806f6eb61071ec10e98444324618d560e37171603d80c24045e15cc0d3`；`NotSigned`。
+
+**验收边界**：托盘图标真实显示、单击恢复、右键退出无法无头验证，待用户安装后真机确认。
+
 ## 2026-11-21 · video_tab 取源阶梯恢复完整分集播放（发行 6.24）
 
 **巡检结论**：用户报告《嫌疑人的秘密2藏金生死线》取源失败；只读诊断确认上游 App 接口对随机剧与报告剧均返回空响应（同上游 7.7 issue #130 现象）。对比上游后移植其 7.7 的 `video_tab` GET 恢复路径与无正文签名，AT-04 就此闭环：修复后三部真实剧集（报告剧、此前失败剧、随机剧）均在约 1 秒内 `sourceAvailable: true`。
