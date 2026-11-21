@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[源码目标 6.25](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.25)** · 2026-11-21
+**[v6.25](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.25)** · 2026-11-21
 
-点关闭按钮收进系统托盘后台运行（下载不中断），点击托盘图标恢复窗口，右键托盘图标可退出应用；设置 → 窗口可改回直接退出。正式发布后替换为实际发行链接。
+点右上角关闭按钮后收进系统托盘，程序继续在后台运行（下载不中断）；点击托盘图标恢复窗口，右键托盘图标可退出应用。首次收托盘有一次性气泡提示。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
