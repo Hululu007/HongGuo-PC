@@ -4,11 +4,11 @@
 
 | 项目 | 状态 |
 |---|---|
-| 当前正式版 | 6.22（`v6.22`，2026-11-21 07:24）；冻结源码 `ee342c9adf3b2b22116b423fe1dc1285534f87ce`，回执见 [release-6.22](docs/release-6.22.md) |
+| 当前正式版 | 6.23（`v6.23`，2026-11-21 09:46）；冻结源码 `7a22cff46c7b48dee15383cb720d9813c69a9826`，回执见 [release-6.23](docs/release-6.23.md) |
 | 平台 | 仅 Windows x64（NSIS 安装 EXE + `latest.yml`）；EXE 未签名 |
-| 源码回归 | 标签 Test、main Test、main CodeQL 与 Windows 候选全绿；候选含安装、重装与真实 1.80 升级回执 |
-| 依赖安全 | 标签 Test 完整依赖审计通过；Dependabot 开放告警状态以 GitHub 安全页为准 |
-| Code Scanning | main CodeQL 运行通过；开发 renderer 来源过滤与 renderer 文件 URL 回归通过 |
+| 源码回归 | 标签 Test、Windows 候选全绿；候选含安装、重装与真实 1.80 升级回执，`npm test` 单元 + 110 平台检查通过 |
+| 依赖安全 | 标签 Test 依赖审计通过；Dependabot 开放告警 0（发布当日复核） |
+| 数据安全 | 新增 `data.json.bak` 验证镜像与设置页受控恢复；保存改用独占暂存文件，不再覆盖历史遗留 `.tmp` |
 | 上游风险 | 红果完整分集播放仍受官方接口空响应影响（延续 6.19 状态） |
 | 架构 | Electron 44 + React 18 + Vite 6 + Node 22.12+；主进程仍集中在较大 `main.js`，拆分按既有 IPC 契约渐进进行 |
 

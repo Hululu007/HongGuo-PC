@@ -1,5 +1,20 @@
 # 自主开发变更记录
 
+## 2026-11-21 · 数据备份恢复与保存暂存安全（发行 6.23）
+
+**巡检结论**：完成此前两轮被归档中断的遗留项——EV-003 存储备份恢复（`sess_c62183d1` 留下的 store.js 草稿）与 `data.json.tmp` 独占暂存修复（`sess_e8baf50d` 未落地的方案）。6.23 已绑定冻结提交 `7a22cff46c7b48dee15383cb720d9813c69a9826` 并正式公开。
+
+**代码变更**：
+
+1. `src/store.js`：成功保存后把验证过的新文档镜像到 `data.json.bak`（指纹去重）；读取失败且备份有效时报出恢复信息；`restoreFromBackup` 两步确认、保留损坏原文件、核对原文件未变化。
+2. `src/store.js` 保存改用独占暂存文件 `data.json.tmp-<pid>-<时间>-<随机>`，Windows 瞬时占用改名失败时复用已 fsync 的暂存内容重试；历史遗留固定 `.tmp` 不再被覆盖。
+3. `main.js`/`preload.js`/`Settings.jsx`：新增 `get-storage-recovery`、`restore-storage-backup` 受控 IPC 与设置页恢复入口（恢复排队在设置保存队列后）。
+4. `scripts/check-store.cjs` 扩至 11 项回归；适配三个依赖旧固定 `.tmp` 行为的检查；版本回归扩至 6.23。
+
+**验证与发布**：本机 `npm test`（单元 + 110 平台检查）与 `build:react` 通过；标签 Test [44848529619](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44848529619)、Windows 候选 [44848529618](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44848529618) 成功（回执 `passed`、真实 1.80→6.23.0 升级保留资料、`NotSigned`）。发布工作流 [44852103766](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44852103766) 资产上传与公开成功、末步公开入口探测 exit 4 失败（同 6.18/6.21）；本机独立核验公开 API、`latest.yml` 逐字节、EXE HEAD 与资产摘要全部一致后按公开状态记录，未重发未重传。发布期间本地环境令牌临时 401，改用钥匙串同一账号凭据完成。
+
+**后续优先项**：崩溃遗留暂存文件清理（随任务健康快照）、文字导出 fsync 性能（AT-02）、真实应用内更新链路（AT-03）、Windows 签名（AT-06）、红果上游恢复跟进（AT-04）。
+
 ## 2026-11-21 · 开发 renderer 来源边界（发行 6.22）
 
 **巡检结论**：打包应用不再信任继承的 `VITE_DEV_SERVER_URL`；开发模式只接受规范化的 HTTP loopback 来源，窗口加载、媒体访问与 renderer IPC 共用同一过滤结果。6.22 已绑定冻结提交 `ee342c9adf3b2b22116b423fe1dc1285534f87ce` 并正式公开，未改写 v6.21 标签或资产。

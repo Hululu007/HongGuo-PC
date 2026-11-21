@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[源码目标 6.23](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.23)** · 2026-11-21
+**[v6.23](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.23)** · 2026-11-21
 
-本地数据文件损坏后可从自动备份恢复；保存流程改用独占暂存文件，不再覆盖历史遗留的 `data.json.tmp`。正式发布后替换为实际发行链接。
+本地数据文件损坏后可从自动备份恢复；保存流程改用独占暂存文件，不再覆盖历史遗留的 `data.json.tmp`。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
@@ -268,7 +268,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.22.md](docs/release-6.22.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`，本轮发行见 [release-6.23.md](docs/release-6.23.md)。
 
 </details>
 
