@@ -13,7 +13,7 @@ function load(sid, { partial = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hongguo-history-'));
   const handlers = {}, app = new EventEmitter(), queries = [];
   const current = { series_id: sid, series_title: '春日来信第二季', total: 1, episodes: [{ vid_index: 1, vid: 'one' }] };
-  const id = season => sid.startsWith('xifan:') ? `xifan:1:${season}` : sid.startsWith('hema:') ? `hema:${season}` : `100000${season}`;
+  const id = season => sid.startsWith('xifan:') ? `xifan:1:${season}` : `100000${season}`;
   const fourth = { series_id: id(4), series_title: '春日来信第四季', total: 1, episodes: [{ vid_index: 1 }] };
   let playback = { [sid]: { watched: true, vid_index: 1, currentTime: 3, updatedAt: 1, lastSequelCheckAt: 1 } };
   Object.assign(app, { getVersion: () => 'test', getPath: () => dir, commandLine: { appendSwitch() {} }, requestSingleInstanceLock: () => true, whenReady: () => ({ then() {} }) });
@@ -32,7 +32,7 @@ function load(sid, { partial = false } = {}) {
   const overrides = { electron, './src/store': store, './src/native/hongguo': { fetchEpisodeList: async () => current }, './src/native/hongguo-search': hongguoSearch,
     './src/native/hongguo-app-search': { searchApp: async () => { throw new Error('fixture App search unavailable'); } },
     './src/native/hongguo-app-new': { searchNewReleasesDetailed: async () => ({ results: [], partial: false }) },
-    './src/native/xifan': { search: search('xifan') }, './src/native/hema': { search: search('hema') } };
+    './src/native/xifan': { search: search('xifan') } };
   const context = vm.createContext({ require: name => overrides[name] || req(name), __dirname: path.dirname(source), process, console: { log() {}, warn() {}, error() {} }, Buffer, URL, Response, Request, Headers, AbortController, setTimeout, clearTimeout });
   vm.runInContext(fs.readFileSync(source, 'utf8'), context, { filename: source });
   require('./fixtures/trusted-ipc.cjs')(context, handlers);
@@ -40,7 +40,7 @@ function load(sid, { partial = false } = {}) {
   return { queries, run: () => handlers['refresh-watch-history']({}), record: () => playback[sid], cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
 }
 
-for (const [sourceName, sid] of [['hongguo', '1000002'], ['xifan', 'xifan:1:2'], ['hema', 'hema:2']]) test(`background ${sourceName} refresh fills next missing season with bounded same-source searches`, async () => {
+for (const [sourceName, sid] of [['hongguo', '1000002'], ['xifan', 'xifan:1:2']]) test(`background ${sourceName} refresh fills next missing season with bounded same-source searches`, async () => {
   const h = load(sid);
   try {
     const result = await h.run();

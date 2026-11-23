@@ -40,7 +40,7 @@ function searchModule() { assert.ok(fs.existsSync(file), 'bounded search module 
     assert.match(result.error, /补充搜索/);
   });
   await check('sequel matching is same-source, same-base, explicit and nearest-season-first', () => {
-    const results = findSequels(first, [fourth, { series_id: 'hema:7', series_title: third.series_title }, third, second, second, { series_id: '1999999', series_title: '双子房客番外' }]);
+    const results = findSequels(first, [fourth, { series_id: 'xifan:demo:7', series_title: third.series_title }, third, second, second, { series_id: '1999999', series_title: '双子房客番外' }]);
     assert.deepEqual(results.map(item => item.series_id), ['1000002', '1000003', '1000004']);
   });
   await check('bracketed years remain part of the base title while unsafe explicit seasons are rejected', async () => {
@@ -106,11 +106,11 @@ function searchModule() { assert.ok(fs.existsSync(file), 'bounded search module 
     const result = module.exports.rankSearchResults([
       { series_id: 'unrelated', series_title: '无关剧名', source: 'hongguo' },
       { ...third, source: 'hongguo' }, { ...first, source: 'hongguo' }, { ...first, source: 'hongguo' },
-      { ...first, source: 'hema' },
+      { ...first, source: 'xifan' },
     ], ' 双子 房客 ');
     assert.equal(result.length, 3, 'same title across sources must merge into the first-ranked entry');
     assert.deepEqual(JSON.parse(JSON.stringify(result.map(item => [item.series_id, item.source, item.relevance]))), [[first.series_id, 'hongguo', 0], [third.series_id, 'hongguo', 1], ['unrelated', 'hongguo', 3]]);
-    assert.deepEqual(JSON.parse(JSON.stringify(result[0].also_on)), [{ source: 'hema', series_id: first.series_id }]);
+    assert.deepEqual(JSON.parse(JSON.stringify(result[0].also_on)), [{ source: 'xifan', series_id: first.series_id }]);
     assert.deepEqual(JSON.parse(JSON.stringify(result[1].also_on)), []);
   });
   await check('real IPC supplements the selected source and exposes local-first sequel candidates', async () => {
@@ -119,25 +119,25 @@ function searchModule() { assert.ok(fs.existsSync(file), 'bounded search module 
     try {
       const app = new (require('node:events').EventEmitter)(), handlers = {}, calls = [];
       Object.assign(app, { getVersion: () => 'test', getPath: () => root, commandLine: { appendSwitch() {} }, requestSingleInstanceLock: () => true, whenReady: () => ({ then() {} }) });
-      const hemaSeries = [first, second, third].map((item, index) => ({ ...item, series_id: `hema:${index + 1}` }));
-      const hema = { search: async kw => { calls.push(kw); return ok(kw === '双子房客' ? hemaSeries.slice(0, 2) : hemaSeries.slice(2)); } };
+      const xifanSeries = [first, second, third].map((item, index) => ({ ...item, series_id: `xifan:demo:${index + 1}` }));
+      const xifan = { search: async kw => { calls.push(kw); return ok(kw === '双子房客' ? xifanSeries.slice(0, 2) : xifanSeries.slice(2)); } };
       const electron = { app, ipcMain: { handle: (name, fn) => handlers[name] = fn }, protocol: { registerSchemesAsPrivileged() {} } };
-      const context = vm.createContext({ require: name => name === 'electron' ? electron : name === './src/native/hema' ? hema : name === './src/store' ? { getSettings: () => ({ root }) } : req(name), __dirname: path.dirname(mainPath), process: { ...process, env: {} }, Buffer, URL, Response, Request, Headers, AbortController, setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {} } });
+      const context = vm.createContext({ require: name => name === 'electron' ? electron : name === './src/native/xifan' ? xifan : name === './src/store' ? { getSettings: () => ({ root }) } : req(name), __dirname: path.dirname(mainPath), process: { ...process, env: {} }, Buffer, URL, Response, Request, Headers, AbortController, setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {} } });
       vm.runInContext(fs.readFileSync(mainPath, 'utf8'), context, { filename: mainPath });
       require('./fixtures/trusted-ipc.cjs')(context, handlers);
       context.runSearchSniff = async () => { throw new Error('must not search Hongguo'); };
-      const searched = await handlers['search-series']({}, '双子房客', { source: 'hema' });
+      const searched = await handlers['search-series']({}, '双子房客', { source: 'xifan' });
       assert.equal(searched.success, true); assert.equal(searched.results.length, 3);
       assert.deepEqual(calls, ['双子房客', '双子房客第三季', '双子房客第3季']);
-      context.fixture = hemaSeries;
+      context.fixture = xifanSeries;
       vm.runInContext('seriesRegistry = fixture', context);
       calls.length = 0;
-      const local = await handlers['find-series-sequels']({}, 'hema:1', { localOnly: true });
-      assert.equal(local.success, true); assert.deepEqual(local.results.map(item => item.series_id), ['hema:2', 'hema:3']); assert.equal(calls.length, 0);
-      hemaSeries[1].dismissed = true;
-      hemaSeries[2].dismissed = true; hemaSeries[2].forgotten = true;
-      const hidden = await handlers['find-series-sequels']({}, 'hema:1', { localOnly: true });
-      assert.deepEqual(hidden.results.map(item => item.series_id), ['hema:2'], 'hidden archives remain discoverable, permanently forgotten ones do not');
+      const local = await handlers['find-series-sequels']({}, 'xifan:demo:1', { localOnly: true });
+      assert.equal(local.success, true); assert.deepEqual(local.results.map(item => item.series_id), ['xifan:demo:2', 'xifan:demo:3']); assert.equal(calls.length, 0);
+      xifanSeries[1].dismissed = true;
+      xifanSeries[2].dismissed = true; xifanSeries[2].forgotten = true;
+      const hidden = await handlers['find-series-sequels']({}, 'xifan:demo:1', { localOnly: true });
+      assert.deepEqual(hidden.results.map(item => item.series_id), ['xifan:demo:2'], 'hidden archives remain discoverable, permanently forgotten ones do not');
       const missing = await handlers['find-series-sequels']({}, 'missing');
       assert.equal(missing.success, false); assert.equal(calls.length, 0);
       const unsupported = await handlers['search-series']({}, '双子房客', { source: 'unknown' });

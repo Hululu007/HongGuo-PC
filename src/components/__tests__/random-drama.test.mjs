@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import * as model from '../randomDramaModel.mjs';
 
 const drama = (id, title = id) => ({ series_id: id, series_title: title });
-// 机制类用例固定三个来源，避免随内置采集源数量变化。
-const THREE_SOURCES = [{ id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' }, { id: 'hema', label: '河马短剧' }];
+// 机制类用例固定两个内置来源，避免随内置采集源数量变化。
+const TWO_SOURCES = [{ id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' }];
 
 test('pool keeps available sources, validates IDs and deduplicates', async () => {
   assert.equal(typeof model.loadRandomPool, 'function');
@@ -13,12 +13,12 @@ test('pool keeps available sources, validates IDs and deduplicates', async () =>
     requests.push(options);
     if (options.source === 'xifan') throw new Error('offline');
     return { success: true, results: options.source === 'hongguo'
-      ? [drama('123456'), drama('123456'), drama('hema:1'), drama('bad'), drama('654321', ' ')]
-      : [drama('hema:1'), drama('hema:2')] };
-  }, { sources: THREE_SOURCES });
-  assert.deepEqual(result.items.map(item => item.series_id), ['123456', 'hema:1', 'hema:2']);
+      ? [drama('123456'), drama('123456'), drama('xifan:demo:1'), drama('bad'), drama('654321', ' ')]
+      : [drama('xifan:demo:1'), drama('xifan:demo:2')] };
+  }, { sources: TWO_SOURCES });
+  assert.deepEqual(result.items.map(item => item.series_id), ['123456']);
   assert.deepEqual(result.unavailable, ['xifan']);
-  assert.equal(requests.length, 3);
+  assert.equal(requests.length, 2);
   assert.ok(requests.every(request => request.page === 1 && request.category === 'real-drama'));
 });
 
@@ -35,8 +35,8 @@ test('single-source pool never requests other sources and reports empty director
 
 test('draw excludes the previous ID and the same title across sources', () => {
   const previous = drama('123456', '同一部');
-  const next = drama('hema:2', '另一部');
-  assert.equal(model.pickRandomDrama([previous, drama('hema:1', '同一部'), next], previous, () => 0), next);
+  const next = drama('xifan:demo:2', '另一部');
+  assert.equal(model.pickRandomDrama([previous, drama('xifan:demo:1', '同一部'), next], previous, () => 0), next);
   assert.equal(model.pickRandomDrama([previous], previous), null);
   assert.equal(model.pickRandomDrama([]), null);
 });
@@ -44,9 +44,9 @@ test('draw excludes the previous ID and the same title across sources', () => {
 test('slow source times out without discarding a working source', async () => {
   const result = await model.loadRandomPool(({ source }) => source === 'hongguo'
     ? Promise.resolve({ success: true, results: [drama('123456')] })
-    : new Promise(() => {}), { timeoutMs: 10, sources: THREE_SOURCES });
+    : new Promise(() => {}), { timeoutMs: 10, sources: TWO_SOURCES });
   assert.equal(result.items.length, 1);
-  assert.deepEqual(result.unavailable, ['xifan', 'hema']);
+  assert.deepEqual(result.unavailable, ['xifan']);
 });
 
 test('cancelling a pending pool rejects promptly', async () => {
@@ -60,8 +60,8 @@ test('playback uses the chosen source ID and skips locked episodes', async () =>
   const calls = [];
   await model.playRecommendedDrama({ searchResolve: async id => ({ success: true, data: { series_id: id,
     episodes: [{ vid_index: 1, locked: true }, { vid_index: 2, locked: false }] } }),
-    playSeries: async options => { calls.push(options); return { success: true }; } }, drama('hema:1'));
-  assert.deepEqual(calls, [{ seriesId: 'hema:1', vidIndex: 2, resume: false }]);
+    playSeries: async options => { calls.push(options); return { success: true }; } }, drama('xifan:demo:1'));
+  assert.deepEqual(calls, [{ seriesId: 'xifan:demo:1', vidIndex: 2, resume: false }]);
 });
 
 test('mismatched, locked-only and cancelled resolutions never open the player', async () => {
@@ -70,10 +70,10 @@ test('mismatched, locked-only and cancelled resolutions never open the player', 
     let played = false;
     const api = { searchResolve: async () => {
       if (kind === 'cancel') controller.abort();
-      return { success: true, data: { series_id: kind === 'mismatch' ? 'hema:9' : 'hema:1',
+      return { success: true, data: { series_id: kind === 'mismatch' ? 'xifan:other:9' : 'xifan:demo:1',
         episodes: [{ vid_index: 1, locked: kind === 'locked' }] } };
     }, playSeries: async () => { played = true; } };
-    await assert.rejects(model.playRecommendedDrama(api, drama('hema:1'), { signal: controller.signal }));
+    await assert.rejects(model.playRecommendedDrama(api, drama('xifan:demo:1'), { signal: controller.signal }));
     assert.equal(played, false);
   }
 });

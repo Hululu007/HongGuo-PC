@@ -55,7 +55,6 @@ function fixture({ failId = '', now = Date.now(), remoteSeries = [] } = {}) {
     electron, './src/store': store, './src/native/hongguo': hongguo,
     './src/native/hongguo-search': hongguoSearch,
     './src/native/xifan': { search: async () => ({ success: true, results: [] }) },
-    './src/native/hema': { search: async () => ({ success: true, results: [] }) },
   };
   const context = vm.createContext({
     require: name => overrides[name] || req(name), __dirname: path.dirname(source), process,
@@ -153,7 +152,7 @@ test('explicit season variants group safely; bare and changed titles only sugges
   assert.ok(listHistory(rows, playback).every(row => !row.hasHigherSeason && !row.hasUpdates), 'suggestions must neither hide rows nor create update dots');
   assert.ok(listHistory(rows, playback, false).every(row => row.similarSeries.length === 0), 'disabling sequel detection also hides suggestions');
   assert.deepEqual(findSimilarSeries(original, [
-    { ...candidates[0], series_id: 'hema:2' }, { ...candidates[0], series_id: 'unknown:1' },
+    { ...candidates[0], series_id: 'xifan:2:2' }, { ...candidates[0], series_id: 'unknown:1' },
     { series_id: '1000050', series_title: '完全无关的另一部短剧第二季' },
   ]), [], 'unrelated titles and other sources must not be suggested');
   assert.deepEqual(findSimilarSeries({ ...original, series_title: '甲乙' }, [{ series_id: '1000051', series_title: '甲丙' }]), [], 'short generic titles are too ambiguous');

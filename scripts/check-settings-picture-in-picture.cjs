@@ -106,24 +106,17 @@ const text = node => typeof node === 'string' || typeof node === 'number' ? Stri
     } finally { ui.unmount(); }
   }
 
-  const externalUrls = [];
   const accountUi = mount({
     getAccountStatus: async () => ({ success: true, signedIn: false }),
-    openExternalUrl: async url => { externalUrls.push(url); return { success: true }; },
   }, 'AccountManagement');
   try {
     await accountUi.flush();
     assert.ok(accountUi.find(node => node.type === 'h2' && text(node) === '登录账号'), 'account page heading uses the shared account label');
-    const hemaTab = accountUi.find(node => node.props?.role === 'tab' && text(node) === '河马账号');
-    assert.ok(hemaTab, 'account page exposes a Hema account tab');
-    await hemaTab.props.onClick(); await accountUi.flush();
-    assert.ok(accountUi.text().includes('当前未接入河马账号二维码登录'), 'Hema tab copy explains the unsupported QR flow');
-    await accountUi.button('打开河马官方平台').props.onClick(); await accountUi.flush();
-    assert.deepEqual(externalUrls, ['https://www.kuaikaw.cn/'], 'Hema card opens only the official source host');
+    assert.ok(!accountUi.text().includes('河马'), 'removed source is absent from account management');
     assert.ok(!accountUi.text().includes('登录管理'));
   } finally {
     accountUi.unmount();
   }
 
-  console.log('PASS settings picture-in-picture mode; 登录账号 follows 下载管理, 设置 stays in footer, Red Fruit and Hema account tabs are available');
+  console.log('PASS settings picture-in-picture mode; 登录账号 follows 下载管理, 设置 stays in footer, removed source is absent');
 })().catch(error => { console.error(error); process.exitCode = 1; });

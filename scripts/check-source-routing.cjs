@@ -15,7 +15,7 @@ const checks = [
     let cacheReads = 0;
     const context = { AbortController, randomUUID, console, playbackQuality: (value = 'auto', vid = '') => {
       if (!['auto', '720p', '1080p'].includes(value)) throw new Error('在线播放清晰度无效，请选择自动、720p 或 1080p');
-      if (value !== 'auto' && /^(xifan|hema|custom):/.test(String(vid))) throw new Error('此来源暂不支持指定在线播放清晰度，请选择自动');
+      if (value !== 'auto' && /^(xifan|custom):/.test(String(vid))) throw new Error('此来源暂不支持指定在线播放清晰度，请选择自动');
       return value;
     }, ipcMain: { handle: (name, fn) => handlers[name] = fn },
       hongguo: { fetchEpisodeList: async () => ({ episodes: [{ vid: 'xifan:huabo:a:2', vid_index: 2, locked: true }] }) },

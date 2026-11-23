@@ -32,22 +32,22 @@ test('duplicates are dropped per source and missing titles are ignored', () => {
   const ranked = rankSearchResults([
     { source: 'hongguo', series_id: '1', series_title: '同名剧' },
     { source: 'hongguo', series_id: '1', series_title: '同名剧' },
-    { source: 'hema', series_id: '9', series_title: '同名剧', episode_count: 80 },
+    { source: 'xifan', series_id: 'xifan:9', series_title: '同名剧', episode_count: 80 },
     { source: 'hongguo', series_id: '2' },
   ], '同名剧');
   assert.equal(ranked.length, 1);
   assert.equal(ranked[0].source, 'hongguo');
-  assert.deepEqual(ranked[0].also_on, [{ source: 'hema', series_id: '9' }]);
+  assert.deepEqual(ranked[0].also_on, [{ source: 'xifan', series_id: 'xifan:9' }]);
 });
 
 test('cross-source same drama merges into one entry and counts reported duplicates', () => {
   const ranked = rankSearchResults([
-    { source: 'hema', series_id: '8', series_title: '闪婚后，傅总马甲藏不住了', episode_count: 66 },
     { source: 'hongguo', series_id: '100', series_title: '闪婚后，傅总马甲藏不住了！', episode_count: 66 },
-    { source: 'xifan', series_id: '200:1', series_title: '闪婚后傅总马甲藏不住了', episode_count: 64 },
+    { source: 'xifan', series_id: 'xifan:8', series_title: '闪婚后，傅总马甲藏不住了', episode_count: 66 },
+    { source: 'custom:fixture', series_id: 'custom:fixture:200:1', series_title: '闪婚后傅总马甲藏不住了', episode_count: 64 },
   ], '闪婚后，傅总马甲藏不住了');
   assert.equal(ranked.length, 1);
-  assert.equal(ranked[0].source, 'hema');
+  assert.equal(ranked[0].source, 'hongguo');
   assert.equal(ranked[0].also_on.length, 2);
   const mergedCount = ranked.reduce((total, item) => total + (item.also_on?.length || 0), 0);
   assert.equal(mergedCount, 2);
@@ -66,10 +66,10 @@ test('same-source same-title results with different IDs stay independently selec
   const ranked = rankSearchResults([
     { source: 'hongguo', series_id: '1', series_title: '同名剧', episode_count: 80 },
     { source: 'hongguo', series_id: '2', series_title: '同名剧', episode_count: 80 },
-    { source: 'hema', series_id: '9', series_title: '同名剧', episode_count: 80 },
+    { source: 'xifan', series_id: 'xifan:9', series_title: '同名剧', episode_count: 80 },
   ], '同名剧');
   assert.deepEqual(ranked.map(item => item.series_id), ['1', '2']);
-  assert.deepEqual(ranked[0].also_on, [{ source: 'hema', series_id: '9' }]);
+  assert.deepEqual(ranked[0].also_on, [{ source: 'xifan', series_id: 'xifan:9' }]);
   assert.deepEqual(ranked[1].also_on, []);
 });
 
@@ -85,7 +85,7 @@ test('unknown episode counts still merge across sources', () => {
 test('punctuation differences still count as the same drama when merging', () => {
   const merged = mergeDuplicateDramas([
     { source: 'hongguo', series_id: '1', series_title: '恶犬在身边！' },
-    { source: 'hema', series_id: '2', series_title: '恶 犬 在 身 边', episode_count: 55 },
+    { source: 'xifan', series_id: 'xifan:2', series_title: '恶 犬 在 身 边', episode_count: 55 },
   ]);
   assert.equal(merged.length, 1);
 });

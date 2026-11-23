@@ -12,7 +12,7 @@ test('findSeriesSeasons 收录同来源同基名的各季并排序标注', async
     { series_id: '800002', series_title: `${FAMILY}第二季`, cover: 'c2' },
     { series_id: '800003', series_title: `${FAMILY}第三季`, cover: 'c3' },
     { series_id: '900001', series_title: '完全无关的另一部 第二季' },
-    { series_id: 'hema:9', series_title: `${FAMILY}第三季` },
+    { series_id: 'xifan:other:9', series_title: `${FAMILY}第三季` },
   ];
   const searches = [];
   const result = await findSeriesSeasons(current, local, async (kw) => {
@@ -72,7 +72,7 @@ test('季号标签、下一季查询词与来源族识别保持既有行为', ()
   assert.deepEqual(nextSeasonQueries('剧名', 1), []);
   assert.deepEqual(nextSeasonQueries('剧名', 100), []);
   assert.equal(sourceFamilyOf('custom:abc:1'), 'custom:abc');
-  assert.equal(sourceFamilyOf('hema:5'), 'hema');
+  assert.equal(sourceFamilyOf('hema:5'), '');
   assert.equal(sourceFamilyOf('123456'), 'hongguo');
   assert.equal(sourceFamilyOf('weird'), '');
 });

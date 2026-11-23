@@ -66,7 +66,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
   let failures=0; const harnesses=[];
   const harness = (fn, overrides) => { const h=load(fn, overrides); harnesses.push(h); return h; };
   const task = id => ({id, type:'hongguo',filename:id+'.mp4',customDir:root,hongguoInfo:{vid:'11',series_id:'1'}});
-  async function check(name, fn) { try { await fn(); console.log('PASS '+name); } catch(e) { failures++; console.error('FAIL '+name+': '+e.message); } }
+  async function check(name, fn) { try { await fn(); console.log('PASS '+name); } catch(e) { failures++; console.error('FAIL '+name+': '+e.message+'\n'+e.stack); } }
   await check('download refreshes a failed address without another click',async()=>{
     const calls=[]; const h=harness(async(_v,_s,o)=>{ calls.push(o); return calls.length===1?info('/missing','web'):info('/ok'); });
     const t=task('refresh'); await h.context.executeHongguoDownload(t);
@@ -191,8 +191,11 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     assert.ok(deadlines.includes(30000),'source lookup must retain its 30-second deadline');
     assert.ok(!result.unbounded,'source lookup never settled within its time budget');assert.equal(result.success,false);assert.match(result.error,/超时/);
   });
+  await check('removed Hema IDs fail before any recovery lookup', async () => {
+    const h = harness(async () => { throw new Error('unexpected provider request'); });
+    await assert.rejects(h.context.withMediaRecovery('hema:1:11', 'hema:1', { playInfo: info('/expired') }, async () => 'unexpected'), /河马来源已移除/);
+  });
   const refreshProviders = [
-    { source: 'hema', vid: 'hema:1:11', sid: 'hema:1' },
     { source: 'xifan', vid: 'xifan:jiuzhou:1:11', sid: 'xifan:jiuzhou:1' },
     { source: 'custom', vid: 'custom:a1e93f2c-6b47-4d58-9c30-2f4a6d8e0b11:1:0:0', sid: 'custom:a1e93f2c-6b47-4d58-9c30-2f4a6d8e0b11:1' },
   ];
@@ -235,7 +238,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     });
   }
   await check('stale custom backup lines leave one transfer for a fresh same-episode address', async () => {
-    const provider = refreshProviders[2]; let lookups = 0, transfers = 0;
+    const provider = refreshProviders.find(item => item.source === 'custom'); let lookups = 0, transfers = 0;
     const h = harness(async () => { lookups++; return { ...info('/ok', 'custom'), vid: provider.vid }; },
       { './src/native/custom-source': { assertEnabled() {} } });
     const stale = { ...info('/missing?line=0', 'custom'), vid: provider.vid };
@@ -248,7 +251,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     assert.equal(result, 'complete-media'); assert.equal(lookups, 1); assert.equal(transfers, 4);
   });
   for (const status of [401, 403, 429]) await check(`HLS HTTP ${status} stops without a backup or provider refresh`, async () => {
-    const provider = refreshProviders[2]; let lookups = 0, remuxes = 0;
+    const provider = refreshProviders.find(item => item.source === 'custom'); let lookups = 0, remuxes = 0;
     const h = harness(async () => { lookups++; return info('/ok', 'custom'); }, {
       './src/native/custom-source': { assertEnabled() {} },
       './src/native/hls-media': { remuxHls: async () => { remuxes++; throw Object.assign(new Error('HLS refused'), { mediaStatus: status }); } },

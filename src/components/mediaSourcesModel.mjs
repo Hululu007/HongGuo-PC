@@ -1,5 +1,5 @@
 export const BUILTIN_MEDIA_SOURCES = [
-  { id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' }, { id: 'hema', label: '河马短剧' },
+  { id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' },
   // 内置短剧资源站（苹果 CMS 采集源），编号与 src/native/media-sources.js 的 COLLECT_SOURCES 保持一致。
   { id: 'custom:a1e93f2c-6b47-4d58-9c30-2f4a6d8e0b11', label: '金鹰短剧', note: '短剧分类多' },
   { id: 'custom:b2f04a3d-7c58-4e69-8d41-3a5b7e9f1c22', label: '海盗短剧', note: '短剧更新快' },
@@ -22,7 +22,7 @@ export function normalizeMediaSources(sources) {
 export function mediaSourceLabel(seriesOrSource, sources = BUILTIN_MEDIA_SOURCES) {
   const id = String(seriesOrSource || '');
   const source = id.startsWith('custom:') ? id.split(':').slice(0, 2).join(':')
-    : id.startsWith('xifan:') ? 'xifan' : id.startsWith('hema:') ? 'hema' : /^\d+$/.test(id) ? 'hongguo' : id;
+    : id.startsWith('xifan:') ? 'xifan' : /^\d+$/.test(id) ? 'hongguo' : id;
   return sources.find(item => item.id === source)?.label || BUILTIN_MEDIA_SOURCES.find(item => item.id === source)?.label
     || (source.startsWith('custom:') ? '自定义源（未启用或已移除）' : '未知来源');
 }

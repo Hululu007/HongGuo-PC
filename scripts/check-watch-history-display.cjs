@@ -15,7 +15,7 @@ function historyRows(removedId = '') {
     { series_id: '1000001', series_title: '春日来信', completed: true },
     { series_id: '1000002', series_title: '春日来信第二季', completed: false },
     { series_id: 'xifan:fixture:7', series_title: '春日来信第三季', completed: true },
-    { series_id: 'hema:9', series_title: '只有一季', completed: false },
+    { series_id: 'xifan:fixture:9', series_title: '只有一季', completed: false },
     { series_id: '1000005', series_title: '无季号记录', completed: true },
     { series_id: '1000006', series_title: '年轮（2024）', completed: false },
     { series_id: 'unsupported:1', series_title: '未知来源第二季', completed: false },

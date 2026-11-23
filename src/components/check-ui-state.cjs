@@ -139,7 +139,7 @@ async function mount(file, api, props = {}, storage = null) {
     ui.unmount();
   });
   await test('mode and account tabs expose selected semantics with roving keyboard focus', async () => {
-    for (const [component, label] of [['HongguoDownload', '搜索与下载方式'], ['AccountManagement', '账号来源']]) {
+    for (const [component, label] of [['HongguoDownload', '搜索与下载方式']]) {
       const ui = await mount(component, { getAccountStatus: async () => ({ success: true, account: null }), getMediaSources: async () => ({ success: true, sources: [{ id: 'hongguo', label: '红果' }] }) });
       await ui.flush();
       let focused = -1;
@@ -147,7 +147,7 @@ async function mount(file, api, props = {}, storage = null) {
       const selected = () => ui.nodes().filter(node => node.props.role === 'tab' && node.props['aria-selected']);
       assert.equal(selected().length, 1); assert.equal(selected()[0].props.tabIndex, 0);
       fire('ArrowRight'); await ui.flush();
-      assert.equal(focused, 1); assert.equal(selected()[0].props['aria-controls'].includes(component === 'AccountManagement' ? 'hema' : 'input'), true);
+      assert.equal(focused, 1); assert.equal(selected()[0].props['aria-controls'].includes('input'), true);
       assert.equal(ui.nodes().filter(node => node.props.role === 'tabpanel' && !node.props.hidden).length, 1);
       assert.ok(ui.nodes().filter(node => node.props.role === 'tabpanel').every(node => node.props.tabIndex === undefined));
       fire('Home'); await ui.flush(); assert.equal(focused, 0);
@@ -231,7 +231,7 @@ async function mount(file, api, props = {}, storage = null) {
     let enabled = true, fail = false;
     const saved = [];
     const ui = await mount('BuiltinSources', {
-      getMediaSources: async () => ({ success: true, sources: [{ id: 'hongguo', label: '红果' }, ...(enabled ? [{ id: 'xifan', label: '西饭' }] : []), { id: 'hema', label: '河马' }] }),
+      getMediaSources: async () => ({ success: true, sources: [{ id: 'hongguo', label: '红果' }, ...(enabled ? [{ id: 'xifan', label: '西饭' }] : [])] }),
       setBuiltinSourceEnabled: async (id, value) => {
         saved.push([id, value]);
         if (fail) return { success: false, error: '磁盘空间不足' };
@@ -246,7 +246,6 @@ async function mount(file, api, props = {}, storage = null) {
     await toggle('西饭').props.onChange({ target: { checked: false } }); await ui.flush();
     assert.deepEqual(saved, [['xifan', false]]);
     assert.equal(toggle('西饭').props.checked, false);
-    assert.equal(toggle('河马').props.checked, true);
     fail = true;
     await toggle('西饭').props.onChange({ target: { checked: true } }); await ui.flush();
     assert.equal(toggle('西饭').props.checked, false);
@@ -452,8 +451,8 @@ async function mount(file, api, props = {}, storage = null) {
     const ui = await mount('DramaFeed', { browseList: h.browse }); await ui.flush();
     assert.ok(ui.text().includes('完整简介')); ui.unmount();
   });
-  await test('catalog integration hema and xifan keep hasMore pagination without totalPages', async () => {
-    for (const source of ['hema', 'xifan']) {
+  await test('catalog integration xifan keeps hasMore pagination without totalPages', async () => {
+    for (const source of ['xifan']) {
       const calls = [];
       const ui = await mount('Browse', { getSeriesList: async () => [], browseCategories: async () => [], browseList: async request => {
         calls.push(request);
@@ -493,13 +492,13 @@ async function mount(file, api, props = {}, storage = null) {
     assert.equal(ui.button('取消加载'), undefined, 'source registry loading must not expose an ineffective list cancellation');
     registry.resolve({ success: true, sources: [
       { id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' },
-      { id: 'hema', label: '河马短剧', enabled: false }, { id: custom, label: '测试片库' },
+      { id: 'stale-provider', label: '失效来源', enabled: false }, { id: custom, label: '测试片库' },
     ] });
     await ui.flush();
     assert.ok(ui.text().includes('红果连接失败'));
     const source = () => ui.find(n => n.props['aria-label'] === '推荐来源');
     assert.ok(source(), 'failed feed must still expose source switching');
-    assert.equal(ui.find(n => n.type === 'option' && n.props.value === 'hema'), undefined, 'disabled sources stay hidden');
+    assert.equal(ui.find(n => n.type === 'option' && n.props.value === 'stale-provider'), undefined, 'disabled sources stay hidden');
     delayHongguo = true;
     ui.button('重新加载').props.onClick(); await ui.flush();
     source().props.onChange({ target: { value: 'xifan' } }); await ui.flush();
@@ -825,7 +824,7 @@ async function mount(file, api, props = {}, storage = null) {
     assert.ok(ui.text().includes('《B》')); assert.ok(!ui.text().includes('《A》')); ui.unmount();
   });
   await test('download play opens the selected series in the library without downloading', async () => {
-    for (const id of ['123', 'xifan:test:123', 'hema:123']) {
+    for (const id of ['123', 'xifan:test:123']) {
       let navigate, downloaded = false, played;
       const app = await mount('../App', { getAppInfo: async () => ({}), onNavigate: fn => { navigate = fn; return () => {}; } });
       const ui = await mount('HongguoDownload', { playSeries: async p => { played = p; navigate({ page: 'player', payload: p }); return { success: true }; }, hongguoDownloadBatch: async () => { downloaded = true; } });
@@ -839,7 +838,7 @@ async function mount(file, api, props = {}, storage = null) {
     }
   });
   await test('download play disables fully locked series', async () => {
-    let called = false; const data = detail('hema:123'); data.episodes.forEach(ep => { ep.locked = true; });
+    let called = false; const data = detail('123'); data.episodes.forEach(ep => { ep.locked = true; });
     const ui = await mount('HongguoDownload', { playSeries: async () => { called = true; } });
     ui.find(n => n.props.onSelectSeries).props.onSelectSeries(data); ui.render();
     const button = ui.button('立即播放'); assert.ok(button); assert.equal(button.props.disabled, true);
@@ -1342,16 +1341,16 @@ async function mount(file, api, props = {}, storage = null) {
     ui.button('下一页').props.onClick(); await ui.flush(); assert.equal(pages.at(-1), 2); assert.equal(ui.button('下一页').props.disabled, true); assert.ok(ui.text().includes('第 2 页'));
     ui.button('上一页').props.onClick(); await ui.flush(); assert.ok(ui.text().includes('第 1 页')); ui.unmount();
   });
-  // 关注搜索机制的用例固定三个来源，避免随内置采集源数量变化。
-  const THREE_SOURCES = [{ id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' }, { id: 'hema', label: '河马短剧' }];
-  const threeSourcesApi = () => ({ success: true, sources: THREE_SOURCES });
+  // 关注搜索机制的用例固定两个内置来源，避免随采集源数量变化。
+  const TWO_SOURCES = [{ id: 'hongguo', label: '红果短剧' }, { id: 'xifan', label: '西饭短剧' }];
+  const twoSourcesApi = () => ({ success: true, sources: TWO_SOURCES });
   await test('all-source search merges same-title duplicates into the primary source card', async () => {
     const first = deferred(), second = deferred(), calls = [], resolved = [], picked = [];
-    const ui = await mount('SearchPanel', { getMediaSources: threeSourcesApi, searchSeries: (kw, options) => { calls.push([kw, options.source]); return options.source === 'hongguo' ? first.promise : options.source === 'xifan' ? second.promise : Promise.resolve({ success: true, results: [] }); }, searchResolve: async id => { resolved.push(id); return ok(detail(id)); } }, { onSelectSeries: d => picked.push(d) });
+    const ui = await mount('SearchPanel', { getMediaSources: twoSourcesApi, searchSeries: (kw, options) => { calls.push([kw, options.source]); return options.source === 'hongguo' ? first.promise : options.source === 'xifan' ? second.promise : Promise.resolve({ success: true, results: [] }); }, searchResolve: async id => { resolved.push(id); return ok(detail(id)); } }, { onSelectSeries: d => picked.push(d) });
     assert.equal(ui.find(n => n.props['aria-label'] === '短剧来源').props.value, 'all');
     assert.ok(ui.find(n => n.type === 'option' && n.props.value === 'all'));
     ui.find(n => n.type === 'input').props.onChange({ target: { value: '同名剧' } }); ui.render(); ui.button('搜索').props.onClick();
-    assert.deepEqual(calls, [['同名剧', 'hongguo'], ['同名剧', 'xifan'], ['同名剧', 'hema']], 'all searches start without waiting for each other');
+    assert.deepEqual(calls, [['同名剧', 'hongguo'], ['同名剧', 'xifan']], 'all searches start without waiting for each other');
     second.resolve({ success: true, results: [{ series_id: 'xifan:test:123', series_title: '同名剧' }] });
     first.resolve({ success: true, results: [{ series_id: '123', series_title: '同名剧' }] }); await ui.flush();
     const cards = ui.nodes().filter(n => n.props.className?.startsWith('search-card '));
@@ -1415,7 +1414,7 @@ async function mount(file, api, props = {}, storage = null) {
     await ui.button('搜索').props.onClick(); await ui.flush();
     const oldTask = ui.button('加载更多').props.onClick(); await ui.flush();
     if (transition === 'keyword') { input().props.onChange({ target: { value: '新词' } }); ui.render(); }
-    if (transition === 'source') { source().props.onChange({ target: { value: 'hema' } }); ui.render(); }
+    if (transition === 'source') { source().props.onChange({ target: { value: 'xifan' } }); ui.render(); }
     if (transition === 'active') { ui.setProps({ active: false }); ui.setProps({ active: true }); await ui.flush(); }
     else { await ui.button('搜索').props.onClick(); await ui.flush(); }
     const more = ui.button('加载更多');
@@ -1432,12 +1431,12 @@ async function mount(file, api, props = {}, storage = null) {
   await test('load more deadline keeps completed sources and retries only the unfinished page', async () => {
     const old = deferred(), retry = deferred(), calls = [];
     const ui = await mount('SearchPanel', {
-      getMediaSources: threeSourcesApi,
-      searchSeries: async (_kw, { source }) => ({ success: true, results: source === 'xifan' ? [] : [{ series_id: `${source}:1`, series_title: `${source}首屏` }], channel: 'web', page: 1, cursor: { page: 1 }, hasMore: source !== 'xifan' }),
+      getMediaSources: twoSourcesApi,
+      searchSeries: async (_kw, { source }) => ({ success: true, results: [{ series_id: source === 'xifan' ? 'xifan:test:1' : '1000001', series_title: `${source}首屏` }], channel: 'web', page: 1, cursor: { page: 1 }, hasMore: true }),
       searchSeriesMore: (_kw, options) => {
         calls.push(options);
         if (options.source === 'hongguo') return Promise.resolve({ success: true, results: [{ series_id: '1000002', series_title: '已完成第二页' }], channel: 'web', page: 2, hasMore: false });
-        return calls.filter(call => call.source === 'hema').length === 1 ? old.promise : retry.promise;
+        return calls.filter(call => call.source === 'xifan').length === 1 ? old.promise : retry.promise;
       },
     });
     ui.find(n => n.props['aria-label'] === '搜索短剧名称').props.onChange({ target: { value: '剧名' } }); ui.render();
@@ -1445,15 +1444,15 @@ async function mount(file, api, props = {}, storage = null) {
     const firstTask = ui.button('加载更多').props.onClick(); await ui.flush();
     ui.advanceTimers(25000); await ui.flush();
     assert.ok(ui.text().includes('已完成第二页'), 'one hanging source must not discard a completed page');
-    assert.ok(ui.text().includes('河马短剧') && ui.text().includes('超时'));
+    assert.ok(ui.text().includes('超时'));
     assert.ok(!ui.button('加载更多').props.disabled, 'the deadline must release its own request lock');
     const nextTask = ui.button('加载更多').props.onClick(); await ui.flush();
     assert.equal(calls.length, 3, 'a completed source must not be requested again');
-    assert.equal(calls[2].source, 'hema'); assert.equal(calls[2].page, 2); assert.equal(calls[2].cursor.page, 1);
-    old.resolve({ success: true, results: [{ series_id: 'hema:8', series_title: '超时迟到页' }], channel: 'web', page: 2, hasMore: false });
+    assert.equal(calls[2].source, 'xifan'); assert.equal(calls[2].page, 2); assert.equal(calls[2].cursor.page, 1);
+    old.resolve({ success: true, results: [{ series_id: 'xifan:test:8', series_title: '超时迟到页' }], channel: 'web', page: 2, hasMore: false });
     await firstTask; await ui.flush();
     assert.ok(ui.button('加载中…')?.props.disabled); assert.ok(!ui.text().includes('超时迟到页'));
-    retry.resolve({ success: true, results: [{ series_id: 'hema:2', series_title: '重试第二页' }], channel: 'web', page: 2, hasMore: false });
+    retry.resolve({ success: true, results: [{ series_id: 'xifan:test:2', series_title: '重试第二页' }], channel: 'web', page: 2, hasMore: false });
     await nextTask; await ui.flush();
     assert.ok(ui.text().includes('已完成第二页') && ui.text().includes('重试第二页'));
     assert.equal(ui.button('加载更多'), undefined); ui.unmount();
@@ -1512,7 +1511,7 @@ async function mount(file, api, props = {}, storage = null) {
   await test('a failed progressive search pick stops loading and permits the same search again', async () => {
     const slow = deferred(); let calls = 0;
     const ui = await mount('SearchPanel', {
-      getMediaSources: threeSourcesApi,
+      getMediaSources: twoSourcesApi,
       searchSeries: (_kw, options) => ++calls === 1 && options.source === 'hongguo'
         ? slow.promise
         : Promise.resolve({ success: true, results: [{ series_id: options.source + ':1', series_title: '先返回的剧' }] }),
@@ -1529,7 +1528,7 @@ async function mount(file, api, props = {}, storage = null) {
     ui.advanceTimers(26000); await ui.flush();
     assert.ok(!ui.text().includes('正在寻找相关短剧'));
     ui.button('搜索').props.onClick(); await ui.flush();
-    assert.equal(calls, 6, 'the same keyword must start a new search even while an old source is pending');
+    assert.equal(calls, 4, 'the same keyword must start a new search even while an old source is pending');
     slow.resolve({ success: true, results: [{ series_id: 'old', series_title: '过期结果' }] }); await ui.flush();
     assert.ok(!ui.text().includes('过期结果'));
     assert.equal(ui.button('搜索').props.disabled, false);
@@ -1727,7 +1726,7 @@ async function mount(file, api, props = {}, storage = null) {
   });
   await test('search keyboard ignores IME confirmation and duplicate Enter', async () => {
     const pending = deferred(); let calls = 0;
-    const ui = await mount('SearchPanel', { getMediaSources: threeSourcesApi, searchSeries: () => { calls++; return pending.promise; } });
+    const ui = await mount('SearchPanel', { getMediaSources: twoSourcesApi, searchSeries: () => { calls++; return pending.promise; } });
     const input = () => ui.find(n => n.props['aria-label'] === '搜索短剧名称');
     input().props.onChange({ target: { value: '短剧' } }); ui.render();
     input().props.onKeyDown({ key: 'Enter', nativeEvent: { isComposing: true }, preventDefault() {} });
@@ -1735,7 +1734,7 @@ async function mount(file, api, props = {}, storage = null) {
     input().props.onKeyDown({ key: 'Enter', preventDefault() {} });
     input().props.onKeyDown({ key: 'Enter', preventDefault() {} }); ui.render();
     input().props.onKeyDown({ key: 'Enter', preventDefault() {} });
-    assert.equal(calls, 3, 'same pending all-source search must call each source only once');
+    assert.equal(calls, 2, 'same pending all-source search must call each enabled source only once');
     pending.resolve({ success: true, results: [] }); await ui.flush(); ui.unmount();
   });
   await test('resolve keyboard ignores IME confirmation and duplicate Enter', async () => {
