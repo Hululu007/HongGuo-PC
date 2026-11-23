@@ -53,11 +53,7 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 **[v6.27](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.27)** · 2026-11-23
 
-下载管理新增队列健康快照：并发下载、等待队列、自动重试和需要人工处理的失败任务分开显示，减少长任务状态不透明的问题。
-
-**[v6.26](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.26)** · 2026-11-23
-
-移除河马播放源：来源列表、全局搜索、发现片单、摇一摇与账号页不再提供河马入口，红果仍固定开启。
+下载管理显示队列健康快照：并发下载、等待队列、自动重试和需要人工处理的任务分开统计，并提示最近一次自动重试的预计等待时间。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
