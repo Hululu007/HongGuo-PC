@@ -49,6 +49,7 @@ const unitTests = [
 if (!run(['--test', ...unitTests])) failed++;
 if (!run(['src/components/check-ui-state.cjs'])) failed++;
 if (!run(['scripts/check-windows-installer.cjs', '--config'])) failed++;
+if (!run(['scripts/check-workflow-governance.cjs'])) failed++;
 for (const name of checks) {
   if (!run([path.join('scripts', name)])) failed++;
 }

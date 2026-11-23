@@ -11,6 +11,9 @@ on:
     tags: ['v*']
 permissions:
   contents: read
+concurrency:
+  group: windows-candidate-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   media:
     runs-on: ubuntu-24.04

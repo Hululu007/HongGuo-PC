@@ -151,7 +151,7 @@ function row(definition, width, height, suffix) {
     return inlineResponse([plain]);
   }, { getPlaybackDevice: async () => identities[0] });
   assert.equal((await alternate.fetchAppPlayUrl(vid)).url, plain.main_url);
-  assert.deepEqual(hosts, ['api5-normal-sinfonlineb.fqnovel.com', 'api5-normal-sinfonlinea.fqnovel.com']);
+  assert.deepEqual(hosts, ['reading.snssdk.com', 'api5-normal-sinfonlineb.fqnovel.com']);
   let inlineCalls = 0;
   const direct = load(async config => {
     inlineCalls++;
@@ -240,7 +240,7 @@ function row(definition, width, height, suffix) {
   assert.equal(tabGet.url.searchParams.get('video_id_type'), '0');
   assert.equal(tabGet.url.searchParams.get('from_video_id'), '');
   assert.equal(tabGet.url.searchParams.get('video_platform'), '1024');
-  assert.equal(tabGet.url.searchParams.get('version_name'), '7.4.3.32');
+  assert.equal(tabGet.url.searchParams.get('version_name'), '7.4.5.32');
   assert.equal(tabGet.data ?? undefined, undefined, 'the video_tab request sends no POST body');
   assert.equal(tabGet.headers['x-ss-stub'], undefined, 'a no-body signature omits the POST digest header');
   assert.ok(tabGet.headers['x-medusa'], 'the video_tab GET still carries the player-family signature');

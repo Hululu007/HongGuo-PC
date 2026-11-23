@@ -32,7 +32,9 @@ function load() {
       }) };
     }
     assert.equal(config.method, 'POST', 'playback must use the V5 POST endpoint');
-    assert.match(config.url, /\/novel\/player\/multi_video_model\/player\/v1\?/);
+    assert.match(config.url, /\/novel\/player\/multi_video_model\/preload\/v1\?/);
+    assert.equal(new URL(config.url).searchParams.get('version_code'), '74532');
+    assert.equal(new URL(config.url).searchParams.get('version_name'), '7.4.5.32');
     assert.equal(config.headers['Content-Encoding'], 'gzip');
     assert.equal(config.headers['x-helios'] && typeof config.headers['x-helios'], 'string');
     assert.equal(config.headers['x-medusa'] && typeof config.headers['x-medusa'], 'string');
@@ -42,7 +44,8 @@ function load() {
     assert.equal(config.headers['x-ladon'], undefined);
     assert.ok(Buffer.isBuffer(config.data));
     const body = JSON.parse(gunzipSync(config.data).toString('utf8'));
-    assert.equal(body.dr_scene, 'player');
+    assert.equal(body.dr_scene, 'preload');
+    assert.equal(body.biz_param.device_level, 2);
     assert.equal(body.biz_param.disable_video_relate_book, false);
     assert.deepEqual(body.mixed_video_id_map['1004'], [vid]);
     return { status: 200, headers: {}, data: JSON.stringify({
@@ -78,7 +81,7 @@ function load() {
   const result = await fixture.fetch(vid, { quality: 'auto' });
   assert.equal(result.source, 'app');
   assert.equal(result.url, media);
-  assert.equal(fixture.calls.filter(call => String(call.url).includes('/player/v1?')).length, 1);
+  assert.equal(fixture.calls.filter(call => String(call.url).includes('/preload/v1?')).length, 1);
   console.log('PASS V5 playback request uses gzip body, current endpoint and signed headers');
 })().catch(error => {
   console.error(error.stack || error.message);
