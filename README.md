@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.27](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.27)** · 2026-11-23
+**[v6.28](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.28)** · 2026-11-23
 
-下载管理显示队列健康快照：并发下载、等待队列、自动重试和需要人工处理的任务分开统计，并提示最近一次自动重试的预计等待时间。
+修复红果在线播放失败，不再提示「App：播放接口空响应」：播放取源改用当前 App 请求画像与 preload/v1 端点，并更新播放签名的 Medusa 明文字段。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
