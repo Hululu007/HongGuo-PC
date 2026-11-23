@@ -31,11 +31,11 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq gcc-mingw-w64-x86-64 make pkg-config
       - if: steps.media-cache.outputs.cache-hit != 'true'
         run: bash scripts/build-ffmpeg-source-win.sh "$RUNNER_TEMP/media" 4
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: windows-media
           path: ${{ runner.temp }}/media/artifacts/
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: windows-media-errors
@@ -116,12 +116,12 @@ jobs:
           node scripts/write-latest-yml.cjs "dist/windows-release/hongguo-downloader-$version-win-x64-setup.exe"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           Get-ChildItem dist/windows-release | Select-Object Name, Length | Format-Table -AutoSize
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ inputs.build_only && 'windows-build-only' || 'windows-release-candidate' }}
           path: dist/windows-release/
           if-no-files-found: error
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() && !inputs.build_only }}
         with:
           name: windows-verification
