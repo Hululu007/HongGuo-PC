@@ -17,6 +17,7 @@ test('builtin collect sources keep stable ids, labels and notes', () => {
   assert.equal(collect.length, 6, 'six curated collect sources are built in');
   assert.ok(collect.every(item => item.label && item.note), 'each collect source labels and explains itself');
   const listed = model.normalizeMediaSources(collect.map(({ id, label }) => ({ id, label })));
+  assert.ok(!model.BUILTIN_MEDIA_SOURCES.some(item => item.id === 'hema'), 'removed source is absent from the source model');
   assert.deepEqual(listed.map(item => item.id), collect.map(item => item.id));
   assert.equal(model.mediaSourceLabel(`${collect[0].id}:88`, collect), collect[0].label, 'episode ids resolve to the collect label');
   // 来源列表未加载时也回退到内置标签，不显示「未启用或已移除」。
@@ -35,9 +36,9 @@ test('shared source loading coalesces consumers and drops responses from older r
   assert.ok(store.getSnapshot().revision > revision);
   finish[1]({ success: true, sources: [custom] });
   await latest;
-  finish[0]({ success: true, sources: [{ id: 'hema', label: '河马' }] });
+  finish[0]({ success: true, sources: [{ id: 'stale-provider', label: '失效来源' }] });
   await Promise.all([first, joined]);
-  assert.deepEqual(store.getSnapshot().sources, [custom]);
+  assert.deepEqual(store.getSnapshot().sources, [custom], 'stale provider response cannot restore a removed source');
 });
 
 test('failed registry refresh surfaces an error without erasing the last working list', async () => {

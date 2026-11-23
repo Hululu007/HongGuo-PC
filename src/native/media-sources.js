@@ -1,5 +1,5 @@
 const BUILTIN_SOURCES = [
-  { id: 'hongguo', label: '红果' }, { id: 'xifan', label: '西饭' }, { id: 'hema', label: '河马' },
+  { id: 'hongguo', label: '红果' }, { id: 'xifan', label: '西饭' },
 ];
 
 // 内置短剧资源站：走苹果 CMS V10 协议（custom-source 模块），编号使用固定 UUID，
@@ -31,7 +31,7 @@ function getMediaSources(settings) {
 
 function setBuiltinSourceEnabled(settings, id, enabled) {
   if (id === 'hongguo') throw new Error('红果来源固定开启，不能关闭');
-  if (!['xifan', 'hema', ...COLLECT_SOURCE_IDS].includes(id) || typeof enabled !== 'boolean') throw new Error('来源开关无效');
+  if (!['xifan', ...COLLECT_SOURCE_IDS].includes(id) || typeof enabled !== 'boolean') throw new Error('来源开关无效');
   return { ...settings, builtin_sources: { ...settings.builtin_sources, [id]: enabled } };
 }
 

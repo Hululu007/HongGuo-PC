@@ -228,7 +228,7 @@ const checks = [
     assert.equal(fs.readFileSync(file, 'utf8'), '{bad'); assert.ok(events.at(-1)?.error);
   }],
   ['non-App providers never gain a Hongguo Referer on 403', async () => {
-    for (const source of ['xifan', 'hema', 'custom']) {
+    for (const source of ['xifan', 'custom']) {
       const h = fixture();
       await assert.rejects(h.context.requestMedia({ url: 'https://example.com/a.mp4', source }, { headers: { Range: 'bytes=2-4' } }));
       assert.ok(h.state.requests.every(headers => !headers.Referer), source);

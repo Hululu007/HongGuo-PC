@@ -21,9 +21,11 @@ vm.runInNewContext(source.slice(source.indexOf("ipcMain.handle('browse-list'"), 
   mode = 'custom';
   await handler({}, { source: 'hongguo', catalogChannel: 'web', allowTrustedDns: true });
   assert.equal(calls.at(-1).options.allowTrustedDns, false, 'renderer cannot bypass selected proxy');
-  await handler({}, { source: 'hema', catalogChannel: 'app' });
-  assert.equal(calls.at(-1).name, './src/native/hema');
   const before = calls.length;
+  const removed = await handler({}, { source: 'hema', catalogChannel: 'app' });
+  assert.equal(removed.success, false);
+  assert.match(removed.error, /河马来源已移除/);
+  assert.equal(calls.length, before);
   assert.equal((await handler({}, { source: 'hongguo', catalogChannel: 'unknown' })).success, false);
   context.proxyStartupFallback = true;
   assert.equal((await handler({}, { source: 'hongguo', catalogChannel: 'app' })).success, false);

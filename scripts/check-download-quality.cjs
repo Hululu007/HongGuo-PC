@@ -34,7 +34,6 @@ function routeFixture(appError = false) {
       if (appError) throw new Error('没有符合所选清晰度的片源');
       return { url: mediaUrl(`${options.quality}-${calls.length}`), quality: options.quality };
     } },
-    './hema': { fetchPlayUrlSingle: async () => { calls.push('hema'); return { url: mediaUrl('hema') }; } },
     './xifan': { fetchPlayUrlSingle: async () => { calls.push('xifan'); return { url: mediaUrl('xifan') }; } },
   });
   return { ...native, calls };
@@ -106,10 +105,12 @@ const checks = [
     const app = appFixture({ one: stream('one', 1080, 1920) });
     await assert.rejects(app.fetchAppPlayUrl('11', { quality: '4k' }), /清晰度/); assert.equal(app.calls.length, 0);
     const f = routeFixture();
-    for (const vid of ['11', 'hema:11', 'xifan:11']) {
+    for (const vid of ['11', 'xifan:11']) {
       const result = await f.fetchPlayUrlSingle(vid, '1', { quality: '4k' });
       assert.equal(result.url, null); assert.match(result.error, /清晰度/);
     }
+    const removed = await f.fetchPlayUrlSingle('hema:11', 'hema:1', { quality: '1080p' });
+    assert.equal(removed.url, null); assert.match(removed.error, /河马来源已移除/);
     assert.equal(f.calls.length, 0);
   }],
   ['quality caches are separate, force refresh is confined to its tier', async () => {
@@ -132,8 +133,8 @@ const checks = [
   }],
   ['third-party source keeps its authorized URL for later local resolution check', async () => {
     const f = routeFixture();
-    for (const name of ['hema', 'xifan']) assert.equal((await f.fetchPlayUrlSingle(`${name}:11`, `${name}:1`, { quality: '1080p' })).url, mediaUrl(name));
-    assert.deepEqual(f.calls, ['hema', 'xifan']);
+    assert.equal((await f.fetchPlayUrlSingle('xifan:11', 'xifan:1', { quality: '1080p' })).url, mediaUrl('xifan'));
+    assert.deepEqual(f.calls, ['xifan']);
   }],
   ['shared quality validator handles landscape, portrait, missing and higher dimensions', () => {
     const file = path.join(nativeDir, 'download-quality.js');

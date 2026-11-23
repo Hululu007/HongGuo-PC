@@ -11,7 +11,7 @@ const source = path.resolve(__dirname, '../main.js'), req = createRequire(source
 const unexpectedSearch = async () => { throw new Error('Unexpected search provider call'); };
 
 function load({ appEnabled = true, appSearch = unexpectedSearch, webSearch = unexpectedSearch,
-  newReleaseSearch = async () => [], newReleaseDetailed = null, hemaSearch = unexpectedSearch, xifanSearch = unexpectedSearch,
+  newReleaseSearch = async () => [], newReleaseDetailed = null, xifanSearch = unexpectedSearch,
   customSearch = unexpectedSearch } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hongguo-app-search-'));
   const handlers = {}, app = new EventEmitter();
@@ -33,7 +33,6 @@ function load({ appEnabled = true, appSearch = unexpectedSearch, webSearch = une
       }),
     },
     './src/native/hongguo': { fetchEpisodeList: async () => ({ episodes: [] }) },
-    './src/native/hema': { search: hemaSearch },
     './src/native/xifan': { search: xifanSearch },
     './src/native/custom-source': { searchSeries: customSearch },
   };
@@ -336,7 +335,6 @@ function load({ appEnabled = true, appSearch = unexpectedSearch, webSearch = une
   const providers = [
     { source: 'hongguo', channel: 'app', key: 'appSearch' },
     { source: 'hongguo', channel: 'web', key: 'webSearch' },
-    { source: 'hema', key: 'hemaSearch' },
     { source: 'xifan', key: 'xifanSearch' },
     { source: 'custom:fixture', key: 'customSearch' },
   ];

@@ -173,7 +173,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     let resolve;
     const h = hload(() => new Promise(r => { resolve = r; }));
     const before = hits;
-    const pending = h.handlers['prepare-online-play']({}, { vid: 'hema:next', requestId: 'late', prefetch: true });
+    const pending = h.handlers['prepare-online-play']({}, { vid: 'late', requestId: 'late', prefetch: true });
     await h.handlers['release-online-play']({}, { requestId: 'late' });
     resolve({ url: base + '/range' });
     assert.equal((await pending).success, false);

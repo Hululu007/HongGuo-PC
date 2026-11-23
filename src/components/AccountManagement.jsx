@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ExternalLink, Film, Play, RefreshCw, User } from './icons';
+import { Play, RefreshCw, User } from './icons';
 import './AccountManagement.css';
 
 export default function AccountManagement({ active = true }) {
@@ -137,31 +137,10 @@ export default function AccountManagement({ active = true }) {
     finally { setBusy(false); }
   };
 
-  const openHemaOfficial = async () => {
-    setBusy(true); setError(''); setStatus('');
-    try {
-      const result = await window.electronAPI.openExternalUrl?.('https://www.kuaikaw.cn/');
-      if (!result?.success) throw new Error(result?.error || '打开河马官方平台失败');
-      setStatus('已打开河马官方平台，请在官方 App 或平台内登录并按账号权益解锁。');
-    } catch (failure) { setError(failure.message || '打开河马官方平台失败，请重试'); }
-    finally { setBusy(false); }
-  };
-
   const selectSource = nextSource => {
     if (busy || nextSource === source) return;
     setSource(nextSource);
     setError(''); setStatus('');
-  };
-
-  const handleSourceKeyDown = event => {
-    if (busy || event.altKey || event.ctrlKey || event.metaKey) return;
-    const sources = ['hongguo', 'hema'];
-    const index = sources.indexOf(source);
-    const nextIndex = { ArrowRight: (index + 1) % sources.length, ArrowLeft: (index + sources.length - 1) % sources.length, Home: 0, End: sources.length - 1 }[event.key];
-    if (nextIndex === undefined) return;
-    event.preventDefault();
-    selectSource(sources[nextIndex]);
-    event.currentTarget.querySelectorAll('[role="tab"]')[nextIndex]?.focus();
   };
 
   useEffect(() => {
@@ -179,17 +158,7 @@ export default function AccountManagement({ active = true }) {
   return <div className="account-page">
     <div className="account-page-header">
       <User size={22} />
-      <div><h2>登录账号</h2><p>分别管理红果与河马短剧账号；登录状态不会替代来源平台的会员或解锁权益。</p></div>
-    </div>
-    <div className="account-source-tabs" role="tablist" aria-label="账号来源" onKeyDown={handleSourceKeyDown}>
-      <button id="hongguo-account-tab" type="button" role="tab" aria-selected={source === 'hongguo'} aria-controls="hongguo-account-panel" tabIndex={source === 'hongguo' ? 0 : -1}
-        className={`account-source-tab ${source === 'hongguo' ? 'is-active' : ''}`} disabled={busy} onClick={() => selectSource('hongguo')}>
-        <User size={16} />红果账号
-      </button>
-      <button id="hema-account-tab" type="button" role="tab" aria-selected={source === 'hema'} aria-controls="hema-account-panel" tabIndex={source === 'hema' ? 0 : -1}
-        className={`account-source-tab ${source === 'hema' ? 'is-active' : ''}`} disabled={busy} onClick={() => selectSource('hema')}>
-        <Film size={16} />河马账号
-      </button>
+      <div><h2>登录账号</h2><p>管理红果账号与观看记录；登录状态不会替代平台会员或解锁权益。</p></div>
     </div>
     <div id="hongguo-account-panel" role="tabpanel" aria-labelledby="hongguo-account-tab" hidden={source !== 'hongguo'}>
       {!account && <div className="account-web-login"><button className="btn btn-outline" disabled={busy} onClick={async () => { try { const result = await window.electronAPI.openAccountWebLogin(); if (!result?.success) throw new Error(result?.error || '打开官网登录失败'); } catch(e) { setError(e.message); } }}>使用官网登录</button><p>手机提示二维码无效时，可打开官网并使用官网当前提供的登录方式。</p></div>}
@@ -247,26 +216,5 @@ export default function AccountManagement({ active = true }) {
       {error && <div className="history-error" role="alert"><span>{error}</span></div>}
     </section>
     </div>
-    <section id="hema-account-panel" className="account-card hema-account-card" role="tabpanel" aria-labelledby="hema-account-tab" hidden={source !== 'hema'}>
-      <div className="account-provider-heading">
-        <span className="account-provider-icon"><Film size={22} /></span>
-        <div><h3>河马账号</h3><p>官方账号与看点、VIP 等来源权益分开管理。</p></div>
-        <span className="account-source-badge">待接入</span>
-      </div>
-      <div className="account-notice account-notice-warning" role="note">
-        <strong>当前未接入河马账号二维码登录</strong>
-        <p>河马公开网页没有可复用的扫码授权接口，当前应用也没有河马会话或权益接口。这里不会显示不能实际完成登录的二维码。</p>
-      </div>
-      <div className="account-hema-copy">
-        <h3>为什么后面的集数点不了？</h3>
-        <p>当前河马来源把前 5 集作为公开片源，后续集数标记为收费或权益锁定。红果账号只用于红果 APP 观看记录，不能替代河马账号，也不会自动解锁河马全集。</p>
-        <p>即使以后接入合法的河马登录，会不会能看第 6 集以后仍取决于官方账号的看点、VIP、广告或购买权益；应用会继续尊重来源返回的锁定状态。</p>
-      </div>
-      <div className="account-page-actions">
-        <button className="btn btn-outline" type="button" disabled={busy} onClick={openHemaOfficial}><ExternalLink size={15} />打开河马官方平台</button>
-      </div>
-      {status && <p className="account-page-status" role="status">{status}</p>}
-      {error && <div className="history-error" role="alert"><span>{error}</span></div>}
-    </section>
   </div>;
 }

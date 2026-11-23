@@ -34,9 +34,6 @@
 .account-notice strong { display: block; color: var(--text-primary); }
 .account-notice p { margin: 5px 0 0; color: var(--text-secondary); }
 .account-notice-warning { border-color: var(--accent); background: var(--accent-soft); }
-.account-hema-copy { margin-top: 24px; }
-.account-hema-copy h3 { margin: 0 0 9px; font-size: 16px; }
-.account-hema-copy p { margin: 8px 0 0; color: var(--text-secondary); line-height: 1.7; }
 .account-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--border); }
 .account-history-heading h3 { margin: 0; font-size: 16px; }
 .account-history-heading label { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 13px; }

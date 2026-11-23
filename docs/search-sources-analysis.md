@@ -4,7 +4,7 @@
 
 ## 1. 背景与目标
 
-当前应用搜索聚合三个内置来源（红果短剧、西饭短剧、河马短剧）加用户自建的苹果 CMS V10 自定义源。目标是评估还能从哪些短剧平台接入搜索资源、按什么顺序接、以及每个方向的成本与风险。
+当前应用搜索聚合红果短剧、西饭短剧与用户自建的苹果 CMS V10 自定义源。河马短剧已从内置来源移除。本文评估还能从哪些短剧平台接入搜索资源、按什么顺序接、以及每个方向的成本与风险。
 
 本文只做分析与方案，不改动代码。
 
@@ -15,12 +15,12 @@
 - 搜索入口 `src/components/SearchPanel.jsx`：对「全部来源」用 `Promise.allSettled` 并发请求各来源；单来源完成即先发布结果，25 秒安全超时兜底；「加载更多」按来源保存 `channel/cursor/page` 状态。
 - 排序 `src/components/searchRanking.mjs`：标题 NFKC 归一化后按「全等 > 包含 > 简介命中 > 其他」分层，跨来源合并去重（键为 `source:series_id`）。
 - 主进程路由 `main.js`：
-  - `searchAtSourcePage`（约 1597 行）：按 `options.source` 分发到 `./src/native/{hema,xifan,custom-source}` 模块，未知来源报错，红果走官网接口 + App 签名搜索 + App 上新补搜。
+  - `searchAtSourcePage`（约 1597 行）：按 `options.source` 分发到 `./src/native/{xifan,custom-source}` 模块，未知来源报错，红果走官网接口 + App 签名搜索 + App 上新补搜；旧 `hema:` 只进入拒绝分支。
   - `browse-list` handler（约 1500 行）：目录/发现页同样按来源分发。
-- 来源开关 `src/native/media-sources.js`：红果固定开启；`builtin_sources.xifan/hema` 任一为 `false` 时搜索与目录都拒绝该来源。
+- 来源开关 `src/native/media-sources.js`：红果固定开启；西饭可通过 `builtin_sources.xifan` 关闭。河马不再注册；保留的旧 `hema:` 记录会在在线入口明确拒绝。
 - 自定义源 `src/native/custom-source.js`：苹果 CMS V10 JSON API（`api.php/provide/vod/`，`wd` 搜索、`ids` 详情、`t` 分类），只接 MP4/M3U8 直链，`isPublicMediaUrl` 拒绝内网与带凭据地址，DNS 与重定向复查配置。
 
-### 2.2 新来源接入契约（以 xifan.js / hema.js 为模板）
+### 2.2 新来源接入契约（以 xifan.js 与 custom-source.js 为模板）
 
 一个内置来源模块需导出四个函数，全部返回**归一化数据**，搜索聚合层即自动获得部分发布、超时、排序、加载更多能力：
 
@@ -35,14 +35,14 @@
 
 - 结果项：`{ series_id, series_title, cover(仅 https、无凭据), episode_count, tags[], source, url, intro? }`。
 - 分集项：`{ vid, vid_index, title, series_id, series_title, cover, locked, source }`。
-- ID 前缀约定：`xifan:{source}:{duanjuId}`、`hema:{bookId}`、`custom:{uuid}:{vodId}[:{line}:{episode}]`；红果为纯数字。分集 ID 在剧 ID 后追加冒号段。
+- ID 前缀约定：`xifan:{source}:{duanjuId}`、`custom:{uuid}:{vodId}[:{line}:{episode}]`；红果为纯数字。历史数据可能仍含 `hema:{bookId}`，但该前缀已停用且不可映射到其他来源。分集 ID 在剧 ID 后追加冒号段。
 - 锁定集：`fetchPlayUrlSingle` 返回 `locked: true` 且不给 `url`，文案指向官方平台确认可看范围（不破解付费）。
 
 ### 2.3 安全基线（必须沿用的既有约定）
 
 - 请求：10–12 秒超时 + `AbortController` + `deadline` 预算；`maxContentLength` 8MB；`User-Agent: Mozilla/5.0`；`maxRedirects: 0`（重定向处理需显式复查）。
 - 地址：封面与播放地址仅接受无凭据的公网 https（`httpsUrl` / `isPublicMediaUrl`）；自定义源走 `web-media-guard` 做 DNS 级校验。
-- 数据校验：页码、剧集 ID、分集 ID 与请求一致性逐一核对（xifan/hema 均有「返回的剧集与请求不一致」防护）；标题做 `plainText` 去标签。
+- 数据校验：页码、剧集 ID、分集 ID 与请求一致性逐一核对（西饭有「返回的剧集与请求不一致」防护）；标题做 `plainText` 去标签。
 - 失败文案不得回传上游原始错误或任何含签名的地址（custom-source.js 有明确注释）。
 
 ### 2.4 接入触点清单（现状债务）
@@ -50,10 +50,10 @@
 新增一个内置来源目前需要改动：
 
 1. 新模块 `src/native/<source>.js`（模板约 150–170 行）。
-2. `src/native/media-sources.js`：`BUILTIN_SOURCES` 数组 + `setBuiltinSourceEnabled` 的 `['xifan','hema']` 白名单。
-3. `src/components/mediaSourcesModel.mjs`：`BUILTIN_MEDIA_SOURCES` 数组 + `mediaSourceLabel` 前缀映射。
-4. `src/native/hongguo.js`：`fetchEpisodeList`（约 430 行）与 `fetchPlayUrlSingle`（约 624 行）的前缀分发，`resolveSeriesId`（约 366 行）的编号校验分支。
-5. `main.js` 至少 10 处散落的 `/^(xifan|hema|custom):/` 正则（1002、1019、2164、2178、2594、3092、3118、3468、3658–3666 行等）及搜索/目录路由（1496–1502、1584、1597–1599 行）；西饭另有 `episodeDisplayTitle` 特例（2501、4516 行）。
+2. `src/native/media-sources.js`：`BUILTIN_SOURCES` 数组 + 可切换来源白名单。
+3. `src/components/mediaSourcesModel.mjs`：`BUILTIN_MEDIA_SOURCES` 数组 + `mediaSourceLabel` 前缀映射。河马历史标识不在列表及映射中。
+4. `src/native/hongguo.js`：`fetchEpisodeList` 与 `fetchPlayUrlSingle` 的前缀分发及 `resolveSeriesId` 编号校验；旧 `hema:` ID 在入口明确拒绝。
+5. `main.js` 的来源 ID 判断及搜索/目录路由；停用来源 ID 必须在入口拒绝，不可落入红果默认路由。西饭另有 `episodeDisplayTitle` 特例。
 6. 测试：`src/native/*.test.cjs` 与 `src/components/__tests__/media-sources.test.mjs`。
 
 **建议**：在接入第一个新来源前，先把第 4、5 条收敛为「来源前缀 → { 模块, 目录名, 能力标志 }」的单一注册表（一处 require、一处正则），把每源边际成本从「改 10+ 处正则」降到「改 2–3 处注册」。这是纯重构，无行为变化，可用现有测试回归。
@@ -113,7 +113,7 @@ B 类的共同前提：**只做公开接口的注册式调用（设备注册 + �
 
 - **搜索**：`so.le.com/s?wd=` 搜索结果页（SSR），或抓列表 XHR 接口；映射为 `series_id: le:{vid}`，标题、封面、集数从结果项提取。
 - **目录/发现**：minidrama.le.com 频道分类（男频/女频/排行，cid=69 子频道），对应 `browseList` 的 `genres`。
-- **分集**：剧集详情页 SSR 数据或 XHR；校验返回的剧集 ID 与请求一致（沿用 hema 的 `__NEXT_DATA__` 同级校验思路，乐视需确认其数据内嵌方式）。
+- **分集**：剧集详情页 SSR 数据或 XHR；校验返回的剧集 ID 与请求一致（沿用现有来源的 `__NEXT_DATA__` 同级校验思路，乐视需确认其数据内嵌方式）。
 - **播放**：待验证。乐视播放历史上走自有 CDN 直链（` Lecloud/letv ` M3U8）；若需其播放 SDK 或动态加密，则此源降级为不可行。
 - **风险**：乐视内容更新慢、接口为遗留体系可能变动；需 `deadline` + 冷却兜底（参考红果 App 搜索的 `APP_SEARCH_COOLDOWN_MS` 模式）。
 
@@ -164,7 +164,20 @@ B 类的共同前提：**只做公开接口的注册式调用（设备注册 + �
 - **内容价值最高但不确定性最大**：星芽/喜番的 App API（B 类），按「只注册式调用、不逆向」的边界先评估再决定。
 - **先重构后扩张**：来源前缀注册表重构（P1）应先于任何第二个新内置源，否则每加一源要碰 main.js 十余处正则。
 
-## 9. 第一轮实施结果（2026-11-04，未随版本发布）
+## 9. 其他公开视频接口的可复用性（2026-11-23）
+
+需要区分「发现/搜索 API」「授权取址 API」和「媒体传输协议」：HLS/DASH 是播放格式，不会提供剧目目录或通用解析能力；平台的公开 REST API 也只对其有权播放的内容签发地址。
+
+| 接口类别 | 可核查的公开接口 | 对本项目的适用性 |
+|---|---|---|
+| 联邦视频平台 | PeerTube REST API：<https://docs.joinpeertube.org/api-rest-reference.html> | 可查询公开实例视频及元数据，公开视频通常由所属实例提供流/下载变体。若要接入，需要选择并维护明确的实例/实例目录；它不是短剧聚合解析服务，实例规则、内容授权和可用性各自独立。 |
+| 公共数字档案 | Internet Archive Search 与 Metadata API：<https://archive.org/developers/index-apis.html>、<https://archive.org/developers/metadata.html> | 可搜索公共档案条目并按条目元数据发现文件；适合公共领域或明确授权的历史视频，不保证短剧内容、集数结构或统一的流媒体能力。需要按授权状态与文件格式筛选，不能把任意档案条目视为可再分发。 |
+| 用户自有视频托管 | Vimeo Video Files API：<https://developer.vimeo.com/api/files/video-links>；Cloudflare Stream：<https://developers.cloudflare.com/stream/viewing-videos/using-own-player/> | 可通过平台官方 API 为账号有权管理的视频获取播放文件或 HLS/DASH manifest。通常要求用户/所有者令牌或账号资产，不是发现第三方短剧的公共来源，不能作为内置匿名短剧接口。 |
+| 标准媒体协议 | HLS / DASH manifest | 可复用现有媒体管道播放提供方明确公开且允许访问的地址。manifest 不是取址 API；签名、权限、付费、DRM 或来源站限制仍由提供方控制，不应通过猜地址或第三方解析服务绕过。 |
+
+**结论**：没有发现能合法、稳定地替代各短剧来源取址的通用视频播放接口。现有「红果官方路径 + 西饭适配 + 用户自配苹果 CMS V10」仍是适合当前应用的边界；PeerTube/Internet Archive 属于可选的独立内容目录方向，Vimeo/Cloudflare 属于用户自有资产托管方向。是否接入它们应按内容价值、实例/账号授权、播放验证和维护成本单独决定，不应宣传为短剧源替代品。
+
+## 10. 第一轮实施结果（2026-11-04，未随版本发布）
 
 ### 9.1 网络验证结论（当日实测）
 

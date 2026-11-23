@@ -10,13 +10,14 @@ test('builtin source preferences persist without changing custom sources or othe
   const settings = { root: '/downloads', custom_sources: [{ id: 'test', name: '片库', enabled: true }] };
   // 内置采集源默认只开三个实测纯短剧站（金鹰/海盗/硕博），综合站与旺旺默认关闭。
   assert.deepEqual(getMediaSources(settings).map(s => s.id),
-    ['hongguo', 'xifan', 'hema', ...COLLECT_SOURCE_IDS.slice(0, 3), 'custom:test']);
+    ['hongguo', 'xifan', ...COLLECT_SOURCE_IDS.slice(0, 3), 'custom:test']);
   const disabled = setBuiltinSourceEnabled(settings, 'xifan', false);
   assert.deepEqual(getMediaSources(JSON.parse(JSON.stringify(disabled))).map(s => s.id),
-    ['hongguo', 'hema', ...COLLECT_SOURCE_IDS.slice(0, 3), 'custom:test']);
+    ['hongguo', ...COLLECT_SOURCE_IDS.slice(0, 3), 'custom:test']);
   assert.equal(disabled.root, settings.root);
   assert.equal(disabled.custom_sources, settings.custom_sources);
-  const both = setBuiltinSourceEnabled(disabled, 'hema', false);
+  assert.throws(() => setBuiltinSourceEnabled(disabled, 'hema', false), /来源开关无效/);
+  const both = disabled;
   assert.deepEqual(getMediaSources(both).map(s => s.id),
     ['hongguo', ...COLLECT_SOURCE_IDS.slice(0, 3), 'custom:test']);
   assert.deepEqual(getMediaSources(setBuiltinSourceEnabled(both, 'xifan', true)).map(s => s.id),
@@ -76,11 +77,12 @@ test('IPC persists source changes, notifies every window, and blocks disabled se
       vm.runInNewContext(source.slice(start, end), context);
     }
     assert.equal((await handlers['set-builtin-source-enabled']({}, 'hongguo', false)).success, false);
+    assert.equal((await handlers['set-builtin-source-enabled']({}, 'hema', false)).success, false);
     assert.equal((await handlers['set-builtin-source-enabled']({}, 'xifan', false)).success, true);
     store.init(file);
     assert.equal(store.getSettings().builtin_sources.xifan, false, 'reopening storage keeps the switch');
     assert.deepEqual((await handlers['get-media-sources']()).sources.map(s => s.id),
-      ['hongguo', 'hema', ...COLLECT_SOURCE_IDS.slice(0, 3)]);
+      ['hongguo', ...COLLECT_SOURCE_IDS.slice(0, 3)]);
     assert.deepEqual(events, [[1, 'media-sources-changed'], [2, 'media-sources-changed']]);
     for (const name of ['browse-list', 'search-series', 'search-series-more']) {
       const result = name === 'browse-list' ? await handlers[name]({}, { source: 'xifan' }) : await handlers[name]({}, '测试', { source: 'xifan', page: 2 });
@@ -89,6 +91,6 @@ test('IPC persists source changes, notifies every window, and blocks disabled se
     }
     assert.equal((await handlers['set-builtin-source-enabled']({}, 'xifan', true)).success, true);
     assert.deepEqual((await handlers['get-media-sources']()).sources.map(s => s.id),
-      ['hongguo', 'xifan', 'hema', ...COLLECT_SOURCE_IDS.slice(0, 3)]);
+      ['hongguo', 'xifan', ...COLLECT_SOURCE_IDS.slice(0, 3)]);
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
