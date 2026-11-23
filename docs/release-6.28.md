@@ -56,6 +56,15 @@
 - 普通用户资产仍只有安装 EXE 与 `latest.yml`；不发布便携包、blockmap、源码 ZIP 或 hash 清单。
 - 旧版客户端应用内更新流程不变。
 
+## 最终发行回执
+
+- 合并提交：`05c26e9216a94ac2dc06d6cc61533a1bf1cac61b`；标签 `v6.28` 已指向该提交。
+- 标签 Test：运行 `45238220226`；Windows x64 release candidate：运行 `45238219910`；两者均成功。
+- 发布工作流：运行 `45243168610`；Release `v6.28` 已公开，且最终资产严格为两项：
+  - `hongguo-downloader-6.28-win-x64-setup.exe`，146,270,590 字节，SHA-256 `c29e6dbf4979f5523762ba618c1848ca5f7a1156b22e6aaab2bc0103c71e160d`。
+  - `latest.yml`，380 字节，SHA-256 `ab0c79fac08c21078c53cc11f5ae2805ac1a7947ac9d09fb85e38831b6ea1701`。
+- 两个公开下载入口均以 HTTP 200 返回；未发布便携包、blockmap、源码 ZIP 或 hash 清单。
+
 ## 验收边界与已知限制
 
 - 取源依赖红果 App 接口与其服务端策略；本轮只修复可复现的客户端请求画像缺陷，不保证第三方接口长期可用。
