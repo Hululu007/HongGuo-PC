@@ -1,5 +1,23 @@
 # 自主开发变更记录
 
+## 2026-11-24 · 修复红果在线播放空响应（源码目标 6.28）
+
+**问题**：用户截图显示「我的剧库」在线播放提示 `App：播放接口空响应，可能是签名或设备鉴权问题`，播放器停在 `0:00 / 0:00`。本机对真实分集复现：播放模型接口返回 HTTP 200、0 字节。
+
+**取证方式**：固定同一匿名注册身份、同一分集、同一签名实现，只改一个变量做 A/B，共 4 组 + 5 个候选主机。结果：仅改 Medusa 字段 21（377→312）仍为空；仅换端点/画像仍为空；两者同时生效才返回约 22 KB 完整模型（`reading.snssdk.com`、`api5-normal-sinfonlineb.fqnovel.com` 等官方主机均可）。与上游红果 TV 0.16.14 issue #102 记录一致。
+
+**代码变更**：
+
+1. `src/native/app-source.js`：新增 `PLAYBACK_PROFILE`（7.4.5.32 / 74532 / update_64 / 25053RT47C / Android 16）与 `PLAYBACK_MODEL_UA`；`PLAYER_API` 改为 `https://reading.snssdk.com/novel/player/multi_video_model/preload/v1`，新增 `PLAYER_ALTERNATE_API` 作为阶梯第二跳；`video_tab` 请求复用同一画像与 UA。
+2. `src/native/app-source.js`：模型请求体改为 `dr_scene=preload`、`biz_param.device_level=2`。
+3. `src/native/playback-v5.js`：Medusa 明文 wire 字段 21 `377 → 312`，并注明 A/B 依据；签名算法与常量未动。
+4. `scripts/check-app-source.cjs`、`check-app-source-v5.cjs`、`check-app-source-recovery.cjs`：断言更新为新画像、端点、`dr_scene`/`device_level`、备用主机与 `video_tab` 画像。
+5. 版本登记升至 `6.28.0`；新增 `docs/release-6.28.md`。
+
+**验证**：`check-app-source` 14/14；`check-app-source-v5`、`check-app-source-recovery` 通过；`npm test` 单元 + 112 项平台检查通过（真实媒体解码 27/27）；随机 4 部真实剧集取源 1080P HEVC 成功，其中 2 集解密后前 90 帧与整集静音解码干净；全程静音、独立临时目录、仅删除本轮素材。
+
+**边界**：未做安装包级 GUI 长时播放/画中画/连播/自动删除验收；不保证第三方接口长期可用；未记录凭据、身份值、签名值或带签名媒体地址。
+
 ## 2026-11-23 · 下载队列健康快照（发行 6.27）
 
 **巡检结论**：下载队列状态此前只能从任务列表推断；并发槽位、自动重试倒计时和“必须人工处理”的失败混在一起，长时间批量下载时用户难以判断程序是否还在工作、还需不需要干预。对照 qBittorrent/aria2 的队列状态展示（[EV-005](UPGRADE_ROADMAP.md)），补一个可解释的快照。
@@ -11,7 +29,7 @@
 3. `src/components/DownloadManager.jsx`：状态条在只有自动重试或人工处理任务时也显示，并提示“磁盘、权限或来源问题不会自动重试”。
 4. `src/native/download-queue-health.test.cjs`（新）：2 项单测。
 
-**验证**：`node --test src/native/download-queue-health.test.cjs` 2/2 通过；`npm test` 单元测试与 111 项平台检查通过；`npm run build:react` 构建通过。
+**验证**：`node --test src/native/download-queue-health.test.cjs` 2/2 通过；`npm test` 单元测试与 112 项平台检查通过；`npm run build:react` 构建通过。
 
 **边界**：不改变任务持久化格式、重试策略、并发默认值和公开 IPC 字段；真实 GUI 状态条与真机长任务观察未在本轮做安装包级验收。
 
@@ -26,7 +44,7 @@
 3. `src/components/Settings.jsx`：新增「窗口」分类与「关闭时最小化到系统托盘」开关（保存后生效）。
 4. `scripts/check-close-to-tray.cjs`（新）+ `check-backend-lifecycle.cjs` 关闭契约更新 + `check-settings-search.cjs` 分类计数 12→13。
 
-**验证与发布**：全量 `npm test` 通过（单元 + 111 平台检查）；生产依赖官方 registry 审计 0 漏洞；版本回归扩至 6.25。标签 Test [44865673587](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673587)、Windows 候选 [44865673598](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673598)（含真实 1.80→6.25 安装器升级资料保留回执）、发布工作流 [44866645422](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44866645422) 均成功。安装器 146,467,517 字节，SHA-256 `05691b806f6eb61071ec10e98444324618d560e37171603d80c24045e15cc0d3`；`NotSigned`。
+**验证与发布**：全量 `npm test` 通过（单元 + 112 平台检查）；生产依赖官方 registry 审计 0 漏洞；版本回归扩至 6.25。标签 Test [44865673587](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673587)、Windows 候选 [44865673598](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44865673598)（含真实 1.80→6.25 安装器升级资料保留回执）、发布工作流 [44866645422](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/44866645422) 均成功。安装器 146,467,517 字节，SHA-256 `05691b806f6eb61071ec10e98444324618d560e37171603d80c24045e15cc0d3`；`NotSigned`。
 
 **验收边界**：托盘图标真实显示、单击恢复、右键退出无法无头验证，待用户安装后真机确认。
 

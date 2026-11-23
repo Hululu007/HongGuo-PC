@@ -1,0 +1,41 @@
+name: Playback source probe
+on:
+  schedule:
+    - cron: '23 20 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: playback-source-probe
+  cancel-in-progress: false
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Probe a random real episode without printing identities or media URLs
+        run: |
+          set -o pipefail
+          node scripts/diagnose-playback.cjs | tee playback-probe.json
+          node -e '
+            const report = require("./playback-probe.json");
+            if (!report.sourceAvailable) {
+              console.error(`Playback source unavailable: code=${report.code} routes=${JSON.stringify(report.routes)}`);
+              process.exit(1);
+            }
+            console.log(`Playback source OK: ${report.episodes} episodes, source in ${report.elapsedMs}ms`);
+          '
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: playback-probe
+          path: playback-probe.json
+          if-no-files-found: warn

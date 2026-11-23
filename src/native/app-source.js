@@ -21,10 +21,18 @@ let playbackQueue = Promise.resolve();
 let playbackReadyAt = 0;
 let playbackRejection = null;
 const VIDEO_API = 'https://api5-normal-sinfonlineb.fqnovel.com/novel/player/multi_video_model/v1/';
-const PLAYER_API = 'https://api5-normal-sinfonlineb.fqnovel.com/novel/player/multi_video_model/player/v1';
+const PLAYER_API = 'https://reading.snssdk.com/novel/player/multi_video_model/preload/v1';
+const PLAYER_ALTERNATE_API = 'https://api5-normal-sinfonlineb.fqnovel.com/novel/player/multi_video_model/preload/v1';
 const SEARCH_API = 'https://api5-normal-sinfonlinea.fqnovel.com/reading/bookapi/search/tab/v';
 const VIDEO_UA = 'com.phoenix.read/71332 (Linux; U; Android 16; zh_CN; 25053RT47C; Build/BP2A.250605.031.A3; Cronet/TTNetVersion:04657795 2026-01-23 QuicVersion:c67e9834 2025-09-08)';
 const SEARCH_UA = 'com.phoenix.read/72232 (Linux; U; Android 16; zh_CN; 25053RT47C; Build/BP2A.250605.031.A3)';
+const PLAYBACK_PROFILE = {
+    aid: '8662', app_name: 'novelread', version_code: '74532', version_name: '7.4.5.32',
+    update_version_code: '74532', manifest_version_code: '74532', os: 'android', ssmix: 'a',
+    channel: 'update_64', device_platform: 'android', device_type: '25053RT47C', device_brand: 'Redmi',
+    os_version: '16', os_api: '36', ac: 'wifi', language: 'zh', host_abi: 'arm64-v8a',
+};
+const PLAYBACK_MODEL_UA = 'com.phoenix.read/74532 (Linux; U; Android 16; zh_CN; 25053RT47C; Build/BP2A.250605.031.A3)';
 const DEVICE = {
     ac: 'wifi', channel: 'update_64', aid: '8662', app_name: 'novelread',
     version_code: '71332', version_name: '7.1.3.32', device_platform: 'android', os: 'android',
@@ -150,13 +158,12 @@ function playbackRequest(payload, identity, videoId = '', alternate = false) {
     // Sign the final query and actual gzip body; other API families retain their original signer.
     if (videoId) {
         const body = gzipSync(Buffer.from(payload));
-        const signed = signPlaybackV5({ base: alternate ? PLAYER_API.replace('sinfonlineb.', 'sinfonlinea.') : PLAYER_API,
-            values: { aid: '8662', app_name: 'novelread', version_code: '74332', version_name: '7.4.3.32',
-                channel: 'vivo_8662_64', device_platform: 'android', device_type: 'PGT-AN10', os_version: '12',
-                update_version_code: '74332', iid: identity.iid, cdid: identity.cdid, device_id: identity.device_id },
+        const signed = signPlaybackV5({ base: alternate ? PLAYER_ALTERNATE_API : PLAYER_API,
+            values: { ...PLAYBACK_PROFILE,
+                iid: identity.iid, cdid: identity.cdid, device_id: identity.device_id },
             body, now: Date.now() });
         return { ...signed, body, method: 'POST', headers: { ...signed.headers,
-            'User-Agent': 'com.phoenix.read/73932 (Linux; U; Android 12; zh_CN_#Hans; PGT-AN10; Build/V417IR;tt-ok/3.12.13.20)',
+            'User-Agent': PLAYBACK_MODEL_UA,
             Accept: 'application/json', 'Content-Type': 'application/json; charset=utf-8', 'Content-Encoding': 'gzip' } };
     }
     // Keep the legacy compatibility request in its original uncompressed form.
@@ -190,9 +197,7 @@ function videoTabRequest(identity, videoId) {
     const signed = signPlaybackV5({
         base: VIDEO_TAB_API,
         values: {
-            aid: '8662', app_name: 'novelread', version_code: '74332', version_name: '7.4.3.32',
-            channel: 'vivo_8662_64', device_platform: 'android', device_type: 'PGT-AN10',
-            os_version: '12', update_version_code: '74332',
+            ...PLAYBACK_PROFILE,
             iid: identity.iid, cdid: identity.cdid, device_id: identity.device_id,
             video_id: String(videoId), video_id_type: '0', device_level: '1',
             need_all_video_definition: '1', need_mp4_align: '0', use_os_player: '0',
@@ -202,7 +207,7 @@ function videoTabRequest(identity, videoId) {
         now: Date.now(),
     });
     return { url: signed.url, body: null, method: 'GET',
-        headers: { ...signed.headers, 'User-Agent': VIDEO_UA.replace(DEVICE.version_code, '73932'), Accept: 'application/json' } };
+        headers: { ...signed.headers, 'User-Agent': PLAYBACK_MODEL_UA, Accept: 'application/json' } };
 }
 
 function parseSearchInteger(value) {
@@ -454,9 +459,9 @@ async function fetchAppPlayUrl(vid, options = {}) {
 
 async function fetchAppPlayUrlFresh(vid, options) {
     const payload = JSON.stringify({
-        biz_param: { detail_page_version: 0, device_level: 1, disable_digg_stat: false, disable_video_relate_book: false, need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 1024 },
+        biz_param: { detail_page_version: 0, device_level: 2, disable_digg_stat: false, disable_video_relate_book: false, need_all_video_definition: true, need_mp4_align: false, use_os_player: false, use_server_dns: false, video_platform: 1024 },
         mixed_video_id_map: { '1004': [vid] },
-        dr_scene: 'player',
+        dr_scene: 'preload',
     });
     // Playback identities can be single-use; search/account retain their shared device.
     let identity = await registerPlaybackDevice(requestJson, { signal: options.signal });

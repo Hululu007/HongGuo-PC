@@ -41,18 +41,24 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
     assert.ok(config.signal);
     assert.equal(config.responseType, 'text');
     if (config.method === 'POST') {
-      const isV5 = config.url.includes('/novel/player/multi_video_model/player/v1?');
+      const isV5 = config.url.includes('/novel/player/multi_video_model/preload/v1?');
       assert.ok(isV5 || config.url.includes('/novel/player/multi_video_model/v1/?'), 'unexpected playback endpoint');
-      assert.match(config.headers['User-Agent'], isV5 ? /^com\.phoenix\.read\/73932 / : /^com\.phoenix\.read\/71532 /);
+      assert.match(config.headers['User-Agent'], isV5 ? /^com\.phoenix\.read\/74532 / : /^com\.phoenix\.read\/71532 /);
       const query = new URL(config.url).searchParams;
       const timestamp = Number(config.headers['x-khronos']);
       assert.equal(query.get('ts'), isV5 ? null : String(timestamp));
       assert.equal(query.get('_rticket'), config.headers['x-ss-req-ticket']);
+      if (isV5) {
+        assert.equal(query.get('version_code'), '74532', 'the current App profile replaces the rejected 7.4.3.32 request');
+        assert.equal(query.get('version_name'), '7.4.5.32');
+        assert.equal(query.get('device_type'), '25053RT47C');
+      }
       assert.ok(Buffer.isBuffer(config.data));
       const body = isV5
         ? JSON.parse(gunzipSync(config.data).toString('utf8'))
         : JSON.parse(config.data.toString('utf8'));
-      assert.equal(body.dr_scene, 'player');
+      assert.equal(body.dr_scene, isV5 ? 'preload' : 'player');
+      if (isV5) assert.equal(body.biz_param.device_level, 2);
       assert.equal(body.biz_param.disable_video_relate_book, false);
       assert.deepEqual(body.mixed_video_id_map['1004'], ['11']);
       if (isV5) {
@@ -69,7 +75,7 @@ function fixture({ wrongVid = false, fallback = 'https://vod.snssdk.com/info', m
       assert.equal(config.headers.Authorization, undefined);
       // Simulate an occasionally rejected playback identity: only the first
       // V5 request is empty; a freshly registered device on the retry succeeds.
-      if (tabEmpty && isV5 && calls.filter(call => String(call.url).includes('/player/v1?')).length === 1) {
+      if (tabEmpty && isV5 && calls.filter(call => String(call.url).includes('/preload/v1?')).length === 1) {
         return { status: 200, headers: {}, data: '' };
       }
       const model = { video_model: JSON.stringify({ fallback_api: fallback }) };
@@ -133,7 +139,7 @@ const checks = [
     await f.fetch('11');
     await f.fetch('11');
     await Promise.all([f.fetch('11'), f.fetch('11'), f.fetch('11')]);
-    const requests = f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/player/v1?'));
+    const requests = f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/preload/v1?'));
     assert.equal(requests.length, 5, 'one current V5 model request per lookup; no retry loop');
     for (const field of ['iid', 'device_id']) {
       const ids = requests.map(call => new URL(call.url).searchParams.get(field));
@@ -233,7 +239,7 @@ const checks = [
     const result = await f.fetch('11');
     assert.equal(result.source, 'app');
     assert.equal(f.registrations, 1, 'the ladder recovers inside one round, before renewing the playback identity');
-    assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/player/v1?')).length, 2,
+    assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/preload/v1?')).length, 2,
       'the empty V5 response is retried on the alternate official host');
     assert.equal(f.calls.filter(call => call.url.includes('/novel/player/multi_video_model/v1/?')).length, 0,
       'recovery stays on V5 and never downgrades to the legacy endpoint');
