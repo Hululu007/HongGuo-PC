@@ -58,7 +58,7 @@ test('online preparation returns actionable oversized error without caching byte
   const result = await h.handlers['prepare-online-play']({}, { vid: '11', seriesId: '1', prefetch: true });
   assert.equal(result.success, false);
   assert.equal(result.code, 'MEDIA_TOO_LARGE');
-  assert.match(result.error, /本集过大，请下载后播放/);
+  assert.match(result.error, /当前视频超出在线播放限制，请改用下载后播放/);
   assert.equal(h.run('onlineCache.size'), 0);
 });
 

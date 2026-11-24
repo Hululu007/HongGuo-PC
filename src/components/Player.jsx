@@ -23,6 +23,94 @@ const PREFETCH_RETRY_MS = 15 * 1000;
 const PREFETCH_AHEAD = 2;
 const AUTO_ONLINE_QUALITIES = ['1080p', '720p', 'auto'];
 const PLAYBACK_PREFERENCES_KEY = 'hongguo:playback-preferences';
+const PLAYBACK_SOURCES = new Set(['web', 'app', 'api', 'xifan', 'custom']);
+const PLAYBACK_STAGES = new Set(['source', 'media', 'decode', 'first-frame']);
+const PLAYBACK_ROUTE_STATUSES = new Set(['skipped', 'failed', 'address-found', 'media-failed', 'ready']);
+const PLAYBACK_CODES = new Set(['ACCOUNT_REQUIRED', 'ABORT_ERR', 'BUSINESS_REJECTED', 'DEVICE_REGISTRATION_FAILED',
+  'EMPTY_RESPONSE', 'ERR_CANCELED', 'ERR_NETWORK', 'ERR_WEB_MEDIA_ADDRESS', 'INVALID_RESPONSE',
+  'LOCAL_MEDIA_TOOL_ERROR', 'MEDIA_DECODE_ERROR', 'MEDIA_TOO_LARGE', 'MEDIA_TRANSFER_ERROR', 'MISSING_MODEL',
+  'NETWORK_ERROR', 'NO_COMPATIBLE_SOURCE', 'NO_PLAYABLE_SOURCE', 'PREVIEW_ONLY', 'QUALITY_UNAVAILABLE', 'TRANSCODE_FAILED',
+  'SECURITY_BLOCKED', 'SOURCE_REMOVED', 'SOURCE_UNAVAILABLE', 'TIMEOUT']);
+const PLAYBACK_SOURCE_LABELS = {
+  web: '官网公开播放', app: 'App 播放接口', api: '旧播放接口', xifan: '西饭来源',
+  custom: '自定义来源', unknown: '未知来源',
+};
+const PLAYBACK_STATUS_LABELS = {
+  skipped: '未尝试', failed: '失败', 'address-found': '已取得媒体地址',
+  'media-failed': '媒体读取失败', ready: '媒体可用',
+};
+const PLAYBACK_STAGE_LABELS = { source: '取源', media: '媒体读取', decode: '解码', 'first-frame': '首帧' };
+const PLAYBACK_CHECK_LABELS = { 'not-tested': '未确认', passed: '通过', failed: '失败' };
+const PLAYBACK_READ_LABELS = {
+  'not-requested': '尚未读取', partial: '已读取部分媒体', complete: '媒体读取完成',
+  failed: '读取失败', unknown: '未知',
+};
+const PLAYBACK_INITIALIZATION_LABELS = {
+  'not-required': '无需初始化', attempted: '已尝试', completed: '已完成', failed: '失败', unknown: '未知',
+};
+const PLAYBACK_ANONYMOUS_LABELS = {
+  'explicitly-allowed': '官网明确允许访客', 'request-accepted': '匿名请求已接受',
+  denied: '访客访问被拒绝', unknown: '未确认',
+};
+function normalizePlaybackDiagnostics(value) {
+  if (!value || typeof value !== 'object') return null;
+  const routes = (Array.isArray(value.routes) ? value.routes : []).flatMap(route => {
+    if (!route || typeof route !== 'object') return [];
+    const source = PLAYBACK_SOURCES.has(route.source) ? route.source : 'unknown';
+    const status = PLAYBACK_ROUTE_STATUSES.has(route.status) ? route.status : 'skipped';
+    const initialization = Object.hasOwn(PLAYBACK_INITIALIZATION_LABELS, route.initialization) ? route.initialization : 'unknown';
+    const anonymousAccess = Object.hasOwn(PLAYBACK_ANONYMOUS_LABELS, route.anonymousAccess) ? route.anonymousAccess : 'unknown';
+    const mediaRead = Object.hasOwn(PLAYBACK_READ_LABELS, route.mediaRead) ? route.mediaRead : 'not-requested';
+    const check = item => PLAYBACK_CHECK_LABELS[item] ? item : 'not-tested';
+    const code = PLAYBACK_CODES.has(route.code) || /^HTTP_[345]\d{2}$/.test(route.code || '') ? route.code : '';
+    return [{
+      source, attempted: route.attempted === true, status, initialization, anonymousAccess,
+      mediaAddress: route.mediaAddress === true, mediaRead,
+      mediaDecoded: check(route.mediaDecoded), firstFrame: check(route.firstFrame), code,
+    }];
+  });
+  const source = PLAYBACK_SOURCES.has(value.source) ? value.source
+    : routes.find(route => route.status === 'address-found' || route.status === 'ready')?.source || '';
+  const stage = PLAYBACK_STAGES.has(value.stage) ? value.stage : 'source';
+  const mediaRead = Object.hasOwn(PLAYBACK_READ_LABELS, value.mediaRead) ? value.mediaRead : 'not-requested';
+  const check = item => PLAYBACK_CHECK_LABELS[item] ? item : 'not-tested';
+  const code = PLAYBACK_CODES.has(value.code) || /^HTTP_[345]\d{2}$/.test(value.code || '') ? value.code : '';
+  return { stage, source, mediaRead, mediaDecoded: check(value.mediaDecoded), firstFrame: check(value.firstFrame), code, routes };
+}
+function updateRendererPlaybackDiagnostics(value, fields = {}, routeFields = {}) {
+  const current = normalizePlaybackDiagnostics(value);
+  if (!current) return current;
+  const routes = current.routes.slice();
+  let index = -1;
+  for (let i = routes.length - 1; i >= 0; i--) {
+    if (routes[i].source === current.source && routes[i].attempted && routes[i].status !== 'skipped') {
+      index = i;
+      break;
+    }
+  }
+  if (index >= 0) routes[index] = { ...routes[index], ...routeFields };
+  return normalizePlaybackDiagnostics({ ...current, ...fields, routes });
+}
+function playbackDiagnosticDetails(diagnostics) {
+  const value = normalizePlaybackDiagnostics(diagnostics);
+  if (!value) return null;
+  return <details className="player-diagnostics">
+    <summary>诊断详情</summary>
+    <div>阶段：{PLAYBACK_STAGE_LABELS[value.stage] || '取源'}</div>
+    {value.source && <div>当前来源：{PLAYBACK_SOURCE_LABELS[value.source] || PLAYBACK_SOURCE_LABELS.unknown}</div>}
+    <div>媒体读取：{PLAYBACK_READ_LABELS[value.mediaRead] || '未知'}</div>
+    <div>解码：{PLAYBACK_CHECK_LABELS[value.mediaDecoded] || '未确认'} · 首帧：{PLAYBACK_CHECK_LABELS[value.firstFrame] || '未确认'}</div>
+    {value.code && <div>状态码：{value.code}</div>}
+    {value.routes.length > 0 && <ul>
+      {value.routes.map((route, index) => <li key={`${route.source}-${index}`}>
+        {PLAYBACK_SOURCE_LABELS[route.source] || PLAYBACK_SOURCE_LABELS.unknown}：{PLAYBACK_STATUS_LABELS[route.status] || '未知'}
+        {' · 初始化：'}{PLAYBACK_INITIALIZATION_LABELS[route.initialization] || '未知'}
+        {' · 访客：'}{PLAYBACK_ANONYMOUS_LABELS[route.anonymousAccess] || '未确认'}
+        {' · 媒体地址：'}{route.mediaAddress ? '已取得' : '未取得'}
+      </li>)}
+    </ul>}
+  </details>;
+}
 const readPlaybackPreferences = () => {
   let saved;
   try { saved = JSON.parse(window.localStorage.getItem(PLAYBACK_PREFERENCES_KEY)); } catch {}
@@ -121,6 +209,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
   const [compatError, setCompatError] = useState('');
   const [decodeFailed, setDecodeFailed] = useState(false);    // 当前集解不出画面
   const [playbackError, setPlaybackError] = useState('');
+  const [playbackDiagnostics, setPlaybackDiagnostics] = useState(null);
   const [playbackVersion, setPlaybackVersion] = useState(0);
   const [playbackRequested, setPlaybackRequested] = useState(false);
   const [compatCache, setCompatCache] = useState({ files: 0, bytes: 0 });
@@ -182,6 +271,9 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
   const fallbackRef = useRef(null);
   const fallbackAttemptRef = useRef(null);
   const rejectedLocalRef = useRef(null);
+  const updatePlaybackDiagnostics = useCallback((fields = {}, routeFields = {}) => {
+    setPlaybackDiagnostics(previous => updateRendererPlaybackDiagnostics(previous, fields, routeFields));
+  }, []);
 
   const holdVideoFrame = useCallback(() => {
     const media = loadedMediaRef.current;
@@ -291,6 +383,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     setDecodeFailed(false);
     setCompatError('');
     setPlaybackError('');
+    setPlaybackDiagnostics(null);
     lastSavedRef.current = 0;
   }, [persistPosition, holdVideoFrame, releaseOnline, cancelCompat, releasePrefetch]);
 
@@ -390,10 +483,11 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     && intent.selection === selectionVersion.current && intent.media === mediaVersion.current
     && intent.seriesId === selectedSeriesRef.current && intent.vidIndex === stateRef.current.currentIndex, []);
 
-  const recoverOnlineFailure = useCallback(async (ep, message) => {
+  const recoverOnlineFailure = useCallback(async (ep, message, diagnostics = null) => {
     const seekTo = currentPosition();
     const autoplay = loadedMediaRef.current ? !loadedMediaRef.current.element.paused : pendingAutoplayRef.current;
     resetPlayback(autoplay);
+    if (diagnostics) setPlaybackDiagnostics(normalizePlaybackDiagnostics(diagnostics));
     pendingSeekRef.current = seekTo;
     const intent = { seriesId: selectedSeriesRef.current, vidIndex: ep.vid_index, vid: ep.vid,
       selection: selectionVersion.current, media: mediaVersion.current, seekTo, autoplay, submitting: true };
@@ -430,7 +524,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
       if (!isCurrentFallback(intent)) return;
       intent.submitting = false;
       fallbackRef.current = null;
-      setWaitingFor(null); setPlaybackError(`${message}；${error.message}`);
+      setWaitingFor(null); setPlaybackError(`${message}；备用下载任务未能提交，请稍后在下载管理中查看或重试。`);
     }
   }, [currentPosition, resetPlayback, loadDetail, isCurrentFallback, usableLocal, resumeLocal]);
 
@@ -588,6 +682,16 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     });
   }, []);
 
+  useEffect(() => {
+    if (!window.electronAPI.onOnlinePlayDiagnostics) return undefined;
+    return window.electronAPI.onOnlinePlayDiagnostics(data => {
+      const request = onlineRequestRef.current;
+      if (!request || !request.prepared
+        || data.requestId !== request.requestId || data.streamId !== request.streamId) return;
+      setPlaybackDiagnostics(normalizePlaybackDiagnostics(data.diagnostics));
+    });
+  }, []);
+
   // 事件合并后才核对文件；等待下载本身不触发磁盘扫描。
   useEffect(() => {
     if (!activeSeriesId || !playbackActive) return;
@@ -724,6 +828,18 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
     };
   }, [holdingFrame, loading, canPlay, videoSrc, playbackVersion]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !canPlay || !isOnlinePlaying || videoSrc !== onlineUrl
+      || playbackVersion !== mediaVersion.current || !video.requestVideoFrameCallback) return undefined;
+    const version = playbackVersion;
+    const frame = video.requestVideoFrameCallback(() => {
+      if (version !== mediaVersion.current || videoRef.current !== video || video.currentSrc !== videoSrc) return;
+      updatePlaybackDiagnostics({ stage: 'first-frame', firstFrame: 'passed' }, { status: 'ready', firstFrame: 'passed' });
+    });
+    return () => video.cancelVideoFrameCallback?.(frame);
+  }, [canPlay, isOnlinePlaying, onlineUrl, videoSrc, playbackVersion, updatePlaybackDiagnostics]);
+
   // 缓冲遮罩只在 canplay/playing 时清除；长时间无响应时提示并给出重试入口，避免用户只能取消。
   useEffect(() => {
     if (!mediaBuffering) { setBufferingHint(false); return; }
@@ -784,27 +900,38 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
           setCompatProgress(null);
           if (res?.code === 'MEDIA_TOO_LARGE') showToast(res.error, 'error');
           if (autoCompat && !res?.cancelled && reconnectOnce()) return;
-          const message = (res && res.error) || '转码失败';
+          const message = '本机未能生成兼容视频，请重新连接片源或稍后重试。';
+          const diagnostics = playbackDiagnostics
+            ? updateRendererPlaybackDiagnostics(playbackDiagnostics, { stage: 'decode', mediaDecoded: 'failed', code: 'TRANSCODE_FAILED' },
+              { status: 'media-failed', mediaDecoded: 'failed', code: 'TRANSCODE_FAILED' })
+            : normalizePlaybackDiagnostics({ stage: 'decode', mediaDecoded: 'failed', code: 'TRANSCODE_FAILED' });
           if (!res?.cancelled && onlineSourceRef.current === `${activeSeriesId}:${vidIndex}`) {
-            await recoverOnlineFailure(ep, message);
+            await recoverOnlineFailure(ep, message, diagnostics);
             return;
           }
           setDecodeFailed(true);
+          setPlaybackDiagnostics(diagnostics);
           setCompatError(message);
           showToast(message, 'error');
         }
-      } catch (e) {
+      } catch {
         if (compatRequestRef.current !== request || request.version !== mediaVersion.current) return;
         compatRequestRef.current = null;
         setCompatProgress(null);
         if (autoCompat && reconnectOnce()) return;
+        const message = '本机未能生成兼容视频，请重新连接片源或稍后重试。';
+        const diagnostics = playbackDiagnostics
+          ? updateRendererPlaybackDiagnostics(playbackDiagnostics, { stage: 'decode', mediaDecoded: 'failed', code: 'TRANSCODE_FAILED' },
+            { status: 'media-failed', mediaDecoded: 'failed', code: 'TRANSCODE_FAILED' })
+          : normalizePlaybackDiagnostics({ stage: 'decode', mediaDecoded: 'failed', code: 'TRANSCODE_FAILED' });
         if (onlineSourceRef.current === `${activeSeriesId}:${vidIndex}`) {
-          await recoverOnlineFailure(ep, '转码异常: ' + e.message);
+          await recoverOnlineFailure(ep, message, diagnostics);
           return;
         }
         setDecodeFailed(true);
-        setCompatError('转码异常: ' + e.message);
-        showToast('转码异常: ' + e.message, 'error');
+        setPlaybackDiagnostics(diagnostics);
+        setCompatError(message);
+        showToast(message, 'error');
       }
     },
     [episodes, activeSeriesId, onlineQuality, autoCompat, reconnectOnce, showToast, currentPosition, persistPosition, holdVideoFrame, recoverOnlineFailure]
@@ -936,12 +1063,13 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         }
         if (!res || !res.success) {
           if (res?.code === 'MEDIA_TOO_LARGE') showToast(res.error, 'error');
-          await recoverOnlineFailure(ep, (res && res.error) || '在线播放准备失败');
+          await recoverOnlineFailure(ep, (res && res.error) || '当前内容暂时无法播放，请稍后重试。', res?.diagnostics);
           return;
         }
         request.streamId = res.streamId;
         request.codec = res.codec;
         request.prepared = true;
+        setPlaybackDiagnostics(normalizePlaybackDiagnostics(res.diagnostics));
         if (!usedPrefetch && !res.cached) setMediaBuffering(true);
         setOnlineUrl(res.url);
         setOnlineProgress(null);
@@ -949,7 +1077,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
         refreshOnlineCacheInfo();
       } catch (e) {
         if (onlineRequestRef.current !== request) return;
-        await recoverOnlineFailure(ep, '在线播放失败: ' + e.message);
+        await recoverOnlineFailure(ep, '当前内容暂时无法播放，请稍后重试。');
       }
     },
     [episodes, activeSeriesId, showToast, refreshOnlineCacheInfo, resetPlayback, releaseOnline, currentPosition, recoverOnlineFailure, prunePrefetchAfter]
@@ -1845,6 +1973,24 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               }, 300);
             }}
             onLoadedMetadata={handleMetadata}
+            onProgress={(event) => {
+              const v = event.currentTarget;
+              if (!canPlay || playbackVersion !== mediaVersion.current || (v.currentSrc && v.currentSrc !== videoSrc)) return;
+              if (v.buffered?.length && v.buffered.end(v.buffered.length - 1) > 0) {
+                updatePlaybackDiagnostics({ stage: 'media', mediaRead: 'partial' }, { status: 'ready', mediaRead: 'partial' });
+              }
+            }}
+            onLoadedData={(event) => {
+              const v = event.currentTarget;
+              if (!canPlay || playbackVersion !== mediaVersion.current || (v.currentSrc && v.currentSrc !== videoSrc)) return;
+              updatePlaybackDiagnostics({
+                stage: 'decode', mediaRead: 'partial',
+                ...(v.videoWidth > 0 && v.videoHeight > 0 ? { mediaDecoded: 'passed' } : {}),
+              }, {
+                status: 'ready', mediaRead: 'partial',
+                ...(v.videoWidth > 0 && v.videoHeight > 0 ? { mediaDecoded: 'passed' } : {}),
+              });
+            }}
             onTimeUpdate={prepareNextEpisode}
             onPlay={(event) => {
               const media = loadedMediaRef.current;
@@ -1877,6 +2023,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               if (videoRef.current && event.currentTarget !== videoRef.current) return;
               if (event.currentTarget.currentSrc && event.currentTarget.currentSrc !== videoSrc) return;
               const errorCode = event.currentTarget.error?.code;
+              const diagnosticsBeforeError = playbackDiagnostics;
               // Chromium also reports an unavailable HTTP stream as unsupported source (4).
               const unavailableOnline = errorCode === 4 && videoSrc === onlineUrl;
               if (unavailableOnline && reconnectOnce()) return;
@@ -1890,6 +2037,16 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
               if (!failedDecode) {
                 const seekTo = currentPosition(); resetPlayback(); pendingSeekRef.current = seekTo;
                 setPlaybackError('视频加载失败，请重试本集或检查网络');
+              }
+              if (isOnlinePlaying) {
+                const code = failedDecode ? 'MEDIA_DECODE_ERROR' : errorCode === 2 ? 'NETWORK_ERROR' : 'MEDIA_TRANSFER_ERROR';
+                const fields = {
+                  stage: failedDecode ? 'decode' : 'media',
+                  ...(failedDecode ? { mediaDecoded: 'failed' } : {}),
+                  code,
+                };
+                const routeFields = { status: 'media-failed', ...(failedDecode ? { mediaDecoded: 'failed' } : {}), code };
+                setPlaybackDiagnostics(updateRendererPlaybackDiagnostics(diagnosticsBeforeError, fields, routeFields));
               }
               setMediaBuffering(false);
               setDecodeFailed(failedDecode);
@@ -1928,7 +2085,9 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
                 <button className="btn btn-primary" onClick={retryPlayback}>{current?.status === 'completed' ? '重试本集' : '重试本集（在线播放）'}</button>
                 {current?.vid && <button className="btn btn-outline" onClick={() => startOnlinePlay(currentIndex, undefined, true)}>重新连接片源</button>}
                 {current?.vid && !current.locked && (decodeFailed || current?.status === 'completed') && !fallbackRef.current?.submitting && <button className="btn btn-outline" onClick={() => startCompatPlay(currentIndex, true)}>转码后播放</button>}
-              </div></>
+              </div>
+              {playbackDiagnosticDetails(playbackDiagnostics)}
+              </>
             ) : onlineProgress && onlineProgress.vid && (!current || current.vid === onlineProgress.vid) ? (
               <>
                 <RefreshCw size={30} className="spin" />
@@ -2032,6 +2191,7 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
             <span className="compat-overlay-sub" role={compatError ? 'alert' : undefined}>
               {compatError || '请先重新连接片源；若仍有画面或格式问题，可尝试转码为 H.264 兼容格式。'}
             </span>
+            {playbackDiagnosticDetails(playbackDiagnostics)}
             <div className="player-placeholder-actions">
               <button className="btn btn-primary" onClick={retryPlayback}>重试本集</button>
               <button className="btn btn-outline" onClick={() => startOnlinePlay(currentIndex, undefined, true)}>重新连接片源</button>
@@ -2059,6 +2219,9 @@ function Player({ target, onNavigate, onSeriesSelected, onFloatingChange, active
           <span className={`player-now-status status-${current.status}`}>
             {current.locked ? '锁定' : current.status === 'completed' ? '可播放' : current.status === 'downloading' ? `下载中 ${current.progress || 0}%` : current.status === 'pending' ? '排队中' : '未下载'}
           </span>
+          {canPlay && isOnlinePlaying && playbackDiagnostics?.source && (
+            <span className="player-now-source">来源：{PLAYBACK_SOURCE_LABELS[playbackDiagnostics.source] || PLAYBACK_SOURCE_LABELS.unknown}</span>
+          )}
         </div>
       )}
 

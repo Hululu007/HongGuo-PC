@@ -107,10 +107,12 @@ const checks = [
     const f = routeFixture();
     for (const vid of ['11', 'xifan:11']) {
       const result = await f.fetchPlayUrlSingle(vid, '1', { quality: '4k' });
-      assert.equal(result.url, null); assert.match(result.error, /清晰度/);
+      assert.equal(result.url, null);
+      assert.equal(result.error, '当前内容暂时无法播放，请稍后重试。');
     }
     const removed = await f.fetchPlayUrlSingle('hema:11', 'hema:1', { quality: '1080p' });
-    assert.equal(removed.url, null); assert.match(removed.error, /河马来源已移除/);
+    assert.equal(removed.url, null); assert.equal(removed.error, '该来源已移除，无法继续播放。');
+    assert.equal(removed.code, 'SOURCE_REMOVED');
     assert.equal(f.calls.length, 0);
   }],
   ['quality caches are separate, force refresh is confined to its tier', async () => {
@@ -129,7 +131,9 @@ const checks = [
   ['explicit App failure returns no URL and never silently falls back to web', async () => {
     const f = routeFixture(true);
     const result = await f.fetchPlayUrlSingle('11', '1', { quality: '1080p' });
-    assert.equal(result.url, null); assert.match(result.error, /清晰度/); assert.deepEqual(f.calls, ['1080p']);
+    assert.equal(result.url, null);
+    assert.equal(result.error, '当前内容暂时无法播放，请稍后重试。');
+    assert.deepEqual(f.calls, ['1080p']);
   }],
   ['third-party source keeps its authorized URL for later local resolution check', async () => {
     const f = routeFixture();

@@ -69,7 +69,7 @@ function fixture({ prepare, transcode, enqueue, quality = '720p', initial = 'mis
     } });
     await f.ui.flush();
     assert.equal(f.states.get('A:1'), 'missing');
-    assert(f.ui.text().includes('任务提交失败'));
+    assert(f.ui.text().includes('备用下载任务未能提交'));
     await f.ui.button('重试本集').props.onClick(); await f.ui.flush();
     assert.equal(f.downloads.length, 2, 'explicit retry must reach the download API after an unsuccessful submission');
     assert(f.ui.button('取消等待'));

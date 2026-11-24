@@ -85,6 +85,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('online-play-progress', listener);
     return () => ipcRenderer.removeListener('online-play-progress', listener);
   },
+  onOnlinePlayDiagnostics: cb => {
+    const listener = (_event, data) => cb(data);
+    ipcRenderer.on('online-play-diagnostics', listener);
+    return () => ipcRenderer.removeListener('online-play-diagnostics', listener);
+  },
 
   // 兼容模式（HEVC -> H.264 转码，解决「黑屏有声」）
   transcodeForPlayback: (payload) => ipcRenderer.invoke('transcode-for-playback', payload),

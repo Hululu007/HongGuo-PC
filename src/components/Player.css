@@ -422,6 +422,20 @@
   color: #8a8f99;
 }
 
+.player-diagnostics {
+  width: min(100%, 520px);
+  max-height: 30%;
+  overflow: auto;
+  color: #c9ccd1;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+}
+.player-diagnostics summary { cursor: pointer; color: #aeb4bd; text-align: center; }
+.player-diagnostics > div { overflow-wrap: anywhere; }
+.player-diagnostics ul { margin: 6px 0 0; padding-left: 18px; }
+.player-now-source { flex-basis: 100%; color: var(--text-secondary); font-size: 12px; }
+
 /* 深色占位区里的描边按钮：默认深色文字在深底上不可见，这里改用浅色 */
 .player-placeholder .btn-outline {
   color: #e8eaed;

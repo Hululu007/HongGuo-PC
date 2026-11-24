@@ -16,6 +16,7 @@ function mount({ local = false, localIndexes = [], localQuality, saved = null, t
   props = { setEpisodesOpen() {}, ...((local || saved) ? { target: { seriesId, resume: true, ts: 1 } } : {}), ...props };
   const slots = [], effects = [], cleanups = [], saves = [], prepares = [], transcodes = [], cancelled = [];
   const releases = [], settingsSaved = [], historyListeners = new Set();
+  const playbackDiagnosticListeners = new Set();
   const events = new Map(), mediaEvents = new Map(), timers = new Map();
   const listenerOptions = new Map(), mediaCalls = { play: 0, pause: 0 };
   const documentEvents = new Map();
@@ -29,9 +30,10 @@ function mount({ local = false, localIndexes = [], localQuality, saved = null, t
   const scrollArea = { scrollTop: 360 };
   const stage = { ownerDocument: document, closest: selector => selector === '.main-content' ? scrollArea : null,
     requestFullscreen: async () => { document.fullscreenElement = stage; scrollArea.scrollTop = 0; documentEvents.get('fullscreenchange')?.(); } };
-  let cursor = 0, tree, timerId = 0, oldSrc = '', oldKey;
+  let cursor = 0, tree, timerId = 0, frameId = 0, oldSrc = '', oldKey;
+  const frameCallbacks = new Map();
   let transcodeProgress;
-  const media = { currentTime: 0, duration: 100, readyState: 0, videoWidth: 640, paused: false,
+  const media = { currentTime: 0, duration: 100, readyState: 0, videoWidth: 640, videoHeight: 360, paused: false,
     play: async () => {
       mediaCalls.play++;
       media.paused = false;
@@ -40,6 +42,8 @@ function mount({ local = false, localIndexes = [], localQuality, saved = null, t
       if (!media.paused) video?.props.onPlaying?.({ currentTarget: media });
     }, pause: () => { mediaCalls.pause++; media.paused = true; },
     focus: () => { document.activeElement = media; },
+    requestVideoFrameCallback: callback => { const id = ++frameId; frameCallbacks.set(id, callback); return id; },
+    cancelVideoFrameCallback: id => frameCallbacks.delete(id),
     removeAttribute: name => { if (name === 'src') media.src = ''; },
     load: () => { media.currentTime = 0; media.readyState = 0; media.currentSrc = ''; media.paused = true; },
     addEventListener: (name, fn) => mediaEvents.set(name, fn), removeEventListener: name => mediaEvents.delete(name) };
@@ -66,6 +70,10 @@ function mount({ local = false, localIndexes = [], localQuality, saved = null, t
     savePlaybackPosition: async (...args) => saves.push(args),
     onWatchHistoryUpdated: listener => { historyListeners.add(listener); return () => historyListeners.delete(listener); },
     prepareOnlinePlay: async p => { prepares.push(p); return prepare ? prepare(p) : { success: true, url: `hongguo-stream://mock-${prepares.length}` }; },
+    onOnlinePlayDiagnostics: listener => {
+      playbackDiagnosticListeners.add(listener);
+      return () => playbackDiagnosticListeners.delete(listener);
+    },
     transcodeForPlayback: async p => { transcodes.push(p); return transcode ? transcode(p) : { success: true, url: 'file:///mock-compat.mp4' }; },
     cancelTranscodeForPlayback: async p => cancelled.push(p),
     onTranscodeProgress: fn => { transcodeProgress = fn; return () => { transcodeProgress = null; }; },
@@ -120,7 +128,16 @@ function mount({ local = false, localIndexes = [], localQuality, saved = null, t
   return { props, render, flush, find, media, metadata, saves, prepares, transcodes, cancelled, events, timers, listenerOptions, mediaCalls, document, dispatchKey,
     releases, settingsSaved, stage, scrollArea, mediaEvents,
     text: () => text(tree),
+    presentFrame: () => {
+      const first = frameCallbacks.entries().next().value;
+      if (!first) return false;
+      frameCallbacks.delete(first[0]);
+      first[1](0, { presentedFrames: 1 });
+      render();
+      return true;
+    },
     historyUpdated: payload => [...historyListeners].forEach(listener => listener(payload)),
+    onlinePlayDiagnostics: payload => [...playbackDiagnosticListeners].forEach(listener => listener(payload)),
     flushBatched: async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); render(); },
     transcodeProgress: payload => transcodeProgress?.(payload),
     button: label => find(n => n.type === 'button' && text(n).includes(label)),
@@ -139,6 +156,42 @@ if (require.main === module) (async () => {
   let failures = 0;
   const fixedPlayback = () => ({ storage: new Map([['hongguo:online-quality', '1080p']]), localQuality: '1080p' });
   const test = async (name, fn) => { if (process.argv[2] && !name.includes(process.argv[2])) return; try { await fn(); console.log(`PASS ${name}`); } catch (e) { failures++; console.error(`FAIL ${name}: ${e.stack}`); } };
+  await test('stream diagnostics update only the active prepared playback session', async () => {
+    const ui = mount({
+      props: { target: { seriesId: 'A', vidIndex: 1, ts: 1 } },
+      prepare: async () => ({
+        success: true,
+        url: 'hongguo-stream://active',
+        streamId: 'active-stream',
+        diagnostics: { source: 'app', stage: 'source' },
+      }),
+    });
+    await ui.flush();
+    assert.ok(ui.text().includes('来源：App 播放接口'));
+    const requestId = ui.prepares[0].requestId;
+
+    ui.onlinePlayDiagnostics({
+      requestId: 'stale-request', streamId: 'active-stream',
+      diagnostics: { source: 'web', stage: 'media' },
+    });
+    await ui.flush();
+    assert.ok(ui.text().includes('来源：App 播放接口'));
+
+    ui.onlinePlayDiagnostics({
+      requestId, streamId: 'stale-stream',
+      diagnostics: { source: 'web', stage: 'media' },
+    });
+    await ui.flush();
+    assert.ok(ui.text().includes('来源：App 播放接口'));
+
+    ui.onlinePlayDiagnostics({
+      requestId, streamId: 'active-stream',
+      diagnostics: { source: 'web', stage: 'media', mediaRead: 'partial' },
+    });
+    await ui.flush();
+    assert.ok(ui.text().includes('来源：官网公开播放'));
+    ui.unmount();
+  });
   await test('removed history stays removed through hidden player unload and new playback can record again', async () => {
     for (const resume of [false, true]) {
       const ui = mount({ local: true }); await ui.flush(); ui.metadata();
@@ -263,7 +316,8 @@ if (require.main === module) (async () => {
     assert.equal(ui.transcodes.length, 0);
     await ui.button('转码后播放').props.onClick(); await ui.flush();
     assert.equal(ui.transcodes[0].force, true, 'explicit retry must not reuse a failed cache');
-    assert.ok(ui.find(n => n.props.role === 'alert' && n.children.includes('software conversion failed')), 'retain diagnostic message after toast expires');
+    assert.match(ui.text(), /本机未能生成兼容视频/, 'retain friendly failure text after toast expires');
+    assert.doesNotMatch(ui.text(), /software conversion failed/);
     ui.error(3); await ui.flush(); assert.equal(ui.transcodes.length, 1);
     ui.unmount();
   });
