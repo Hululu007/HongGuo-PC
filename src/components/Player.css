@@ -780,7 +780,7 @@
 .player-stage:fullscreen { border-radius: 0; box-shadow: none; }
 
 /* 标题层级：剧集名是页面主标题 */
-.player-series-name { font-size: 26px; font-weight: 700; letter-spacing: -.02em; color: var(--text-primary); }
+.player-series-name { font-size: 26px; font-weight: 700; letter-spacing: 0; color: var(--text-primary); }
 .player-series-label { text-transform: none; }
 
 /* 当前集信息条：更轻的分隔 */
@@ -806,7 +806,7 @@
 
 /* 管理区：去卡片化，贴合现有页面语言 */
 .player-management { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: transparent; padding-top: 18px; }
-.player-management h3 { font-weight: 650; letter-spacing: -.01em; }
+.player-management h3 { font-weight: 650; letter-spacing: 0; }
 
 /* 倍速提示浮层 */
 .player-rate-notice { border-radius: 10px; backdrop-filter: blur(8px); }
@@ -830,6 +830,78 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, .6), 0 0 14px rgba(36, 223, 255, .25);
   color: #24dfff !important;
   font-weight: 700;
-  letter-spacing: .05em;
+  letter-spacing: 0;
+}
+
+/* RED CINEMA: keep the picture dominant and the surrounding chrome quiet. */
+.player-stage {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.player-stage:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.player-stage:fullscreen,
+.player-stage.player-window-fill {
+  border: 0;
+  box-shadow: none;
+}
+
+.player-series-name {
+  color: var(--text-primary);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+
+.series-picker {
+  border-color: var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.series-row.active {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.player-now-status {
+  border-radius: var(--radius-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.ep-chip,
+.layout-portrait .ep-chip {
+  border-radius: var(--radius-sm);
+}
+
+.ep-current {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+.player-confirm {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.player-management {
+  scroll-margin-block: 20px;
+}
+
+:root[data-theme="dark"] .player-stage:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 620px) {
+  .player-now { gap: 8px; }
+  .player-confirm-mask { padding: 12px; }
 }
 

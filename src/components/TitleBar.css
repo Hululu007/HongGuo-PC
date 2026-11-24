@@ -80,7 +80,7 @@
 .titlebar-name {
   font-size: 12.5px;
   font-weight: 650;
-  letter-spacing: .05em;
+  letter-spacing: 0;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -121,7 +121,7 @@
   color: var(--info);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: -.04em;
+  letter-spacing: 0;
 }
 
 .titlebar-community:hover {
@@ -156,4 +156,43 @@
   .titlebar { animation: none; }
   .titlebar::after { animation: none; display: none; }
   .titlebar-max svg { transition: none; }
+}
+
+/* Keep the draggable strip geometrically separate from native window controls. */
+.titlebar {
+  background: var(--bg-sidebar);
+  border-bottom-color: var(--border);
+  animation: none;
+}
+
+.titlebar::after {
+  display: none;
+}
+
+.titlebar-logo {
+  box-shadow: none;
+}
+
+.titlebar-btn {
+  color: var(--text-secondary);
+}
+
+.titlebar-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.titlebar-community,
+.titlebar-community:hover {
+  color: var(--accent-text);
+}
+
+.titlebar-community:hover {
+  background: var(--accent-soft);
+}
+
+.titlebar-close:hover {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: none;
 }
