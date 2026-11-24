@@ -181,7 +181,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     const large = hload(async () => ({ url: base + '/large' }));
     const result = await large.handlers['prepare-online-play']({}, { vid: 'large', prefetch: true });
     assert.equal(result.success, false);
-    assert.match(result.error, /过大/);
+    assert.match(result.error, /超出在线播放限制/);
     assert.equal(large.run('onlineCache.size'), 0);
   });
   await check('plain source returns before downloading a single byte', async () => {

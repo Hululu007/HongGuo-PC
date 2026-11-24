@@ -13,7 +13,7 @@ const source = path.resolve(__dirname, '../main.js');
 const req = createRequire(source);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function load(fetchPlayUrlSingle, overrides = {}) {
-  const handlers = {}, protocols = {}, app = new EventEmitter();
+  const handlers = {}, protocols = {}, rendererEvents = [], app = new EventEmitter();
   Object.assign(app, { getVersion: () => 'test', getPath: () => root, commandLine: { appendSwitch() {} }, requestSingleInstanceLock: () => true, whenReady: () => ({ then() {} }) });
   const electron = { app, ipcMain: { handle: (n, f) => handlers[n] = f }, protocol: { registerSchemesAsPrivileged() {}, handle: (n, f) => protocols[n] = f } };
   const native = { fetchPlayUrlSingle, UA: 'test', WEB_UA: 'browser-test', WEB_REFERER: 'https://hongguoduanju.com/', VIDEO_REFERER: 'https://example.com/', deriveKey: () => Buffer.alloc(16), decryptMp4Buffer: b => b };
@@ -23,8 +23,9 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     if (new URL(value).hostname === '127.0.0.1') return {};
     return mediaGuard.webMediaRequestOptions(value);
   } }, ...overrides };
-  const context = vm.createContext({ require: n => overrides[n] || (n === 'electron' ? electron : n === './src/native/hongguo' ? native : n === './src/store' ? { saveTasks() {}, getSettings: () => ({ root }) } : req(n)), __dirname: path.dirname(source), console: { log() {}, warn() {}, error() {} }, process, Buffer, URL, Response, Request, Headers, AbortController, setTimeout, clearTimeout });
+  const context = vm.createContext({ require: n => overrides[n] || (n === 'electron' ? electron : n === './src/native/hongguo' ? native : n === './src/store' ? { saveTasks() {}, getSettings: () => ({ root }) } : req(n)), __dirname: path.dirname(source), console: { log() {}, warn() {}, error() {} }, process, Buffer, URL, Response, Request, Headers, AbortController, rendererEvents, setTimeout, clearTimeout });
   vm.runInContext(fs.readFileSync(source, 'utf8'), context, { filename: source });
+  vm.runInContext('mainWindow = { webContents: { isDestroyed: () => false, send: (channel, payload) => rendererEvents.push({ channel, payload }) } }', context);
   require('./fixtures/trusted-ipc.cjs')(context, handlers);
   // These transport/decryption fixtures are synthetic; real media validity is checked separately.
   context.probeVideoInfo = async () => ({ w: 1080, h: 1920, duration: 12, codec: 'h264' });
@@ -32,17 +33,26 @@ function load(fetchPlayUrlSingle, overrides = {}) {
   context.resolveFfmpeg = () => '/fixture/ffprobe';
   context.registerStreamProtocol();
   context.registerLocalProtocol();
-  return { context, handlers, protocols, run: s => vm.runInContext(s, context) };
+  return { context, handlers, protocols, rendererEvents, run: s => vm.runInContext(s, context) };
 }
 
 (async () => {
   const hits = [];
+  let completeDelayedBody;
   const server = http.createServer((r, s) => {
     hits.push({url:r.url, headers:r.headers});
+    if (r.url === '/delayed') {
+      const bytes = Buffer.from('delayed-body');
+      s.writeHead(200, {'Content-Type':'video/mp4','Content-Length':bytes.length});
+      s.flushHeaders();
+      completeDelayedBody = () => s.end(bytes);
+      return;
+    }
     if (r.url.split('?')[0] === '/missing') { s.writeHead(404); s.end(); return; }
     if (r.url === '/unauthorized') { s.writeHead(401); s.end(); return; }
     if (r.url === '/forbidden') { s.writeHead(403); s.end(); return; }
     if (r.url === '/limited') { s.writeHead(429); s.end(); return; }
+    if (r.url === '/empty') { s.writeHead(200, {'Content-Length':'0'}); s.end(); return; }
     if (r.url === '/html') { s.setHeader('Content-Type','text/html'); s.end('bad'); return; }
     if (r.url === '/broken') { s.writeHead(200, {'Content-Length':'999'}); s.write('partial'); setTimeout(() => s.destroy(), 5); return; }
     if (r.url === '/race') {
@@ -86,7 +96,107 @@ function load(fetchPlayUrlSingle, overrides = {}) {
   await check('empty source stops playback preparation without another lookup',async()=>{
     let lookups=0; const h=harness(async()=>{lookups++;return {url:null,code:'SOURCE_UNAVAILABLE',sources:[{source:'app',code:'EMPTY_RESPONSE'}],error:'empty response'};});
     const p=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1'});
-    assert.equal(p.success,false); assert.match(p.error,/empty response/); assert.equal(lookups,1);
+    assert.equal(p.success,false); assert.equal(p.error,'当前内容暂时无法播放，请稍后重试。'); assert.equal(lookups,1);
+  });
+  await check('terminal media failure retains only the sanitized provider route',async()=>{
+    const h=harness(async()=>info('/ok','app'));
+    await assert.rejects(h.context.withMediaRecovery('11','1',{playInfo:info('/ok','app')},async()=>{
+      throw Object.assign(new Error('https://private.invalid/?token=secret'),{code:'LOCAL_MEDIA_TOOL_ERROR'});
+    }),error=>{
+      assert.equal(error.playbackDiagnostics.stage,'media');
+      assert.equal(error.playbackDiagnostics.routes[0].source,'app');
+      assert.equal(error.playbackDiagnostics.routes[0].status,'media-failed');
+      assert.equal(error.playbackDiagnostics.routes[0].code,'LOCAL_MEDIA_TOOL_ERROR');
+      assert.doesNotMatch(JSON.stringify(error.playbackDiagnostics),/private\.invalid|token=secret/);
+      return true;
+    });
+  });
+  await check('media refusal retains its route and safe HTTP status without provider fallback',async()=>{
+    for (const status of [401, 403, 429]) {
+      const vid='xifan:jiuzhou:1:11', sid='xifan:jiuzhou:1';
+      const h=harness(async()=>info('/unauthorized','app'));
+      await assert.rejects(h.context.withMediaRecovery(vid,sid,{playInfo:info(status===401?'/unauthorized':status===403?'/forbidden':'/limited','app')},
+        value=>h.context.requestMedia(value)),error=>{
+          assert.equal(error.playbackDiagnostics.stage,'media');
+          assert.equal(error.playbackDiagnostics.mediaRead,'failed');
+          assert.equal(error.playbackDiagnostics.routes.at(-1).status,'media-failed');
+          assert.equal(error.playbackDiagnostics.routes.at(-1).code,`HTTP_${status}`);
+          return true;
+        });
+    }
+  });
+  await check('stream diagnostics report full and ranged reads without exposing media URLs',async()=>{
+    const h=harness(async()=>info('/ok','app'));
+    const full=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-full'});
+    const fullResponse=await h.protocols['hongguo-stream'](new Request(full.url));
+    assert.equal(await fullResponse.text(),'complete-media');
+    const fullEvent=h.rendererEvents.filter(event=>event.channel==='online-play-diagnostics').at(-1);
+    assert.equal(fullEvent.payload.requestId,'diag-full');
+    assert.equal(fullEvent.payload.streamId,full.streamId);
+    assert.equal(fullEvent.payload.diagnostics.stage,'media');
+    assert.equal(fullEvent.payload.diagnostics.mediaRead,'complete');
+    assert.doesNotMatch(JSON.stringify(fullEvent),/127\.0\.0\.1|token=|secret|complete-media/);
+
+    h.rendererEvents.length=0;
+    const ranged=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-range'});
+    const rangedResponse=await h.protocols['hongguo-stream'](new Request(ranged.url,{headers:{Range:'bytes=2-5'}}));
+    assert.equal(await rangedResponse.text(),'mple');
+    const rangeEvent=h.rendererEvents.filter(event=>event.channel==='online-play-diagnostics').at(-1);
+    assert.equal(rangeEvent.payload.requestId,'diag-range');
+    assert.equal(rangeEvent.payload.streamId,ranged.streamId);
+    assert.equal(rangeEvent.payload.diagnostics.mediaRead,'partial');
+    assert.doesNotMatch(JSON.stringify(rangeEvent),/127\.0\.0\.1|token=|secret/);
+  });
+  await check('stream headers do not claim media bytes were read before the first chunk',async()=>{
+    const h=harness(async()=>info('/delayed','app'));
+    const prepared=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-delayed'});
+    const response=await h.protocols['hongguo-stream'](new Request(prepared.url));
+    const beforeBytes=h.rendererEvents.filter(event=>event.channel==='online-play-diagnostics').at(-1);
+    assert.equal(beforeBytes.payload.diagnostics.mediaRead,'not-requested');
+    assert.equal(beforeBytes.payload.diagnostics.routes.at(-1).status,'address-found');
+
+    completeDelayedBody();
+    assert.equal(await response.text(),'delayed-body');
+    const afterBytes=h.rendererEvents.filter(event=>event.channel==='online-play-diagnostics').at(-1);
+    assert.equal(afterBytes.payload.diagnostics.mediaRead,'complete');
+  });
+  await check('an empty HTTP 200 body is not reported as completed media',async()=>{
+    const h=harness(async()=>info('/empty','app'));
+    const prepared=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-empty'});
+    const response=await h.protocols['hongguo-stream'](new Request(prepared.url));
+    assert.equal(await response.text(),'');
+    const event=h.rendererEvents.filter(item=>item.channel==='online-play-diagnostics').at(-1);
+    assert.equal(event.payload.requestId,'diag-empty');
+    assert.equal(event.payload.diagnostics.mediaRead,'failed');
+    assert.equal(event.payload.diagnostics.routes.at(-1).code,'EMPTY_RESPONSE');
+  });
+  await check('interrupted stream body emits a sanitized failed-read diagnostic',async()=>{
+    const h=harness(async()=>info('/broken','app'));
+    const prepared=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-failed'});
+    const response=await h.protocols['hongguo-stream'](new Request(prepared.url));
+    await assert.rejects(response.text());
+    await sleep(10);
+    const event=h.rendererEvents.filter(item=>item.channel==='online-play-diagnostics').at(-1);
+    assert.equal(event.payload.requestId,'diag-failed');
+    assert.equal(event.payload.streamId,prepared.streamId);
+    assert.equal(event.payload.diagnostics.stage,'media');
+    assert.equal(event.payload.diagnostics.mediaRead,'failed');
+    assert.equal(event.payload.diagnostics.routes.at(-1).status,'media-failed');
+    assert.doesNotMatch(JSON.stringify(event),/127\.0\.0\.1|token=|secret/);
+  });
+  await check('playback IPC omits unrecognized and potentially sensitive error codes',async()=>{
+    const axios=async()=>{
+      throw Object.assign(new Error('https://private.invalid/?token=TOP_SECRET'),{code:'API_TOKEN:TOP_SECRET'});
+    };
+    axios.isCancel=()=>false;
+    const h=harness(async()=>({...info('/ok','app'),spadeA:'encrypted'}),{axios});
+    const result=await h.handlers['prepare-online-play']({}, {
+      vid:'11',seriesId:'1',requestId:'diag-unsafe-code',prefetch:true,
+    });
+    assert.equal(result.success,false);
+    assert.equal(result.code,undefined);
+    assert.doesNotMatch(JSON.stringify(result),/private\.invalid|TOP_SECRET|API_TOKEN/);
+    assert.equal(result.diagnostics.routes.at(-1).code,undefined);
   });
   await check('stream recovers before headers and preserves requested Range',async()=>{
     let lookups=0; const h=harness(async()=>++lookups===1?info('/missing','web'):info('/ok'));
@@ -189,7 +299,7 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     const result=await Promise.race([pending,sleep(2000).then(()=>({unbounded:true}))]);
     await h.handlers['release-online-play']({}, {requestId:'timeout'});await pending;
     assert.ok(deadlines.includes(30000),'source lookup must retain its 30-second deadline');
-    assert.ok(!result.unbounded,'source lookup never settled within its time budget');assert.equal(result.success,false);assert.match(result.error,/超时/);
+    assert.ok(!result.unbounded,'source lookup never settled within its time budget');assert.equal(result.success,false);assert.equal(result.error,'当前内容暂时无法播放，请稍后重试。');
   });
   await check('removed Hema IDs fail before any recovery lookup', async () => {
     const h = harness(async () => { throw new Error('unexpected provider request'); });

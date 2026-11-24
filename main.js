@@ -44,6 +44,7 @@ const { pipeline } = require('node:stream/promises');
 const { randomUUID, createHash } = require('node:crypto');
 
 const hongguo = require('./src/native/hongguo');
+const { safeCode, sanitizePlaybackDiagnostics, updatePlaybackRoute, playbackFailureMessage } = require('./src/native/playback-diagnostics');
 const { normalizeDownloadQuality, meetsDownloadQuality } = require('./src/native/download-quality');
 const { decryptInWorker } = require('./src/native/decrypt-worker.cjs');
 const store = require('./src/store');
@@ -3058,7 +3059,20 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
     : error?.mediaRetryable || error?.code === 'MEDIA_DECODE_ERROR'
       || ['ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE', 'ERR_BAD_RESPONSE', 'ERR_STREAM_PREMATURE_CLOSE', 'EAI_AGAIN'].includes(error?.code));
   const rounds = options.recover !== false && refreshable ? 3 : 1;
-  let lastError, decodeFailure, transfers = 0;
+  let lastError, decodeFailure, transfers = 0, playbackDiagnostics = null;
+  const reportDiagnostics = () => {
+    if (!playbackDiagnostics) return;
+    try { options.onDiagnostics?.(playbackDiagnostics); } catch (_) {}
+  };
+  const retainRouteHistory = value => sanitizePlaybackDiagnostics({
+    ...value,
+    routes: [...(playbackDiagnostics?.routes || []), ...(value?.routes || value?.sourceTrace || [])],
+  });
+  const attachDiagnostics = error => {
+    if (error && typeof error === 'object' && playbackDiagnostics) error.playbackDiagnostics = playbackDiagnostics;
+    reportDiagnostics();
+    return error;
+  };
   try {
     for (let round = 0; round < rounds; round++) {
       cancelled();
@@ -3074,13 +3088,28 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
           { quality: options.quality, allowLowerQuality: options.allowLowerQuality, force: options.force || round > 0 }), controller.signal, 30000);
       } catch (error) {
         cancelled();
+        if (error?.routeTrace) playbackDiagnostics = retainRouteHistory(sanitizePlaybackDiagnostics({
+          sourceTrace: error.routeTrace, stage: 'source', code: error.code,
+        }));
+        attachDiagnostics(error);
         if (!recoverable(error)) throw error;
         lastError = error;
         continue;
       }
       cancelled();
+      playbackDiagnostics = retainRouteHistory(sanitizePlaybackDiagnostics({
+        source: info?.source,
+        sourceTrace: info?.routeTrace,
+        stage: 'source',
+      }));
+      reportDiagnostics();
       if (!info?.url) {
         lastError = Object.assign(new Error(info?.error || '未获取到有效播放地址'), { code: info?.code, sources: info?.sources });
+        lastError.playbackDiagnostics = sanitizePlaybackDiagnostics({
+          source: info?.source, routes: playbackDiagnostics.routes, stage: 'source', code: info?.code,
+        });
+        playbackDiagnostics = lastError.playbackDiagnostics;
+        reportDiagnostics();
         if (!recoverable(lastError) || info?.locked) throw lastError;
         continue;
       }
@@ -3091,12 +3120,42 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
         seen.add(identity);
         cancelled();
         transfers++;
+        const candidateSource = candidate.source || info.source || 'unknown';
+        playbackDiagnostics = updatePlaybackRoute(playbackDiagnostics, candidateSource, {
+          status: 'address-found', mediaAddress: true, mediaRead: 'unknown',
+        }, { stage: 'media', source: candidateSource, mediaRead: 'unknown' });
+        reportDiagnostics();
         try {
           const value = await consume(candidate);
           cancelled();
+          const streaming = !!value?.playInfo;
+          const isResponse = typeof Response === 'function' && value instanceof Response;
+          const mediaRead = streaming || isResponse ? 'not-requested'
+            : Buffer.isBuffer(value) || value?.complete === true ? 'complete' : 'partial';
+          playbackDiagnostics = updatePlaybackRoute(playbackDiagnostics, candidateSource, {
+            status: streaming || isResponse ? 'address-found' : 'ready', mediaRead,
+          }, { stage: streaming ? 'source' : 'media', source: candidateSource,
+            mediaRead });
+          reportDiagnostics();
+          if (value && typeof value === 'object' && !Buffer.isBuffer(value)
+            && (Object.hasOwn(value, 'quality') || value.playInfo || value.complete === true)) {
+            value.playbackSource = candidateSource;
+            value.playbackDiagnostics = playbackDiagnostics;
+          }
           return value;
         } catch (error) {
           cancelled();
+          const status = Number(error?.mediaStatus || error?.status || error?.response?.status);
+          const failureCode = safeCode(error?.code) || (status >= 300 && status <= 599 ? `HTTP_${status}` : '');
+          const failedStage = error?.code === 'MEDIA_DECODE_ERROR' ? 'decode' : 'media';
+          playbackDiagnostics = updatePlaybackRoute(playbackDiagnostics, candidateSource, {
+            status: 'media-failed',
+            mediaRead: playbackDiagnostics?.mediaRead === 'partial' ? 'partial' : 'failed',
+            ...(error?.code === 'MEDIA_DECODE_ERROR' ? { mediaDecoded: 'failed' } : {}),
+            code: failureCode,
+          }, { stage: failedStage, source: candidateSource,
+            mediaRead: playbackDiagnostics?.mediaRead === 'partial' ? 'partial' : 'failed', code: failureCode });
+          attachDiagnostics(error);
           // A provider's explicit denial cannot be repaired by changing lines or quality.
           if (accessRefused(error)) throw error;
           // Local storage/security failures cannot be repaired by trying a lower-quality video.
@@ -3113,9 +3172,9 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
           if (!hongguoId && round === 0 && rounds > 1 && transfers >= 3) break;
         }
       }
-      if (decodeFailure) throw decodeFailure;
+      if (decodeFailure) throw attachDiagnostics(decodeFailure);
     }
-    throw lastError;
+    throw attachDiagnostics(lastError);
   } finally {
     options.signal?.removeEventListener('abort', abort);
     options.cancelToken?.unsubscribe(abort);
@@ -3177,9 +3236,18 @@ function registerStreamProtocol() {
     request.signal.addEventListener('abort', abort, { once: true });
     if (request.signal.aborted) abort();
     const cleanup = () => { session.requests.delete(controller); request.signal.removeEventListener('abort', abort); };
+    const publishPlaybackDiagnostics = diagnostics => {
+      entry.playbackDiagnostics = sanitizePlaybackDiagnostics(diagnostics);
+      sendToRenderer('online-play-diagnostics', {
+        requestId: session.requestId,
+        streamId: id,
+        diagnostics: entry.playbackDiagnostics,
+      });
+    };
     try {
       return await withMediaRecovery(session.vid, entry.seriesId,
-        { playInfo: entry.playInfo, quality: entry.quality, signal: controller.signal, recover: !session.mediaStarted }, async playInfo => {
+        { playInfo: entry.playInfo, quality: entry.quality, signal: controller.signal, recover: !session.mediaStarted,
+          onDiagnostics: publishPlaybackDiagnostics }, async playInfo => {
         const identity = JSON.stringify([playInfo.url, playInfo.contentKey, playInfo.spadeA]);
         const checkIdentity = () => {
           if (session.mediaStarted && session.mediaIdentity !== identity) throw new Error('片源已变化，请重新连接播放');
@@ -3216,10 +3284,6 @@ function registerStreamProtocol() {
           headers: range ? { Range: range } : {}, validateStatus: status => [200, 206, 416].includes(status) });
         try { checkIdentity(); } catch (error) { upstream.data.destroy(); throw error; }
         entry.playInfo = playInfo;
-        upstream.data.once('error', () => {
-          if (!controller.signal.aborted) hongguo.markWebMediaFailure?.(playInfo);
-        });
-        upstream.data.once('close', cleanup);
         const headers = { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store' };
         for (const name of ['content-length', 'content-range', 'accept-ranges']) {
           if (upstream.headers[name]) headers[name] = upstream.headers[name];
@@ -3229,6 +3293,51 @@ function registerStreamProtocol() {
           upstream.data.destroy(); cleanup();
           return new Response(null, { status: upstream.status, headers });
         }
+        const candidateSource = playInfo.source || entry.playbackSource || 'unknown';
+        const wholeResponse = request.method === 'GET' && (
+          upstream.status === 200 && !range
+          || upstream.status === 206 && (() => {
+            const match = /^bytes\s+0-(\d+)\/(\d+)$/i.exec(upstream.headers['content-range'] || '');
+            return !!match && Number(match[1]) + 1 >= Number(match[2]);
+          })()
+        );
+        let ended = false, transferSettled = false;
+        const recordMediaRead = (mediaRead, status, code) => {
+          if (transferSettled) return;
+          transferSettled = status === 'media-failed' || mediaRead === 'complete';
+          const diagnostic = updatePlaybackRoute(entry.playbackDiagnostics, candidateSource, {
+            status,
+            mediaRead,
+            ...(code ? { code } : {}),
+          }, {
+            stage: 'media',
+            source: candidateSource,
+            mediaRead,
+            ...(code ? { code } : {}),
+          });
+          publishPlaybackDiagnostics(diagnostic);
+        };
+        upstream.data.once('end', () => {
+          ended = true;
+          if (!upstream.data.readableDidRead) {
+            recordMediaRead('failed', 'media-failed', 'EMPTY_RESPONSE');
+          } else {
+            recordMediaRead(wholeResponse ? 'complete' : 'partial', 'ready');
+          }
+        });
+        upstream.data.once('error', error => {
+          if (controller.signal.aborted || ['ABORT_ERR', 'ERR_CANCELED'].includes(error?.code)) return;
+          const status = Number(error?.status || error?.response?.status);
+          const code = safeCode(error?.code) || (status >= 300 && status <= 599 ? `HTTP_${status}` : 'MEDIA_TRANSFER_ERROR');
+          recordMediaRead('failed', 'media-failed', code);
+          hongguo.markWebMediaFailure?.(playInfo);
+        });
+        upstream.data.once('close', () => {
+          cleanup();
+          if (!ended && !controller.signal.aborted) {
+            recordMediaRead('failed', 'media-failed', 'ERR_STREAM_PREMATURE_CLOSE');
+          }
+        });
         // Later requests must reconnect by playback time, never reuse offsets against a new rendition.
         session.mediaStarted = true;
         session.mediaIdentity = identity;
@@ -3497,11 +3606,22 @@ ipcMain.handle('prepare-online-play', async (event, payload) => {
     }
     if (!onlineSessions.has(streamId)) throw new Error('已取消播放');
     session.entry = { ...entry }; entry.lastUsed = Date.now();
+    const source = entry.playbackSource || entry.playInfo?.source || 'unknown';
     return { success: true, url: `${STREAM_SCHEME}://play/${streamId}`, streamId, size: entry.size,
-      cached, streaming: !!entry.playInfo, codec: entry.codec || '' };
+      cached, streaming: !!entry.playInfo, codec: entry.codec || '', source,
+      diagnostics: sanitizePlaybackDiagnostics({
+        ...(entry.playbackDiagnostics || {}),
+        source: entry.playbackDiagnostics?.source || source,
+        stage: entry.playbackDiagnostics?.stage || (entry.complete ? 'media' : 'source'),
+        mediaRead: entry.playbackDiagnostics?.mediaRead || (entry.complete ? 'complete' : 'not-requested'),
+      }) };
   } catch (error) {
     releaseOnlineSession(streamId);
-    return { success: false, error: error.message, code: error.code };
+    const diagnostics = error?.playbackDiagnostics || sanitizePlaybackDiagnostics({
+      sourceTrace: error?.routeTrace, stage: error?.code === 'MEDIA_DECODE_ERROR' ? 'decode' : 'source', code: error?.code,
+    });
+    const code = safeCode(error?.code);
+    return { success: false, error: playbackFailureMessage(error || {}), ...(code ? { code } : {}), diagnostics };
   }
 });
 
@@ -3802,6 +3922,12 @@ ipcMain.handle('cancel-transcode-for-playback', async (_event, payload = {}) => 
   }
   return { success: true };
 });
+function compatibilityFailureMessage(error = {}) {
+  if (error?.code === 'ERR_CANCELED') return '兼容转换已取消。';
+  if (error?.code === 'MEDIA_TOO_LARGE') return '当前视频超出在线播放限制，请改用下载后播放。';
+  if (error?.code === 'LOCAL_MEDIA_TOOL_ERROR') return '本机视频组件不可用，请修复安装后重试。';
+  return '本机未能生成兼容视频，请重新连接片源或稍后重试。';
+}
 ipcMain.handle('transcode-for-playback', async (event, payload = {}) => {
   if (!payload.seriesId || payload.vidIndex == null) return { success: false, error: '缺少剧集信息' };
   if (/^hema:/.test(String(payload.seriesId)) || /^hema:/.test(String(payload.vid || ''))) return { success: false, error: '河马来源已移除' };
@@ -3823,7 +3949,7 @@ ipcMain.handle('transcode-for-playback', async (event, payload = {}) => {
       if (clearing) await clearing;
       if (job.cancelled) return compatCancelled();
       return transcodeForPlayback(payload, job);
-    }).catch(error => ({ success: false, error: error.message })).finally(() => {
+    }).catch(error => ({ success: false, error: compatibilityFailureMessage(error), code: safeCode(error?.code) || 'TRANSCODE_FAILED' })).finally(() => {
       if (compatPreparing.get(key) === job) compatPreparing.delete(key);
     });
     compatPreparing.set(key, job);
@@ -3884,7 +4010,7 @@ async function transcodeForPlayback(payload, job = { controller: new AbortContro
 
     const ffmpegPath = resolveFfmpeg('ffmpeg');
     const ffprobePath = resolveFfmpeg('ffprobe');
-    if (!ffmpegPath) return { success: false, error: '未找到 ffmpeg，无法转码' };
+    if (!ffmpegPath) return { success: false, error: '本机视频组件不可用，请修复安装后重试。', code: 'LOCAL_MEDIA_TOOL_ERROR' };
 
     // 1) 优先本地原件；强制重建时跳过在线缓存，重新获取输入。
     let inputPath = filePath || null;
@@ -3991,7 +4117,7 @@ async function transcodeForPlayback(payload, job = { controller: new AbortContro
           encoder = 'libx264';
           continue;
         }
-        return { success: false, error: `软件转码失败（ffmpeg 退出码 ${code}）${tail ? '：' + tail : ''}` };
+        return { success: false, error: compatibilityFailureMessage({ code: 'TRANSCODE_FAILED' }), code: 'TRANSCODE_FAILED' };
       }
       break;
     }
@@ -4007,7 +4133,8 @@ async function transcodeForPlayback(payload, job = { controller: new AbortContro
   } catch (error) {
     if (signal.aborted) return compatCancelled();
     console.error('[Compat] 转码失败:', error.message);
-    return { success: false, error: error.message, code: error.code };
+    const code = safeCode(error?.code) || 'TRANSCODE_FAILED';
+    return { success: false, error: compatibilityFailureMessage({ code }), code };
   } finally {
     signal.removeEventListener('abort', abortPreparation);
     if (diskInput) { diskInput.disk.readers--; disposeOnlineDisk(diskInput); }

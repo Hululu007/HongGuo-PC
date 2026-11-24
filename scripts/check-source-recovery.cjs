@@ -58,8 +58,7 @@ const checks = [
       const f = load('hongguo.js', { './app-source': app });
       const result = await f.fetchPlayUrlSingle('11', '1', { quality });
       assert.equal(result.sources[0].code, 'QUALITY_UNAVAILABLE');
-      assert(result.error.includes(`满足 ${quality}`));
-      assert(result.error.includes('未降级'));
+      assert.equal(result.error, '当前所选清晰度暂不可用。');
     }
     const app = appFixture({ incompatible: { main_url: media('av1'), codec_type: 'av1', width: 1080, height: 1920 } });
     await assert.rejects(app.fetchAppPlayUrl('11'), error => error.code === 'NO_COMPATIBLE_SOURCE');
@@ -78,16 +77,16 @@ const checks = [
     }
   }],
   ['Registration failures retain safe details and remain retryable only for transient causes', async () => {
-    for (const [failure, expected, detail] of [
-      [{ code: 'ECONNRESET' }, 'NETWORK_ERROR', '网络连接失败'],
-      [{ code: 'ETIMEDOUT' }, 'TIMEOUT', '请求超时'],
-      [{ status: 503 }, 'HTTP_503', 'HTTP 503'],
-      [{ status: 403 }, 'HTTP_403', 'HTTP 403'],
-      [{ code: 'EMPTY_RESPONSE' }, 'DEVICE_REGISTRATION_FAILED', '空响应'],
-      [{ code: 'INVALID_RESPONSE' }, 'DEVICE_REGISTRATION_FAILED', '有效设备编号'],
-      [{ code: 'BUSINESS_REJECTED' }, 'DEVICE_REGISTRATION_FAILED', '拒绝注册'],
-      [{ code: 'SECURITY_BLOCKED' }, 'DEVICE_REGISTRATION_FAILED', '安全校验'],
-      [{ code: 'secret' }, 'DEVICE_REGISTRATION_FAILED', '10 秒后重试'],
+    for (const [failure, expected] of [
+      [{ code: 'ECONNRESET' }, 'NETWORK_ERROR'],
+      [{ code: 'ETIMEDOUT' }, 'TIMEOUT'],
+      [{ status: 503 }, 'HTTP_503'],
+      [{ status: 403 }, 'HTTP_403'],
+      [{ code: 'EMPTY_RESPONSE' }, 'DEVICE_REGISTRATION_FAILED'],
+      [{ code: 'INVALID_RESPONSE' }, 'DEVICE_REGISTRATION_FAILED'],
+      [{ code: 'BUSINESS_REJECTED' }, 'DEVICE_REGISTRATION_FAILED'],
+      [{ code: 'SECURITY_BLOCKED' }, 'DEVICE_REGISTRATION_FAILED'],
+      [{ code: 'secret' }, 'DEVICE_REGISTRATION_FAILED'],
     ]) {
       const device = load('playback-device.js', {});
       const registerPlaybackDevice = async request => device.registerPlaybackDevice(async (...args) => {
@@ -103,8 +102,10 @@ const checks = [
       const f = load('hongguo.js', { './app-source': routedApp });
       const result = await f.fetchPlayUrlSingle('11', '1', { quality: '720p' });
       assert.equal(result.sources[0].code, failure.code === 'secret' ? 'NETWORK_ERROR' : expected);
-      assert.match(result.error, /匿名播放设备注册失败/);
-      assert.ok(result.error.includes(detail));
+      assert.equal(result.error, failure.code === 'secret' || ['ECONNRESET', 'ETIMEDOUT'].includes(failure.code) || expected === 'NETWORK_ERROR'
+        ? '网络连接失败，请检查网络后重试。'
+        : '当前内容暂时无法播放，请稍后重试。');
+      assert.doesNotMatch(result.error, /签名|设备鉴权|匿名播放设备注册/);
       assert.doesNotMatch(JSON.stringify(result), /secret|signed\.invalid|private/);
     }
     for (const registrationFailure of ['secret', 'constructor', 'toString', '__proto__']) {
@@ -112,7 +113,7 @@ const checks = [
         throw Object.assign(new Error('secret'), { code: 'DEVICE_REGISTRATION_FAILED', registrationFailure });
       } } });
       const result = await f.fetchPlayUrlSingle('11', '1', { quality: '720p' });
-      assert.equal(result.sources[0].message, '匿名播放设备注册失败，请检查网络，10 秒后重试');
+      assert.equal(result.sources[0].message, '官方服务暂未提供可用播放信息');
       assert.doesNotMatch(JSON.stringify(result), /secret|function|\[object/);
     }
   }],
@@ -281,17 +282,27 @@ const checks = [
     const result = await f.fetchPlayUrlSingle('11', '1');
     assert.equal(result.source, 'app', 'SEO duration describes the episode, not the public preview file');
     assert.deepEqual(calls, ['web', 'app'], 'known preview must skip the redundant alternate page');
+    assert.deepEqual(Array.from(result.routeTrace, route => route.source), ['web', 'app']);
+    assert.equal(result.routeTrace[0].anonymousAccess, 'denied');
+    assert.equal(result.routeTrace[1].initialization, 'unknown');
+    assert.equal(result.routeTrace[1].anonymousAccess, 'unknown');
+    assert.equal(result.routeTrace[1].mediaAddress, true);
     appAvailable = false; calls.length = 0;
     const unavailable = await f.fetchPlayUrlSingle('11', '1', { force: true });
     assert.equal(unavailable.code, 'SOURCE_UNAVAILABLE');
     assert.equal(unavailable.sources.find(item => item.source === 'web').code, 'PREVIEW_ONLY');
+    assert.equal(unavailable.routeTrace.find(route => route.source === 'web' && route.status === 'failed').anonymousAccess, 'denied');
     f.markWebMediaFailure({ source: 'web', vid: '11' }); calls.length = 0;
     assert.equal((await f.fetchPlayUrlSingle('11', '1', { force: true })).code, 'SOURCE_UNAVAILABLE',
       'final web recovery must not reintroduce the preview');
     protectedPlayback = false;
-    assert.equal((await f.fetchPlayUrlSingle('11', '1', { force: true })).source, 'web', 'complete public web remains a valid recovery');
+    const publicWeb = await f.fetchPlayUrlSingle('11', '1', { force: true });
+    assert.equal(publicWeb.source, 'web', 'complete public web remains a valid recovery');
+    assert.equal(publicWeb.routeTrace.at(-1).anonymousAccess, 'explicitly-allowed');
     appAvailable = true; calls.length = 0;
-    assert.equal((await f.fetchPlayUrlSingle('11', '1', { quality: '1080p' })).source, 'app');
+    const fixedQuality = await f.fetchPlayUrlSingle('11', '1', { quality: '1080p' });
+    assert.equal(fixedQuality.source, 'app');
+    assert.deepEqual(Array.from(fixedQuality.routeTrace, route => route.source), ['app']);
     assert.deepEqual(calls, ['1080p'], 'explicit quality remains App-only');
   }],
   ['Web accepts only an identity-bound VideoObject and ignores earlier recommended media', async () => {
@@ -409,7 +420,7 @@ const checks = [
     const unavailable = await f.fetchPlayUrlSingle('11', '1');
     assert.equal(unavailable.code, 'SOURCE_UNAVAILABLE');
     assert.deepEqual(Array.from(unavailable.sources, item => item.source), ['web', 'app', 'api']);
-    assert.doesNotMatch(JSON.stringify(unavailable), /secret|signed\.invalid|private|前.*集|付费|会员/);
+    assert.doesNotMatch(JSON.stringify(unavailable), /secret|signed\.invalid|private|仅.{0,4}集|付费会员|会员专享/);
     assert.ok(unavailable.sources.every(item => item.code && item.message));
     f.state.app = true;
     assert.equal((await f.fetchPlayUrlSingle('11', '1')).source, 'app', 'failures must not be cached');

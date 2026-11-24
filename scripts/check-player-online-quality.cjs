@@ -95,6 +95,54 @@ if (process.argv[2] !== 'main') {
       assert(ui.prepares.some(p => p.prefetch && p.quality === '1080p'));
     } finally { ui.unmount(); }
   });
+  await check('online diagnostics distinguish source, media data, decode and submitted first frame', async () => {
+    const diagnostics = {
+      source: 'web', stage: 'source', mediaRead: 'not-requested', mediaDecoded: 'not-tested', firstFrame: 'not-tested',
+      routes: [{ source: 'web', attempted: true, status: 'address-found', initialization: 'not-required',
+        anonymousAccess: 'explicitly-allowed', mediaAddress: true, mediaRead: 'not-requested',
+        mediaDecoded: 'not-tested', firstFrame: 'not-tested' }],
+    };
+    const ui = mount({ props: { target: { seriesId: 'A', vidIndex: 1, ts: 1 } },
+      prepare: async () => ({ success: true, url: 'hongguo-stream://diagnostic', diagnostics }) });
+    try {
+      await ui.flush();
+      assert.match(ui.text(), /来源：官网公开播放/);
+      const video = ui.find(n => n.type === 'video');
+      ui.metadata();
+      ui.media.readyState = 2;
+      video.props.onLoadedData({ currentTarget: ui.media });
+      await ui.flush();
+      assert.equal(ui.presentFrame(), true);
+      ui.error(1);
+      await ui.flush();
+      const details = ui.find(n => n.type === 'details' && n.props.className === 'player-diagnostics');
+      assert(details);
+      assert.match(text(details), /媒体读取：已读取部分媒体/);
+      assert.match(text(details), /解码：通过 · 首帧：通过/);
+    } finally { ui.unmount(); }
+  });
+  await check('failed online playback retains only sanitized, collapsible route diagnostics', async () => {
+    const diagnostics = {
+      source: 'app', stage: 'source', code: 'EMPTY_RESPONSE',
+      routes: [{ source: 'web', attempted: true, status: 'failed', code: 'PREVIEW_ONLY',
+        message: 'https://private.invalid/?token=secret' },
+      { source: 'app', attempted: true, status: 'failed', initialization: 'completed',
+        anonymousAccess: 'unknown', code: 'EMPTY_RESPONSE' }],
+      mediaUrl: 'https://private.invalid/video?signature=secret',
+    };
+    const ui = mount({ props: { target: { seriesId: 'A', vidIndex: 1, ts: 1 } },
+      prepare: async () => ({ success: false, error: '当前内容暂时无法播放，请稍后重试。', code: 'SOURCE_UNAVAILABLE', diagnostics }),
+      apiOverrides: { downloadSingleEpisode: async () => ({ success: false, error: 'private filesystem detail' }) } });
+    try {
+      await ui.flush();
+      const details = ui.find(n => n.type === 'details' && n.props.className === 'player-diagnostics');
+      assert(details);
+      assert.match(text(details), /官网公开播放：失败/);
+      assert.match(text(details), /App 播放接口：失败/);
+      assert.doesNotMatch(ui.text(), /private\.invalid|signature=secret|token=secret|private filesystem detail/);
+      assert.match(text(alert(ui)), /备用下载任务未能提交/);
+    } finally { ui.unmount(); }
+  });
   for (const failure of ['response', 'throw']) await check(`${failure} 1080 preparation failure automatically selects 720 without downloading`, async () => {
     const downloads = [];
     const ui = mount({ props: { target: { seriesId: 'A', vidIndex: 1, ts: 1 } },
@@ -242,7 +290,7 @@ if (process.argv[2] !== 'main') {
     await ui.flush(); assert.equal(downloads.at(-1)?.[2],'720p', 'automatic playback fallback uses the download default');
     assert(select(ui)); select(ui).props.onChange({target:{value:'1080p'}}); await ui.flush();
     assert.equal(ui.prepares.at(-1)?.quality,'1080p');
-    assert.equal(downloads.at(-1)[2],'1080p'); assert.match(text(alert(ui)),/片源不足1080P/); ui.unmount();
+    assert.equal(downloads.at(-1)[2],'1080p'); assert.match(text(alert(ui)),/下载管理/); ui.unmount();
   });
   await check('quality switching preserves files until the ended episode is cleaned',async()=>{
     const cleaned=[];
@@ -271,13 +319,24 @@ if (process.argv[2] !== 'main') {
   try {
     await check('online IPC retains codec through direct, prefetched and cached preparation without media URLs', async () => {
       const h = fixture();
-      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: 'https://media.example/private-source.mp4', codec: 'hevc' });");
+      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: 'https://media.example/private-source.mp4', codec: 'hevc', source: 'app', routeTrace: [{ source: 'app', attempted: true, status: 'address-found', initialization: 'unknown', anonymousAccess: 'unknown', mediaAddress: true }] });");
       for (const prefetch of [false, true, true]) {
         const result = await h.handlers['prepare-online-play']({}, { vid: '11', seriesId: '1', vidIndex: 1, quality: 'auto', prefetch });
         assert.equal(result.success, true); assert.equal(result.codec, 'hevc');
+        assert.equal(result.source, 'app'); assert.equal(result.diagnostics.routes[0].source, 'app');
+        assert.equal(result.diagnostics.routes[0].firstFrame, 'not-tested', 'a prepared address is not a submitted frame');
         assert.ok(!JSON.stringify(result).includes('media.example'));
       }
       h.context.clearOnlineCache();
+    });
+    await check('online IPC preserves sanitized route diagnostics for terminal source failures', async () => {
+      const h = fixture();
+      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: null, locked: true, code: 'SOURCE_UNAVAILABLE', error: 'private source response', routeTrace: [{ source: 'web', attempted: true, status: 'failed', code: 'PREVIEW_ONLY', anonymousAccess: 'denied' }, { source: 'app', attempted: true, status: 'failed', code: 'EMPTY_RESPONSE', initialization: 'completed', anonymousAccess: 'unknown' }] });");
+      const result = await h.handlers['prepare-online-play']({}, { vid: '11', seriesId: '1', vidIndex: 1, quality: 'auto' });
+      assert.equal(result.success, false);
+      assert.equal(result.error, '当前内容暂时无法播放，请稍后重试。');
+      assert.equal(result.diagnostics.routes[1].code, 'EMPTY_RESPONSE');
+      assert.doesNotMatch(JSON.stringify(result), /private source response/);
     });
     await check('episode IPC exposes retry diagnostics and verified quality',async()=>{
       const h=fixture(); h.run("downloadTasks=[{id:'t',hongguoInfo:{series_id:'1',vid:'11',vid_index:1},savePath:'/absent',status:'failed',error:'真实错误',retryAt:123,actualQuality:'1080p'}]; collectSeriesEpisodeFiles=()=>({ordered:[]});");

@@ -88,7 +88,9 @@ async function check(name, fn) { try { await fn(); console.log('PASS ' + name); 
   await check('preparation error removes temporary input and releases its job', async () => {
     const h = load({ probe: async () => { throw new Error('fixture probe failure'); } });
     const result = await h.handlers['transcode-for-playback']({}, payload('probe-error'));
-    assert.equal(result.success, false); assert.match(result.error, /fixture probe failure/);
+    assert.equal(result.success, false);
+    assert.equal(result.code, 'TRANSCODE_FAILED');
+    assert.equal(result.error, '本机未能生成兼容视频，请重新连接片源或稍后重试。');
     assert.deepEqual(fs.readdirSync(h.context.getCompatDir()), []); assert.equal(h.run('compatPreparing.size'), 0);
   });
   await check('cancelling one shared request keeps the other client alive', async () => {
@@ -123,7 +125,8 @@ async function check(name, fn) { try { await fn(); console.log('PASS ' + name); 
     const h = load({ encoder: 'h264_nvenc', exitCodes: [1, 2] });
     const result = await h.handlers['transcode-for-playback']({}, { ...payload('software-failure'), force: false });
     assert.equal(result.success, false); assert.equal(h.children.length, 2);
-    assert.match(result.error, /软件转码失败.*2/);
+    assert.equal(result.code, 'TRANSCODE_FAILED');
+    assert.equal(result.error, '本机未能生成兼容视频，请重新连接片源或稍后重试。');
     assert.deepEqual(fs.readdirSync(h.context.getCompatDir()), []); assert.equal(h.run('compatPreparing.size'), 0);
   });
   await check('cancelling hardware transcode never starts software fallback', async () => {
@@ -155,7 +158,9 @@ async function check(name, fn) { try { await fn(); console.log('PASS ' + name); 
   await check('forced software failure stops after one attempt', async () => {
     const h = load({ encoder: 'h264_nvenc', exitCodes: [9] });
     const result = await h.handlers['transcode-for-playback']({}, payload('force-failure'));
-    assert.equal(result.success, false); assert.match(result.error, /软件转码失败.*9/);
+    assert.equal(result.success, false);
+    assert.equal(result.code, 'TRANSCODE_FAILED');
+    assert.equal(result.error, '本机未能生成兼容视频，请重新连接片源或稍后重试。');
     assert.equal(h.children.length, 1); assert.equal(h.metrics.encoder, 0);
     assert.deepEqual(fs.readdirSync(h.context.getCompatDir()), []);
   });
