@@ -284,7 +284,8 @@ const checks = [
     assert.deepEqual(calls, ['web', 'app'], 'known preview must skip the redundant alternate page');
     assert.deepEqual(Array.from(result.routeTrace, route => route.source), ['web', 'app']);
     assert.equal(result.routeTrace[0].anonymousAccess, 'denied');
-    assert.equal(result.routeTrace[1].initialization, 'completed');
+    assert.equal(result.routeTrace[1].initialization, 'unknown');
+    assert.equal(result.routeTrace[1].anonymousAccess, 'unknown');
     assert.equal(result.routeTrace[1].mediaAddress, true);
     appAvailable = false; calls.length = 0;
     const unavailable = await f.fetchPlayUrlSingle('11', '1', { force: true });

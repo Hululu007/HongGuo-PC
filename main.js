@@ -3130,12 +3130,10 @@ async function withMediaRecovery(vid, seriesId, options, consume) {
           cancelled();
           const streaming = !!value?.playInfo;
           const isResponse = typeof Response === 'function' && value instanceof Response;
-          const hasMediaBody = isResponse && value.body && [200, 206].includes(value.status);
-          const mediaRead = streaming ? 'not-requested'
-            : isResponse ? (hasMediaBody ? 'partial' : 'not-requested')
+          const mediaRead = streaming || isResponse ? 'not-requested'
             : Buffer.isBuffer(value) || value?.complete === true ? 'complete' : 'partial';
           playbackDiagnostics = updatePlaybackRoute(playbackDiagnostics, candidateSource, {
-            status: streaming || isResponse && !hasMediaBody ? 'address-found' : 'ready', mediaRead,
+            status: streaming || isResponse ? 'address-found' : 'ready', mediaRead,
           }, { stage: streaming ? 'source' : 'media', source: candidateSource,
             mediaRead });
           reportDiagnostics();
@@ -3321,7 +3319,11 @@ function registerStreamProtocol() {
         };
         upstream.data.once('end', () => {
           ended = true;
-          recordMediaRead(wholeResponse ? 'complete' : 'partial', 'ready');
+          if (!upstream.data.readableDidRead) {
+            recordMediaRead('failed', 'media-failed', 'EMPTY_RESPONSE');
+          } else {
+            recordMediaRead(wholeResponse ? 'complete' : 'partial', 'ready');
+          }
         });
         upstream.data.once('error', error => {
           if (controller.signal.aborted || ['ABORT_ERR', 'ERR_CANCELED'].includes(error?.code)) return;

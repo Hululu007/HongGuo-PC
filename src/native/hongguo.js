@@ -654,8 +654,8 @@ async function fetchAppPlayUrlForQuality(vid, quality, allowLowerQuality) {
   try {
     const result = await require('./app-source').fetchAppPlayUrl(String(vid), { quality, allowLowerQuality });
     return { ...result, routeTrace: [routeDiagnostic('app', {
-      attempted: true, status: 'address-found', initialization: 'completed',
-      anonymousAccess: 'request-accepted', mediaAddress: true,
+      attempted: true, status: 'address-found', initialization: 'unknown',
+      anonymousAccess: 'unknown', mediaAddress: true,
     })] };
   } catch (error) {
     const failure = sourceFailure('app', error);
@@ -724,8 +724,8 @@ async function fetchPlayUrlFresh(vid, sid, skipWeb = false) {
   try {
     const result = await require('./app-source').fetchAppPlayUrl(String(vid));
     return { ...result, routeTrace: [...routeTrace, routeDiagnostic('app', {
-      attempted: true, status: 'address-found', initialization: 'completed',
-      anonymousAccess: 'request-accepted', mediaAddress: true,
+      attempted: true, status: 'address-found', initialization: 'unknown',
+      anonymousAccess: 'unknown', mediaAddress: true,
     })] };
   } catch (error) {
     const failure = sourceFailure('app', error);

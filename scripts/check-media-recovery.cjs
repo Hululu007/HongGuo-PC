@@ -38,12 +38,21 @@ function load(fetchPlayUrlSingle, overrides = {}) {
 
 (async () => {
   const hits = [];
+  let completeDelayedBody;
   const server = http.createServer((r, s) => {
     hits.push({url:r.url, headers:r.headers});
+    if (r.url === '/delayed') {
+      const bytes = Buffer.from('delayed-body');
+      s.writeHead(200, {'Content-Type':'video/mp4','Content-Length':bytes.length});
+      s.flushHeaders();
+      completeDelayedBody = () => s.end(bytes);
+      return;
+    }
     if (r.url.split('?')[0] === '/missing') { s.writeHead(404); s.end(); return; }
     if (r.url === '/unauthorized') { s.writeHead(401); s.end(); return; }
     if (r.url === '/forbidden') { s.writeHead(403); s.end(); return; }
     if (r.url === '/limited') { s.writeHead(429); s.end(); return; }
+    if (r.url === '/empty') { s.writeHead(200, {'Content-Length':'0'}); s.end(); return; }
     if (r.url === '/html') { s.setHeader('Content-Type','text/html'); s.end('bad'); return; }
     if (r.url === '/broken') { s.writeHead(200, {'Content-Length':'999'}); s.write('partial'); setTimeout(() => s.destroy(), 5); return; }
     if (r.url === '/race') {
@@ -137,6 +146,29 @@ function load(fetchPlayUrlSingle, overrides = {}) {
     assert.equal(rangeEvent.payload.streamId,ranged.streamId);
     assert.equal(rangeEvent.payload.diagnostics.mediaRead,'partial');
     assert.doesNotMatch(JSON.stringify(rangeEvent),/127\.0\.0\.1|token=|secret/);
+  });
+  await check('stream headers do not claim media bytes were read before the first chunk',async()=>{
+    const h=harness(async()=>info('/delayed','app'));
+    const prepared=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-delayed'});
+    const response=await h.protocols['hongguo-stream'](new Request(prepared.url));
+    const beforeBytes=h.rendererEvents.filter(event=>event.channel==='online-play-diagnostics').at(-1);
+    assert.equal(beforeBytes.payload.diagnostics.mediaRead,'not-requested');
+    assert.equal(beforeBytes.payload.diagnostics.routes.at(-1).status,'address-found');
+
+    completeDelayedBody();
+    assert.equal(await response.text(),'delayed-body');
+    const afterBytes=h.rendererEvents.filter(event=>event.channel==='online-play-diagnostics').at(-1);
+    assert.equal(afterBytes.payload.diagnostics.mediaRead,'complete');
+  });
+  await check('an empty HTTP 200 body is not reported as completed media',async()=>{
+    const h=harness(async()=>info('/empty','app'));
+    const prepared=await h.handlers['prepare-online-play']({}, {vid:'11',seriesId:'1',requestId:'diag-empty'});
+    const response=await h.protocols['hongguo-stream'](new Request(prepared.url));
+    assert.equal(await response.text(),'');
+    const event=h.rendererEvents.filter(item=>item.channel==='online-play-diagnostics').at(-1);
+    assert.equal(event.payload.requestId,'diag-empty');
+    assert.equal(event.payload.diagnostics.mediaRead,'failed');
+    assert.equal(event.payload.diagnostics.routes.at(-1).code,'EMPTY_RESPONSE');
   });
   await check('interrupted stream body emits a sanitized failed-read diagnostic',async()=>{
     const h=harness(async()=>info('/broken','app'));

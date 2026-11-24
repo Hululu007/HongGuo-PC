@@ -127,7 +127,7 @@ if (process.argv[2] !== 'main') {
       routes: [{ source: 'web', attempted: true, status: 'failed', code: 'PREVIEW_ONLY',
         message: 'https://private.invalid/?token=secret' },
       { source: 'app', attempted: true, status: 'failed', initialization: 'completed',
-        anonymousAccess: 'request-accepted', code: 'EMPTY_RESPONSE' }],
+        anonymousAccess: 'unknown', code: 'EMPTY_RESPONSE' }],
       mediaUrl: 'https://private.invalid/video?signature=secret',
     };
     const ui = mount({ props: { target: { seriesId: 'A', vidIndex: 1, ts: 1 } },
@@ -319,7 +319,7 @@ if (process.argv[2] !== 'main') {
   try {
     await check('online IPC retains codec through direct, prefetched and cached preparation without media URLs', async () => {
       const h = fixture();
-      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: 'https://media.example/private-source.mp4', codec: 'hevc', source: 'app', routeTrace: [{ source: 'app', attempted: true, status: 'address-found', initialization: 'completed', anonymousAccess: 'request-accepted', mediaAddress: true }] });");
+      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: 'https://media.example/private-source.mp4', codec: 'hevc', source: 'app', routeTrace: [{ source: 'app', attempted: true, status: 'address-found', initialization: 'unknown', anonymousAccess: 'unknown', mediaAddress: true }] });");
       for (const prefetch of [false, true, true]) {
         const result = await h.handlers['prepare-online-play']({}, { vid: '11', seriesId: '1', vidIndex: 1, quality: 'auto', prefetch });
         assert.equal(result.success, true); assert.equal(result.codec, 'hevc');
@@ -331,7 +331,7 @@ if (process.argv[2] !== 'main') {
     });
     await check('online IPC preserves sanitized route diagnostics for terminal source failures', async () => {
       const h = fixture();
-      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: null, locked: true, code: 'SOURCE_UNAVAILABLE', error: 'private source response', routeTrace: [{ source: 'web', attempted: true, status: 'failed', code: 'PREVIEW_ONLY', anonymousAccess: 'denied' }, { source: 'app', attempted: true, status: 'failed', code: 'EMPTY_RESPONSE', initialization: 'completed' }] });");
+      h.run("hongguo.fetchPlayUrlSingle = async () => ({ url: null, locked: true, code: 'SOURCE_UNAVAILABLE', error: 'private source response', routeTrace: [{ source: 'web', attempted: true, status: 'failed', code: 'PREVIEW_ONLY', anonymousAccess: 'denied' }, { source: 'app', attempted: true, status: 'failed', code: 'EMPTY_RESPONSE', initialization: 'completed', anonymousAccess: 'unknown' }] });");
       const result = await h.handlers['prepare-online-play']({}, { vid: '11', seriesId: '1', vidIndex: 1, quality: 'auto' });
       assert.equal(result.success, false);
       assert.equal(result.error, '当前内容暂时无法播放，请稍后重试。');
