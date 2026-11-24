@@ -90,39 +90,47 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/releases/latest" |
             jq -e --arg tag "$TAG" '
               def parts: ltrimstr("v") | split(".") | map(tonumber);
-              (.tag_name | parts) < ($tag | parts)
+              .tag_name == $tag or (.tag_name | parts) < ($tag | parts)
             ' >/dev/null
-          if gh release view "$TAG" --json isDraft > existing-release.json; then
-            jq -e '.isDraft == true' existing-release.json >/dev/null
+          if gh release view "$TAG" --json databaseId,isDraft,isPrerelease > existing-release.json; then
+            jq -e '.isPrerelease == false' existing-release.json >/dev/null
           else
             gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file release-notes.txt
           fi
           release_id="$(gh release view "$TAG" --json databaseId --jq .databaseId)"
           release_api="repos/$GITHUB_REPOSITORY/releases/$release_id"
 
-          gh api "$release_api" > draft.json
-          jq -e --slurpfile expected verified-assets.json '
-            .draft and all(.assets[]; . as $asset |
+          gh api "$release_api" > release.json
+          jq -e --arg tag "$TAG" --slurpfile expected verified-assets.json '
+            .tag_name == $tag and .prerelease == false and
+            all(.assets[]; . as $asset |
               any($expected[0][]; .name == $asset.name and .size == $asset.size and
-                ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded"))
-          ' draft.json >/dev/null
-          for name in $(jq -r '.[].name' verified-assets.json); do
-            if ! jq -e --arg name "$name" 'any(.assets[]; .name == $name)' draft.json >/dev/null; then
-              gh release upload "$TAG" "release-assets/$name"
-            fi
-          done
-          gh api "$release_api" | jq -e --slurpfile expected verified-assets.json '
-            .draft and (.assets | length) == ($expected[0] | length) and
-            all(.assets[]; . as $asset | any($expected[0][]; .name == $asset.name and
-              .size == $asset.size and ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded"))
-          ' >/dev/null
-          gh release edit "$TAG" --notes-file release-notes.txt --draft=false --prerelease=false --latest
+                ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded")) and
+            (if .draft then (.assets | length) <= ($expected[0] | length)
+             else (.assets | length) == ($expected[0] | length) end)
+          ' release.json >/dev/null
+          if jq -e '.draft == true' release.json >/dev/null; then
+            for name in $(jq -r '.[].name' verified-assets.json); do
+              if ! jq -e --arg name "$name" 'any(.assets[]; .name == $name)' release.json >/dev/null; then
+                gh release upload "$TAG" "release-assets/$name"
+              fi
+            done
+            gh api "$release_api" | jq -e --slurpfile expected verified-assets.json '
+              .draft and (.assets | length) == ($expected[0] | length) and
+              all(.assets[]; . as $asset | any($expected[0][]; .name == $asset.name and
+                .size == $asset.size and ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded"))
+            ' >/dev/null
+            gh release edit "$TAG" --notes-file release-notes.txt --draft=false --prerelease=false --latest
+          fi
       - name: Confirm the public update feed and installer
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           base="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
           curl --fail --silent --show-error --location --retry 5 --retry-all-errors "$base/latest.yml" -o public-latest.yml
           cmp public-latest.yml release-assets/latest.yml
           installer=$(jq -r '.[] | select(.name | endswith(".exe")) | .name' verified-assets.json)
-          curl --fail --silent --show-error --location --head --retry 3 "$base/$installer" >/dev/null
-          curl --fail --silent --show-error --retry 3 "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/latest" |
+          curl --fail --silent --show-error --location --retry 3 --range 0-0 "$base/$installer" -o installer-first-byte.bin
+          test "$(wc -c < installer-first-byte.bin | tr -d '[:space:]')" = 1
+          gh api "repos/$GITHUB_REPOSITORY/releases/latest" |
             jq -e --arg tag "$TAG" '.tag_name == $tag and (.draft or .prerelease | not)' >/dev/null
