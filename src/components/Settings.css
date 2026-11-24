@@ -404,8 +404,8 @@
 
 /* ============ 设计系统打磨层（本次 UI 升级追加） ============ */
 .settings-card { border-radius: var(--radius-xl); border-color: var(--border); padding: 6px 28px; }
-.settings-header h2 { letter-spacing: -.03em; }
-.settings-group h2, .settings-group h3 { letter-spacing: -.01em; }
+.settings-header h2 { letter-spacing: 0; }
+.settings-group h2, .settings-group h3 { letter-spacing: 0; }
 .settings-hint code { border: 1px solid var(--border-muted); }
 .proxy-status-row { border-radius: var(--radius-lg); }
 .proxy-mode-item { border-radius: var(--radius); transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
@@ -512,4 +512,118 @@
 /* 锚点目标被标题栏/导航条遮挡时留出滚动间距 */
 [id^="settings-anchor-"] {
   scroll-margin-top: 18px;
+}
+
+/* RED CINEMA settings: compact sections, clear controls, no decorative glow. */
+.settings-container {
+  max-width: 900px;
+}
+
+.settings-header {
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.settings-header > svg {
+  display: block;
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.settings-card {
+  padding-inline: 24px;
+  border-radius: var(--radius);
+  border-color: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-card > .settings-group {
+  padding-block: 20px;
+}
+
+.settings-quicknav {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) transparent;
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.settings-quicknav-item {
+  flex: 0 0 auto;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  padding-inline: 10px;
+  white-space: nowrap;
+}
+
+.settings-quicknav-item.active {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: none;
+}
+
+.settings-search,
+.settings-search-empty,
+.proxy-status-row,
+.proxy-mode-item,
+.proxy-test-result {
+  border-radius: var(--radius-sm);
+}
+
+.proxy-modal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.proxy-mode-item.active {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.proxy-mode-item:hover:not(.active) {
+  background: var(--bg-hover);
+}
+
+.proxy-dot-on,
+.proxy-dot-off {
+  box-shadow: none;
+}
+
+.settings-path code,
+.settings-hint code {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 620px) {
+  .settings-card { padding-inline: 16px; }
+  .settings-card > .settings-group { padding-block: 16px; }
+  .settings-header { align-items: flex-start; }
+  .settings-footer { flex-wrap: wrap; justify-content: flex-start; }
+  .settings-inline-save { align-items: flex-start; flex-wrap: wrap; }
+  .settings-quicknav {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    row-gap: 6px;
+  }
+  .proxy-modal-mask { padding: 12px; }
+  .proxy-modal-foot { align-items: stretch; flex-direction: column; }
+  .proxy-foot-right { justify-content: flex-end; }
+}
+
+@media (max-width: 760px) {
+  .settings-quicknav {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    row-gap: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proxy-modal,
+  .proxy-modal-mask { animation: none; }
+  .builtin-source-row input,
+  .builtin-source-row input::before { transition: none; }
 }

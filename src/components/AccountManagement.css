@@ -61,12 +61,50 @@
   .account-history-action { display: none; }
 }
 
-/* ============ 设计系统打磨层（本次 UI 升级追加） ============ */
-.account-page-header h2 { letter-spacing: -.03em; }
-.account-card { border-radius: var(--radius-xl); border-color: var(--border); }
-.account-qr img { border-radius: var(--radius); box-shadow: var(--shadow-sm); }
-.account-history-cover { border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
-.account-history-list button { border-radius: var(--radius); transition: background var(--dur-fast) var(--ease-out); }
+.account-page { max-width: 900px; }
+.account-page-header { gap: 12px; margin-bottom: 22px; }
+.account-page-header > svg { color: var(--accent); }
+.account-page-header h2 { font-size: var(--fs-display); line-height: 1.25; }
+.account-source-tabs { gap: 4px; margin-bottom: 12px; padding: 3px; width: fit-content; max-width: 100%; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-subtle); }
+.account-source-tab { min-height: 34px; padding: 6px 11px; border-color: transparent; border-radius: var(--radius-sm); background: transparent; font-size: var(--fs-sm); }
+.account-source-tab.is-active { background: var(--bg-elevated); border-color: var(--border); color: var(--accent-text); box-shadow: var(--shadow-sm); }
+.account-card { padding: 22px 24px; border-radius: var(--radius); border-color: var(--border); }
+.account-identity { gap: 14px; }
+.account-avatar { width: 42px; height: 42px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-text); }
+.account-identity strong { font-size: var(--fs-lg); }
+.account-identity p { font-size: var(--fs-sm); }
+.account-summary { gap: 8px 12px; margin-top: 20px; padding-top: 16px; }
+.account-summary strong { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+.account-page-actions { gap: 7px; margin-top: 18px; }
+.account-login-copy h3, .account-provider-heading h3 { font-size: var(--fs-md); }
+.account-provider-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--accent-text); }
+.account-source-badge { border-radius: 4px; font-size: var(--fs-xs); }
+.account-notice { margin-top: 18px; padding: 12px 14px; border-radius: var(--radius-sm); font-size: var(--fs-sm); }
+.account-notice-warning { border-color: var(--warning); }
+.account-history-heading { margin-top: 22px; padding-top: 18px; }
+.account-history-heading h3 { font-size: var(--fs-md); }
+.account-history-heading .input-field { width: min(34vw, 240px); height: 35px; }
+.account-history-list { margin-top: 10px; }
+.account-history-list li { border-color: var(--border-muted); }
+.account-history-list button { gap: 12px; padding: 10px 6px; border-radius: var(--radius-sm); transition: background var(--dur-fast) var(--ease-out); }
 .account-history-list button:hover { background: var(--bg-hover); }
-.account-summary strong { font-variant-numeric: tabular-nums; }
-.account-source-tab, .account-provider-icon, .account-notice { border-radius: var(--radius); }
+.account-history-cover { width: 40px; height: 54px; border-radius: var(--radius-sm); }
+.account-history-copy { gap: 3px; }
+.account-history-copy strong { font-size: var(--fs-sm); }
+.account-history-copy small { font-size: var(--fs-xs); }
+.account-history-action { color: var(--accent-text); font-size: var(--fs-sm); }
+.account-qr img { border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
+.account-page-status { font-size: var(--fs-sm); }
+
+@media (max-width: 640px) {
+  .account-card { padding: 18px; }
+  .account-source-tabs { width: 100%; }
+  .account-source-tab { flex: 1 1 0; justify-content: center; padding-inline: 7px; }
+  .account-page-actions .btn { flex: 1 1 145px; justify-content: center; }
+  .account-history-heading { align-items: stretch; }
+  .account-history-heading label, .account-history-heading .input-field { width: 100%; }
+  .account-history-action { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-source-tab, .account-history-list button { transition: none; }
+}

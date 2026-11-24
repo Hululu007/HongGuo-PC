@@ -87,15 +87,15 @@
   animation: spin 2.4s linear infinite;
 }
 .splash-title { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-.splash-title-en { font-size: 13px; font-weight: 600; letter-spacing: .52em; text-indent: .52em; color: #ff6b80; text-transform: uppercase; }
-.splash-title-zh { font-size: 24px; font-weight: 700; letter-spacing: .18em; text-indent: .18em; }
+.splash-title-en { font-size: 13px; font-weight: 600; letter-spacing: 0; text-indent: 0; color: #ff6b80; text-transform: uppercase; }
+.splash-title-zh { font-size: 24px; font-weight: 700; letter-spacing: 0; text-indent: 0; }
 
 /* 阶段 4：系统初始化 —— 真实状态 + 动态进度条 */
 .splash-boot {
   position: absolute; bottom: 11vh; left: 50%; transform: translateX(-50%); width: min(360px, 78vw);
   text-align: center; opacity: 0; animation: fade-in .5s var(--ease-out) 1.9s forwards;
 }
-.splash-boot-status { min-height: 20px; font-size: 12px; color: #8995aa; letter-spacing: .05em; font-variant-numeric: tabular-nums; }
+.splash-boot-status { min-height: 20px; font-size: 12px; color: #8995aa; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .splash-boot-status b { color: #24dfff; font-weight: 500; }
 .splash-boot-bar { margin-top: 10px; height: 3px; border-radius: 999px; background: #ffffff12; overflow: hidden; }
 .splash-boot-fill {
@@ -104,7 +104,7 @@
   box-shadow: 0 0 12px #ff304f66;
   transition: width .45s var(--ease-out);
 }
-.splash-boot-steps { margin-top: 9px; display: flex; justify-content: center; gap: 14px; font-size: 10px; color: #5f6b81; letter-spacing: .06em; }
+.splash-boot-steps { margin-top: 9px; display: flex; justify-content: center; gap: 14px; font-size: 10px; color: #5f6b81; letter-spacing: 0; }
 .splash-boot-steps span { transition: color var(--dur) var(--ease-out); }
 .splash-boot-steps span.done { color: #3ddc97; }
 .splash-boot-steps span.active { color: #f5f7ff; }

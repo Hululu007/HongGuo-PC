@@ -23,7 +23,7 @@
 .browse-cat:hover { color: var(--text-primary); }
 .browse-cat.active { color: var(--accent-text); border-bottom-color: var(--accent); font-weight: 600; text-shadow: 0 0 14px #ff304f3d; }
 :root:not([data-theme="dark"]) .browse-cat.active { text-shadow: none; }
-.browse-nav-label { padding-top: 3px; color: var(--text-tertiary); font-size: var(--fs-sm); letter-spacing: .04em; }
+.browse-nav-label { padding-top: 3px; color: var(--text-tertiary); font-size: var(--fs-sm); letter-spacing: 0; }
 .browse-genres { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
 .genre-chip {
   padding: 6px 13px; border: 1px solid transparent; border-radius: 999px; background: transparent;

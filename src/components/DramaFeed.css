@@ -28,8 +28,8 @@
 .drama-poster img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .drama-poster-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 10px; color: var(--text-secondary); font-size: var(--fs-xs); }
 .drama-feed-copy { min-width: 0; flex: 1; }
-.drama-feed-copy h3 { margin: 10px 0 12px; font-size: var(--fs-display); line-height: 1.4; letter-spacing: -.025em; overflow-wrap: anywhere; text-wrap: balance; }
-.drama-feed-rank { color: var(--accent-text); font-size: var(--fs-sm); font-weight: 600; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.drama-feed-copy h3 { margin: 10px 0 12px; font-size: var(--fs-display); line-height: 1.4; letter-spacing: 0; overflow-wrap: anywhere; text-wrap: balance; }
+.drama-feed-rank { color: var(--accent-text); font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
 .drama-feed-tags { color: var(--text-secondary); font-size: var(--fs-sm); line-height: 1.8; }
 .drama-feed-intro { max-width: 65ch; margin-top: 16px; color: var(--text-secondary); line-height: 1.8; font-size: var(--fs-base); }
 .drama-feed-play-note { margin: 24px 0 14px; color: var(--text-secondary); font-size: var(--fs-sm); line-height: 1.8; }

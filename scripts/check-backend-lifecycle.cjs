@@ -122,7 +122,8 @@ const checks = [
     assert.equal(prevented, true, 'close button is intercepted while the tray preference is on');
     assert.equal(h.windows[0].hidden, true, 'main window hides into the tray instead of quitting');
     assert.equal(h.state.quits, 0, 'hiding must not request quit; downloads keep running');
-    h.run(`store.getSettings = () => ({ root: ${JSON.stringify(h.root)}, close_to_tray: false });`);
+    h.context.fixtureSettingsRoot = h.root;
+    h.run("store.getSettings = () => ({ root: fixtureSettingsRoot, close_to_tray: false });");
     h.windows[0].hidden = false;
     h.windows[0].emit('close', { preventDefault: () => prevented = true });
     assert.equal(prevented, true, 'preference-off close still routes through before-quit');
