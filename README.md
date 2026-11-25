@@ -53,9 +53,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.31](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.31)** · 2026-11-25
+**[v6.32](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.32)** · 2026-11-25
 
-首次启动默认使用浅色主题；已保存的浅色、深色和跟随系统偏好不变。
+优化应用内更新下载：GitHub 官方连接失败、超时或持续低速时，自动尝试 GH-Proxy 备用线路；更新窗口显示当前下载线路。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
