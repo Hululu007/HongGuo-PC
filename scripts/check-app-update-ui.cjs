@@ -108,6 +108,16 @@ function mount(api = {}, component = 'AppUpdateNotice', props = {}, stored = new
     assert.ok(restarted.text().includes('20% · 1.0 MB/s'));
     restarted.unmount();
   });
+  await test('download route changes are visible without exposing route details', async () => {
+    const ui = mount(); await ui.flush();
+    ui.emit('onAppUpdateState', { supported: true, status: 'downloading', version: release.version, percent: 35, route: 'proxy' });
+    await ui.flush();
+    assert.ok(ui.text().includes('下载线路：GH-Proxy'));
+    ui.emit('onAppUpdateState', { supported: true, status: 'downloading', version: release.version, percent: 40, route: 'official' });
+    await ui.flush();
+    assert.ok(ui.text().includes('下载线路：GitHub 官方'));
+    ui.unmount();
+  });
   await test('update settings page keeps the opt-out and manual check controls', async () => {
     let events = 0;
     const saved = [];

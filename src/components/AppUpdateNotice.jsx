@@ -29,7 +29,7 @@ export default function AppUpdateNotice() {
   const [checking, setChecking] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  const [state, setState] = useState({ supported: false, reason: '正在读取更新方式…', status: 'idle', percent: 0, downloaded: false });
+  const [state, setState] = useState({ supported: false, reason: '正在读取更新方式…', status: 'idle', percent: 0, downloaded: false, route: '' });
   const currentState = useRef(state);
   const enabled = useRef(true);
   const actionPending = useRef(false);
@@ -179,6 +179,7 @@ export default function AppUpdateNotice() {
     {installerSize > 0 && <p className="app-update-meta">安装包大小：{formatBytes(installerSize)}</p>}
     {release?.releaseNotes && <details className="app-update-notes"><summary>查看更新说明</summary><p>{release.releaseNotes}</p></details>}
     {downloading && <div className="app-update-progress"><progress max="100" value={percent} aria-label="更新下载进度" /><span>{percent}%{transferSpeed ? ` · ${transferSpeed}/s` : ''}</span></div>}
+    {downloading && state.route && <p className="app-update-meta app-update-route" aria-live="polite">{state.route === 'proxy' ? '下载线路：GH-Proxy' : '下载线路：GitHub 官方'}</p>}
     <div className="app-update-actions">
       {(version || downloaded) && <button type="button" className="btn btn-primary" disabled={busy || !enabled.current} onClick={() => act(downloaded ? 'installAppUpdate' : state.supported ? 'downloadAppUpdate' : 'openAppUpdate')}>
         {installing ? '正在重启…' : downloading ? '正在下载…' : pending ? '请稍候…' : downloaded ? '重启并安装' : state.supported ? '下载更新' : '前往 GitHub 下载'}

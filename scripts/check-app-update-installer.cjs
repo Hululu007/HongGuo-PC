@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
+const { createHash } = require('node:crypto');
+const { CancellationToken } = require('builder-util-runtime');
 const { availableRelease } = require('../src/native/app-update');
 const { createUpdateInstaller } = require('../src/native/app-update-installer');
 const { MacUpdater } = require('electron-updater/out/MacUpdater');
@@ -45,6 +47,75 @@ function macFixture() {
   } };
 }
 
+function routeFixture({ allowProxy = () => true, fileUrl, manifestSha256, releaseSha256, tagOnly = false } = {}) {
+  const fixtureDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'hongguo-update-integration-'));
+  const pendingDir = path.join(fixtureDir, 'pending');
+  fs.mkdirSync(pendingDir);
+  const bytes = Buffer.from('trusted installer');
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
+  const sha512 = createHash('sha512').update(bytes).digest('base64');
+  const name = 'hongguo-downloader-1.81-win-x64-setup.exe';
+  const requests = [], routes = [];
+  let originalDownloads = 0, nativeDownloads = 0;
+  const executor = {
+    download: async () => { originalDownloads++; return '/native-update'; },
+    createRequest(options) {
+      requests.push(options);
+      const request = new EventEmitter();
+      request.end = () => request.emit('error', new Error('synthetic route unavailable'));
+      request.abort = () => {};
+      return request;
+    },
+  };
+  const updater = new EventEmitter();
+  updater.httpExecutor = executor;
+  updater.setFeedURL = () => {};
+  updater.checkForUpdates = async () => ({
+    updateInfo: {
+      version: '1.81.0',
+      tag: 'v1.81',
+      files: [{
+        url: fileUrl || name,
+        sha512,
+        sha2: manifestSha256 === undefined ? sha256 : manifestSha256,
+        size: bytes.length,
+      }],
+    },
+    cancellationToken: new CancellationToken(),
+  });
+  updater.downloadUpdate = async token => {
+    nativeDownloads++;
+    return executor.download(
+      new URL(`https://github.com/yuchen0x1/HongGuo-PC/releases/download/v1.81/${name}`),
+      path.join(pendingDir, `temp-${name}`),
+      { sha512, cancellationToken: token, headers: { accept: '*/*', 'x-user-staging-id': 'private-user-id' } },
+    );
+  };
+  const controller = createUpdateInstaller({
+    updater,
+    currentVersion: '1.80.0',
+    isEnabled: () => true,
+    installBlocker: () => '',
+    emit: state => { if (state.route) routes.push(state.route); },
+    allowProxy,
+  });
+  const release = {
+    version: '1.81',
+    tagName: 'v1.81',
+    installer: tagOnly ? null : { name, size: bytes.length, sha256: releaseSha256 === undefined ? sha256 : releaseSha256 },
+  };
+  return {
+    controller, updater, executor, requests, release,
+    counts: () => ({ originalDownloads, nativeDownloads }),
+    hosts: () => requests.map(options => `${options.protocol}//${options.hostname}`),
+    routes,
+    dispose: () => {
+      controller.dispose();
+      fs.rmSync(fixtureDir, { recursive: true, force: true });
+    },
+  };
+}
+
 assert.equal(availableRelease({ tag_name: 'v6.7', draft: false, prerelease: false }, '6.6.0')?.version, '6.7', '6.6 clients must recognize 6.7 as newer');
 assert.equal(availableRelease({ tag_name: 'v6.6', draft: false, prerelease: false }, '6.6.0'), null, 'same version is not an update');
 assert.equal(availableRelease({ tag_name: 'v6.7-beta.1', draft: false, prerelease: false }, '6.6.0'), null, 'prerelease tags are rejected');
@@ -69,10 +140,12 @@ assert.match(notice, /重启并安装/);
     const bytes = Buffer.from('synthetic installer payload');
     fs.writeFileSync(installer, bytes);
     const digest = createHash('sha512').update(bytes).digest('base64');
+    const sha256 = createHash('sha256').update(bytes).digest('hex');
     const yml = buildMetadata(installer, Date.UTC(2026, 10, 10));
     assert.match(yml, new RegExp(`^version: ${pkg.version.replace(/\./g, '\\.')}$`, 'm'), 'latest.yml must carry the package version');
     assert.match(yml, new RegExp(`^path: ${path.basename(installer)}$`, 'm'), 'latest.yml must point at the installer filename');
     assert.match(yml, new RegExp(`^    size: ${bytes.length}$`, 'm'), 'latest.yml must carry the exact installer size');
+    assert.match(yml, new RegExp(`^    sha2: ${sha256}$`, 'm'), 'latest.yml must carry the SHA-256 for the exact installer');
     assert.equal(yml.split(`sha512: ${digest}`).length - 1, 2, 'latest.yml must carry the installer SHA512 for both file and top-level entries');
     assert.match(yml, /^releaseDate: '\d{4}-\d{2}-\d{2}T/m, 'latest.yml must carry a release date');
   } finally { fs.rmSync(temp, { recursive: true, force: true }); }
@@ -207,6 +280,74 @@ throwingMac.native.checkForUpdates = () => { throw Error('native preparation una
 throwingMac.controller.install(); await tick(); throwingMac.native.emit('update-downloaded');
 assert.equal(throwingMac.controller.getState().status, 'error');
 assert.equal(throwingMac.nativeCounts().quits, 0);
+
+const directOnly = routeFixture({ allowProxy: () => false });
+try {
+  assert.equal((await directOnly.controller.download(directOnly.release)).success, false);
+  assert.deepEqual(directOnly.hosts(), ['https://github.com', 'https://github.com']);
+  assert.ok(directOnly.routes.length >= 2 && directOnly.routes.every(route => route === 'official'));
+  assert.equal(directOnly.counts().originalDownloads, 0, 'verified target downloads must stay inside the guarded route');
+} finally { directOnly.dispose(); }
+
+const malformedManifest = routeFixture({ fileUrl: 'https://evil.invalid/hongguo-downloader-1.81-win-x64-setup.exe' });
+try {
+  assert.equal((await malformedManifest.controller.download(malformedManifest.release)).success, false);
+  assert.equal(malformedManifest.requests.length, 0, 'non-filename installer URLs must fail before network download');
+  assert.equal(malformedManifest.counts().originalDownloads, 0, 'malformed metadata must not bypass the guarded route');
+} finally { malformedManifest.dispose(); }
+
+const mismatchedDigest = routeFixture({ manifestSha256: 'f'.repeat(64) });
+try {
+  assert.equal((await mismatchedDigest.controller.download(mismatchedDigest.release)).success, false);
+  assert.equal(mismatchedDigest.requests.length, 0, 'a manifest/API SHA-256 conflict must fail closed');
+} finally { mismatchedDigest.dispose(); }
+
+const legacyManifest = routeFixture({ manifestSha256: '', releaseSha256: null });
+try {
+  assert.equal((await legacyManifest.controller.download(legacyManifest.release)).success, true);
+  assert.equal(legacyManifest.requests.length, 0, 'legacy metadata without SHA-256 must not use GH-Proxy');
+  assert.equal(legacyManifest.counts().originalDownloads, 1, 'legacy metadata must retain electron-updater direct downloads');
+} finally { legacyManifest.dispose(); }
+
+const tagOnlyFallback = routeFixture({ tagOnly: true });
+try {
+  assert.equal((await tagOnlyFallback.controller.download(tagOnlyFallback.release)).success, false);
+  assert.deepEqual(tagOnlyFallback.hosts(), [
+    'https://github.com',
+    'https://gh-proxy.org',
+    'https://gh-proxy.com',
+    'https://github.com',
+  ], 'new official manifests may safely supply SHA-256 when the Release API fallback only supplied a tag');
+  assert.equal(tagOnlyFallback.counts().originalDownloads, 0);
+} finally { tagOnlyFallback.dispose(); }
+
+const tagOnlyLegacyFallback = routeFixture({ tagOnly: true, manifestSha256: '', releaseSha256: null });
+try {
+  assert.equal((await tagOnlyLegacyFallback.controller.download(tagOnlyLegacyFallback.release)).success, true);
+  assert.equal(tagOnlyLegacyFallback.requests.length, 0, 'legacy tag-only fallback must not use GH-Proxy without SHA-256');
+  assert.equal(tagOnlyLegacyFallback.counts().originalDownloads, 1);
+} finally { tagOnlyLegacyFallback.dispose(); }
+
+for (const variant of ['valid', 'wrong-size', 'wrong-content', 'wrong-return-path']) {
+  const cached = routeFixture();
+  const cacheDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'hongguo-cached-update-'));
+  try {
+    const expected = Buffer.from('trusted installer');
+    const corrupted = Buffer.from(expected);
+    corrupted[0] ^= 1;
+    const file = path.join(cacheDir, cached.release.installer.name);
+    fs.writeFileSync(file, variant === 'wrong-size' ? expected.subarray(1) : variant === 'wrong-content' ? corrupted : expected);
+    cached.updater.downloadUpdate = async () => variant === 'wrong-return-path' ? [path.join(cacheDir, 'unrelated.exe')] : [file];
+    const result = await cached.controller.download(cached.release);
+    assert.equal(result.success, variant === 'valid', `cached ${variant} must be verified before enabling installation`);
+    assert.equal(cached.requests.length, 0, 'cache validation must not require a replacement network download');
+    assert.equal(cached.controller.getState().downloaded, variant === 'valid');
+    if (variant !== 'valid') assert.equal(cached.controller.install().success, false, `cached ${variant} must never install`);
+  } finally {
+    cached.dispose();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+  }
+}
 
 const syncFailure = fixture(); let syncChecks = 0;
 syncFailure.updater.checkForUpdates = () => { syncChecks++; throw Error('synchronous check failure'); };

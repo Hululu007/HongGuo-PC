@@ -5614,6 +5614,8 @@ function getAppUpdateInstaller() {
       updater: appUpdater,
       currentVersion: APP_VERSION,
       isEnabled: () => !IS_PREVIEW && getCurrentSettings().app_updates_enabled !== false,
+      // An explicit "force direct" setting must never be silently bypassed by GH-Proxy.
+      allowProxy: () => !(getCurrentSettings().proxy_enabled === true && getCurrentSettings().proxy_mode === 'direct'),
       installBlocker: () => {
         if (pendingUpdateOperations || maintenanceOps.size || settingsSaving || compatClearing || mergeTempCleanup) return '正在处理任务或保存设置，请稍后再安装更新。';
         if (downloadRuns.size || downloadQueue.length || sourceRetryTimers.size) return '还有下载或等待重试的任务，请先在下载管理中暂停全部任务，再安装更新。';
@@ -5638,7 +5640,7 @@ ipcMain.handle('download-app-update', async () => {
       await applyProxyToSession(desiredProxyConfig || resolveProxyConfig(getCurrentSettings()), [appUpdater.netSession]);
     }
     if (request !== updateDownloadGeneration) return { success: false, error: '更新已取消。', state: installer.getState() };
-    return await installer.download(latestAppRelease.version);
+    return await installer.download(latestAppRelease);
   } catch (_) {
     return { success: false, error: '无法准备应用内更新，请重试或前往发布页下载安装。', state: appUpdateState() };
   }

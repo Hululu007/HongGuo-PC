@@ -15,6 +15,8 @@ const handlers = {};
 const electron = { app, session: { defaultSession: windowSession }, ipcMain: { handle: (name, fn) => { handlers[name] = fn; } }, protocol: { registerSchemesAsPrivileged() {} } };
 const context = vm.createContext({ require: name => name === 'electron' ? electron : name === 'electron-updater' ? (updaterRequires++, { autoUpdater: new EventEmitter() }) : name === './src/store' ? { setErrorHandler() {}, getSettings: () => settings } : req(name), __dirname: path.dirname(file), process: { ...process, env: { ...process.env } }, Buffer, URL, AbortController, setTimeout, clearTimeout, console: { log() {}, warn() {}, error() {} } });
 vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
+assert.match(fs.readFileSync(file, 'utf8'), /allowProxy:\s*\(\)\s*=>\s*!\(getCurrentSettings\(\)\.proxy_enabled\s*===\s*true\s*&&\s*getCurrentSettings\(\)\.proxy_mode\s*===\s*'direct'\)/,
+  'explicit force-direct mode must disable the GH-Proxy update route');
 (async () => {
   await context.applyProxySettings(settings);
   assert.equal(windowSession.calls.at(-1).proxyRules, 'http://127.0.0.1:7890');

@@ -15,10 +15,15 @@ function availableRelease(data, currentVersion) {
   const difference = next.findIndex((part, i) => part !== current[i]);
   if (difference < 0 || next[difference] < current[difference]) return null;
   const releaseNotes = String(data.body || '').replace(/\u0000/g, '').trim().slice(0, 12000);
-  const assets = Array.isArray(data.assets) ? data.assets.slice(0, 20).map(asset => ({
-    name: String(asset?.name || '').slice(0, 180),
-    size: Number.isSafeInteger(asset?.size) && asset.size >= 0 ? asset.size : null,
-  })).filter(asset => asset.name) : [];
+  const assets = Array.isArray(data.assets) ? data.assets.slice(0, 20).map(asset => {
+    const rawDigest = String(asset?.digest || '').trim();
+    const digest = /^sha256:([a-f0-9]{64})$/i.exec(rawDigest);
+    return {
+      name: String(asset?.name || '').slice(0, 180),
+      size: Number.isSafeInteger(asset?.size) && asset.size >= 0 ? asset.size : null,
+      sha256: digest ? digest[1].toLowerCase() : null,
+    };
+  }).filter(asset => asset.name) : [];
   // Keep the UI anchored to the actual Windows x64 installer when a release
   // also contains source archives or unrelated platform assets. The full
   // asset list remains available for release notes and diagnostics.
@@ -29,6 +34,7 @@ function availableRelease(data, currentVersion) {
   const publishedAt = String(data.published_at || data.created_at || '').trim();
   return {
     version: tagName.replace(/^v/, '').replace(/^(\d+\.\d+)\.0$/, '$1'),
+    tagName,
     // Never open a remote-provided URL; only this project's release page.
     url: `${RELEASES_URL}/tag/${encodeURIComponent(tagName)}`,
     channel: 'stable',
