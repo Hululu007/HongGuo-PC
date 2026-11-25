@@ -144,7 +144,7 @@ export default function SplashScreen({ onDone }) {
 function initializeFallbackTheme() {
   try {
     const stored = window.localStorage.getItem('hongguo-experience-preview:theme');
-    const dark = stored ? stored === 'dark' : true;
+    const dark = stored ? stored === 'dark' : false;
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  } catch { document.documentElement.dataset.theme = 'dark'; }
+  } catch { document.documentElement.dataset.theme = 'light'; }
 }

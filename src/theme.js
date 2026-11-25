@@ -25,10 +25,9 @@ export function setPosterSize(size) {
 export function getThemePreference() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    // 6.0 起新用户默认深色（FUTURE CYBER 主视觉）；已有偏好不受影响。
-    return PREFERENCES.includes(stored) ? stored : 'dark';
+    return PREFERENCES.includes(stored) ? stored : 'light';
   } catch {
-    return 'dark';
+    return 'light';
   }
 }
 

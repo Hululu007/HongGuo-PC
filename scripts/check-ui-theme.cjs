@@ -7,19 +7,23 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..');
+const DEFAULT_THEME_ONLY = process.argv.includes('--default-theme');
 const SETTINGS_ONLY = process.argv.includes('--settings-search');
-const MODE = SETTINGS_ONLY || process.argv.includes('--after') ? 'after' : process.argv.includes('--baseline') ? 'before' : '';
+const MODE = DEFAULT_THEME_ONLY ? 'default-theme'
+  : SETTINGS_ONLY || process.argv.includes('--after') ? 'after'
+    : process.argv.includes('--baseline') ? 'before' : '';
 if (!MODE) {
-  console.error('Usage: node scripts/check-ui-theme.cjs --baseline | --after | --settings-search');
+  console.error('Usage: node scripts/check-ui-theme.cjs --baseline | --after | --settings-search | --default-theme');
   process.exit(2);
 }
 const OUTPUT_DIR = SETTINGS_ONLY
   ? path.join(ROOT, 'docs', 'screenshots', 'settings-search-6.21')
-  : path.join(ROOT, 'docs', 'screenshots', 'ui-audit-2026-11-20', MODE);
+  : DEFAULT_THEME_ONLY ? path.join(os.tmpdir(), `hongguo-default-theme-${process.pid}`)
+    : path.join(ROOT, 'docs', 'screenshots', 'ui-audit-2026-11-20', MODE);
 
 if (!process.versions.electron) {
   const { spawnSync } = require('node:child_process');
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  if (!DEFAULT_THEME_ONLY) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'hongguo-ui-theme-'));
   const downloadRoot = path.join(profile, 'independent-downloads');
   fs.mkdirSync(downloadRoot, { recursive: true });
@@ -35,7 +39,8 @@ if (!process.versions.electron) {
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
   try {
-    const childMode = SETTINGS_ONLY ? '--settings-search' : MODE === 'before' ? '--baseline' : '--after';
+    const childMode = DEFAULT_THEME_ONLY ? '--default-theme'
+      : SETTINGS_ONLY ? '--settings-search' : MODE === 'before' ? '--baseline' : '--after';
     const result = spawnSync(require('electron'), [__filename, childMode, '--profile', profile], {
       cwd: ROOT, env, encoding: 'utf8', timeout: 300000, maxBuffer: 32 * 1024 * 1024,
     });
@@ -744,6 +749,19 @@ if (!process.versions.electron) {
       if (SETTINGS_ONLY) {
         diagnosticStep = 'settings-search';
         await checkSettingsSearch(win);
+        win.destroy();
+        app.exit(0);
+        return;
+      }
+      if (DEFAULT_THEME_ONLY) {
+        diagnosticStep = 'default-theme';
+        const initialTheme = await execute(win, `document.documentElement.dataset.theme`);
+        const storedPreference = await execute(win, `localStorage.getItem('hongguo-experience-preview:theme')`);
+        assert.equal(storedPreference, null, 'The isolated profile must not contain a saved theme preference.');
+        assert.equal(initialTheme, 'light', 'A fresh profile must launch with the light theme.');
+        assert.equal(mediaStartedEvents, 0, 'No media may start playing during the default theme check.');
+        assert(win.webContents.isAudioMuted(), 'The real application WebContents must remain muted.');
+        console.log('PASS fresh-profile default theme: light; no saved preference; no media playback');
         win.destroy();
         app.exit(0);
         return;
