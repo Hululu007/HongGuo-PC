@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.29](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.29)** · 2026-11-24
+**[v6.30](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.30)** · 2026-11-24
 
-改进在线播放失败提示与诊断详情，区分播放来源、媒体读取、解码和首帧状态；不再把未确认的接口空响应归因于签名或设备鉴权。
+完成 RED CINEMA 全局 UI/UX 视觉重构，统一深色/浅色主题、设计 Token、侧栏、标题栏、页面工具区、卡片、弹窗和状态反馈。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
