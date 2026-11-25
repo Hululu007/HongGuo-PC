@@ -39,9 +39,9 @@
 
 ### 应用内更新
 
-Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 SHA-512 校验后，由你选择何时重启安装。开发版、预览版和便携版可从 GitHub 发布页手动下载安装。详见 [应用内更新指南](docs/AUTO_UPDATE.md)。
+Windows x64 NSIS 安装版检查 GitHub 正式版本。6.32 下载完成并核对官方文件大小、SHA-256 和 SHA-512 后，由你选择何时重启安装；旧客户端继续使用各自原有的更新流程。开发版、预览版和便携版可从 GitHub 发布页手动下载安装。详见 [应用内更新指南](docs/AUTO_UPDATE.md)。
 
-源码目标 6.32 增加更新安装包的 GH-Proxy 备用下载、断点续传与下载线路显示；GitHub 官方线路仍优先，元数据继续从官方获取，安装包须通过官方大小、SHA-256 和 SHA-512 校验。该版本尚未正式发布，验证范围见 [6.32 发行记录](docs/release-6.32.md)。
+6.32 已正式发布，增加更新安装包的 GH-Proxy 备用下载、断点续传与下载线路显示；GitHub 官方线路仍优先，元数据继续从官方获取。两个 GH-Proxy 域名属于同一服务，验证范围见 [6.32 发行记录](docs/release-6.32.md)。
 
 | 平台 | 发现与搜索 | 播放与本地剧库 | 下载和 NAS 导出 | 应用内更新 |
 |---|---|---|---|---|
@@ -270,7 +270,7 @@ npm run build:installer       # 构建 Windows x64 NSIS 安装程序
 <details>
 <summary><b>发版记录</b></summary>
 
-每个版本的变更、验证范围与已知限制见 `docs/release-*.md`；本轮源码目标见 [release-6.28.md](docs/release-6.28.md)。
+每个版本的变更、验证范围与已知限制见 `docs/release-*.md`；当前正式发行见 [release-6.32.md](docs/release-6.32.md)。
 
 </details>
 

@@ -2,10 +2,11 @@
 
 完整回执、验证边界与资产核验见 [docs/RELEASING.md](docs/RELEASING.md) 与对应 `docs/release-*.md`；本文件只保留快速索引。
 
-源码目标：6.32（内部 `6.32.0`），尚未正式发布，验证进度见 [release-6.32.md](docs/release-6.32.md)。当前正式版仍为下表的 6.31。
+当前正式版为 6.32（内部 `6.32.0`），发布与验证边界见 [release-6.32.md](docs/release-6.32.md)。
 
 | 公开版本 | 内部版本 | 日期 | 标签 | 冻结源码 | 回执 |
 |---|---|---|---|---|---|
+| 6.32 | 6.32.0 | 2026-11-25 13:55:34 | v6.32 | 2bdcaac | [release-6.32.md](docs/release-6.32.md) |
 | 6.31 | 6.31.0 | 2026-11-25 | v6.31 | 282157b | [release-6.31.md](docs/release-6.31.md) |
 | 6.30 | 6.30.0 | 2026-11-24 | v6.30 | cc97f5c | [release-6.30.md](docs/release-6.30.md) |
 | 6.29 | 6.29.0 | 2026-11-24 | v6.29 | ded8c60 | [release-6.29.md](docs/release-6.29.md) |
