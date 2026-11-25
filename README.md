@@ -51,9 +51,9 @@ Windows x64 NSIS 安装版检查 GitHub 正式版本。在下载完成并通过 
 
 <!-- github-release:start -->
 
-**[v6.30](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.30)** · 2026-11-24
+**[v6.31](https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v6.31)** · 2026-11-25
 
-完成 RED CINEMA 全局 UI/UX 视觉重构，统一深色/浅色主题、设计 Token、侧栏、标题栏、页面工具区、卡片、弹窗和状态反馈。
+首次启动默认使用浅色主题；已保存的浅色、深色和跟随系统偏好不变。
 
 [全部发行记录](https://github.com/yuchen0x1/HongGuo-PC/releases)
 
