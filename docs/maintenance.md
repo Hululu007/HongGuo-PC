@@ -12,6 +12,12 @@
 
 每次版本迭代维护 [版本说明](releases/release-notes.md)、应用更新说明和对应安装回执。功能、更新、独立平台环境与已知限制分别登记，真实运行与自动检查都链接到证据。Windows 10 和 Windows 11 使用同一发布资产，单独记载实机测试结果。
 
+## 6.33 依赖整合
+
+正在处理 #27–#33 七个 Dependabot 升级提案，统一源码目标为 6.33。React／ReactDOM 和 Vite／React 插件按兼容组合升级，Electron 使用 45.5.0。独立候选与最终统一组合的本地安装、构建、完整回归、依赖审计、静音实界面和真实更新下载均通过；标签候选、正式发布、旧版应用内更新及分支处置仍按 [6.33 发行记录](release-6.33.md) 登记实际结果。
+
+2026-11-25 本轮 GitHub API 再次核对：开放非 PR Issues、Dependabot 告警、Code scanning 告警和 Secret scanning 告警各为 0。待处理依赖 PR 与安全告警分别统计；当前本地完整锁文件审计各级告警总数也为 0。
+
 ## 6.32 发行与分支审计
 
 状态：6.32 已于北京时间 2026-11-25 13:55:34 正式发布，标签 `v6.32`，冻结源码 `2bdcaacc872e5b838ad323c90c9e06ee24eb422b`，Release 已公开且不可变。标签源码 Test [45554988493](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/45554988493) 通过，含源码回归、React 构建、生产依赖审计和完整依赖报告；完整审计各级告警及总数均为 0。Windows 候选 [45554988520](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/45554988520)、发布 [45556801896](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/45556801896) 与 README 同步 [45556936208](https://github.com/yuchen0x1/HongGuo-PC/actions/runs/45556936208) 均通过，正式资产摘要见 [6.32 发行记录](release-6.32.md)。

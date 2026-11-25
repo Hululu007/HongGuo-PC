@@ -1,6 +1,6 @@
 {
   "name": "hongguo-downloader",
-  "version": "6.32.0",
+  "version": "6.33.0",
   "description": "红果短剧播放与下载",
   "main": "main.js",
   "license": "GPL-3.0",
@@ -23,19 +23,19 @@
   },
   "dependencies": {
     "anime4k-webgpu": "1.0.0",
-    "axios": "1.20.0",
-    "electron-updater": "6.8.9"
+    "axios": "1.21.1",
+    "electron-updater": "6.8.11"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "electron": "44.9.1",
-    "electron-builder": "26.15.3",
-    "esbuild": "^0.25.12",
+    "@vitejs/plugin-react": "^6.3.0",
+    "electron": "45.5.0",
+    "electron-builder": "26.18.0",
+    "esbuild": "^0.28.2",
     "js-yaml": "4.3.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "semver": "7.7.4",
-    "vite": "^6.4.5"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "semver": "7.8.6",
+    "vite": "^8.3.8"
   },
   "overrides": {
     "source-map-js": "1.2.2",
@@ -80,7 +80,7 @@
       "!**/*.map"
     ],
     "asar": true,
-    "artifactName": "hongguo-downloader-6.32-${os}-${arch}.${ext}",
+    "artifactName": "hongguo-downloader-6.33-${os}-${arch}.${ext}",
     "win": {
       "target": [
         {
@@ -125,7 +125,7 @@
       ]
     },
     "portable": {
-      "artifactName": "${productName}-6.32-便携版.${ext}"
+      "artifactName": "${productName}-6.33-便携版.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -133,7 +133,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "红果短剧下载器",
-      "artifactName": "hongguo-downloader-6.32-win-x64-setup.${ext}"
+      "artifactName": "hongguo-downloader-6.33-win-x64-setup.${ext}"
     },
     "mac": {
       "target": [

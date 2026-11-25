@@ -3,6 +3,7 @@ const http = require('node:http');
 const zlib = require('node:zlib');
 const dns = require('node:dns');
 const axios = require('axios');
+const semver = require('semver');
 const { resolveSeriesId } = require('../src/native/hongguo');
 require('./fixtures/direct-http.cjs'); // 本地回环回归必须直连，见文件内说明
 
@@ -143,8 +144,13 @@ async function main() {
       assert.equal(connected.length, 1, 'redirect and rebound DNS must be checked before each connection');
     }
   } finally { axios.get = original; dns.lookup = originalLookup; }
-  assert.equal(require('../package.json').dependencies.axios, '1.20.0');
-  assert.equal(require('axios/package.json').version, '1.20.0');
+  const declaredAxios = require('../package.json').dependencies.axios;
+  const lockedAxios = require('../package-lock.json').packages['node_modules/axios'].version;
+  const installedAxios = require('axios/package.json').version;
+  assert.ok(semver.valid(declaredAxios), 'Axios must stay pinned to an exact stable version');
+  assert.ok(semver.satisfies(declaredAxios, '>=1.21.1 <2.0.0'), 'Axios must retain the audited security floor within the supported major version');
+  assert.equal(lockedAxios, declaredAxios, 'Axios lockfile must match the declared version');
+  assert.equal(installedAxios, lockedAxios, 'Installed Axios must match the reviewed lockfile');
   console.log('Share security: input, private destinations, redirects, socket DNS/rebinding, official URL fixtures, gzip limit and dependency checks passed');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

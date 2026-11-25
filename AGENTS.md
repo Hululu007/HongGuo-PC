@@ -1,5 +1,11 @@
 # 红果短剧项目规则
 
+## 6.33 发行目标
+
+- 6.33（内部 `6.33.0`）整合 7 条 Dependabot 升级提案，React／ReactDOM 与 Vite／React 插件必须成组验证；Electron 使用已验证的 45.5.0。
+- upload-artifact 7 保持显式 ZIP 格式，发布继续绑定成功标签源码、候选和确切提交；普通用户资产仍仅为 Windows x64 安装 EXE 与 `latest.yml`。
+- 公开 Release 使用用户指定的版本更新模板，标题为「红果短剧 v6.33」；验证、限制及逐条依赖处置见 `docs/release-6.33.md`。
+
 ## 6.32 发行
 
 - 6.32（内部 `6.32.0`）已正式发布，标签 `v6.32`，冻结源码 `2bdcaacc872e5b838ad323c90c9e06ee24eb422b`；正式资产仅为 Windows x64 安装 EXE 与对应 `latest.yml`，旧版更新提示所需清单必须保留。

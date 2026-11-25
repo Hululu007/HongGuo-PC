@@ -95,7 +95,7 @@ jobs:
           if gh release view "$TAG" --json databaseId,isDraft,isPrerelease > existing-release.json; then
             jq -e '.isPrerelease == false' existing-release.json >/dev/null
           else
-            gh release create "$TAG" --verify-tag --draft --title "$TAG" --notes-file release-notes.txt
+            gh release create "$TAG" --verify-tag --draft --title "红果短剧 $TAG" --notes-file release-notes.txt
           fi
           release_id="$(gh release view "$TAG" --json databaseId --jq .databaseId)"
           release_api="repos/$GITHUB_REPOSITORY/releases/$release_id"
@@ -120,7 +120,7 @@ jobs:
               all(.assets[]; . as $asset | any($expected[0][]; .name == $asset.name and
                 .size == $asset.size and ("sha256:" + .sha256) == $asset.digest and $asset.state == "uploaded"))
             ' >/dev/null
-            gh release edit "$TAG" --notes-file release-notes.txt --draft=false --prerelease=false --latest
+            gh release edit "$TAG" --title "红果短剧 $TAG" --notes-file release-notes.txt --draft=false --prerelease=false --latest
           fi
       - name: Confirm the public update feed and installer
         env:
