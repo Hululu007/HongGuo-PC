@@ -38,6 +38,18 @@ test('third-party actions are pinned to full commit SHAs', () => {
   }
 });
 
+test('artifact uploads retain named ZIP archives for existing download consumers', () => {
+  for (const name of files) {
+    for (const [job, config] of Object.entries(load(name).jobs || {})) {
+      for (const step of config.steps || []) {
+        if (!step.uses?.startsWith('actions/upload-artifact@')) continue;
+        assert.equal(step.with?.archive, true,
+          `${name}:${job} must keep ZIP archives; raw uploads ignore artifact names and cannot be read by download-artifact v4`);
+      }
+    }
+  }
+});
+
 test('pull request branches are not built twice by push and pull_request', () => {
   for (const name of files) {
     const on = load(name).on || {};
