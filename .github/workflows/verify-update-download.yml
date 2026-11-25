@@ -1,0 +1,41 @@
+name: Verify real update download routes
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Public stable release used for genuine installer downloads
+        type: string
+        required: true
+        default: v6.31
+permissions:
+  contents: read
+concurrency:
+  group: update-download-network-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Verify official, proxy, same-provider backup and real Range resume
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/verify-update-download-network.cjs $env:RELEASE_TAG
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: update-download-network
+          path: dist/update-download-network.json
+          if-no-files-found: warn
+          retention-days: 14

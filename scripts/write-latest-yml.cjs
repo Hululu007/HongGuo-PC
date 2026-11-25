@@ -19,12 +19,14 @@ function buildMetadata(installerPath, releaseDate) {
   const bytes = fs.readFileSync(installerPath);
   if (!bytes.length) throw new Error(`安装包为空：${installerPath}`);
   const name = path.basename(installerPath);
+  const sha256 = createHash('sha256').update(bytes).digest('hex');
   const sha512 = createHash('sha512').update(bytes).digest('base64');
   return [
     `version: ${pkg.version}`,
     'files:',
     `  - url: ${name}`,
     `    sha512: ${sha512}`,
+    `    sha2: ${sha256}`,
     `    size: ${bytes.length}`,
     `path: ${name}`,
     `sha512: ${sha512}`,

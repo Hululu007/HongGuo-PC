@@ -33,12 +33,16 @@ const ipc = (name, ...args) => handlers[name]({}, ...args);
     response={tag_name:tag,draft:false,prerelease:false};assert.equal((await ipc('check-app-update')).release,null,tag);
   }
   for(const flags of [{draft:true},{prerelease:true}]){response={tag_name:'v2.0',...flags};assert.equal((await ipc('check-app-update')).release,null);}
-  response={tag_name:'v1.2.1',html_url:'https://evil.invalid/download', body:'Fixes', published_at:'2026-11-12T00:00:00Z', assets:[{name:'Source code.zip',size:99},{name:'hongguo-downloader-1.2-win-x64-setup.exe',size:1234},{name:'latest.yml',size:88}]};
+  response={tag_name:'v1.2.1',html_url:'https://evil.invalid/download', body:'Fixes', published_at:'2026-11-12T00:00:00Z', assets:[{name:'Source code.zip',size:99,digest:'sha256:'+'f'.repeat(64)},{name:'hongguo-downloader-1.2-win-x64-setup.exe',size:1234,digest:'sha256:'+'A'.repeat(64)},{name:'latest.yml',size:88}]};
   let result=await ipc('check-app-update');assert.equal(result.release.version,'1.2.1');
   assert.equal(result.release.channel, 'stable'); assert.equal(result.release.releaseNotes, 'Fixes');
   assert.equal(result.release.assets[0].size, 99); assert.equal(result.release.installer.name, 'hongguo-downloader-1.2-win-x64-setup.exe');
   assert.equal(result.release.installer.size, 1234); assert.equal(result.release.metadata.name, 'latest.yml'); assert.match(result.release.releaseDate, /^2026-11-12T/);
+  assert.equal(result.release.installer.sha256, 'a'.repeat(64), 'only a valid SHA-256 GitHub digest becomes trusted installer metadata');
+  assert.equal(result.release.tagName, 'v1.2.1');
   assert.equal(result.release.url,'https://github.com/yuchen0x1/HongGuo-PC/releases/tag/v1.2.1');
+  response={tag_name:'v1.2.2',assets:[{name:'hongguo-downloader-1.2.2-win-x64-setup.exe',size:12,digest:'sha256:bad'}]};
+  result=await ipc('check-app-update');assert.equal(result.release.installer.sha256,null,'malformed API digest must not be trusted');
   await ipc('open-app-update');assert.equal(opened[0],'https://github.com/yuchen0x1/HongGuo-PC/releases/latest');
   assert.equal(requestOptions.url,'https://api.github.com/repos/yuchen0x1/HongGuo-PC/releases/latest');
   assert.equal(requestOptions.timeout,10000);assert.equal(requestOptions.maxRedirects,0);
