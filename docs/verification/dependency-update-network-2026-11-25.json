@@ -1,0 +1,432 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "v6.32",
+  "startedAt": "2026-11-25T06:21:19.693Z",
+  "status": "passed",
+  "environment": {
+    "platform": "win32",
+    "node": "24.22.3",
+    "runner": "local machine",
+    "limitation": "This is real-network correctness validation, not mainland China speed validation.",
+    "electron": "45.5.0",
+    "chromium": "156.0.8078.109",
+    "transport": "real electron-updater ElectronHttpExecutor / electron.net",
+    "sessionProxyPolicy": "Electron isolated session using system proxy configuration"
+  },
+  "isolation": {
+    "disposableProfileAndDownloads": true,
+    "browserWindowsCreated": 0,
+    "installerExecution": false,
+    "mediaPlayback": false,
+    "credentialsSentToProxy": false,
+    "temporaryDirectoryRemoved": true
+  },
+  "trust": {
+    "apiHost": "api.github.com",
+    "manifestRoute": "official GitHub HTTPS only",
+    "apiAuthenticated": true,
+    "asset": {
+      "tag": "v6.32",
+      "name": "hongguo-downloader-6.32-win-x64-setup.exe",
+      "size": 146279644,
+      "sha256": "2667ba753386fa53dff6672f2e2e9ba5739d1683accaa45bab6cea366f06898b",
+      "sha512": "c/cOMbzZy4/SRcN/TendaLzTlUN3U8L0ie7RV3YNRy3Tu1btiZ12A+CN0z2nqYsBm+R4fYRb/roJ8UtzFjIlgA=="
+    }
+  },
+  "metadataRequests": [
+    {
+      "host": "api.github.com",
+      "actualNetwork": true,
+      "startedAt": "2026-11-25T06:21:20.018Z",
+      "bytes": 5699,
+      "statusCode": 200,
+      "rateLimitRemaining": "2926",
+      "rateLimitReset": "1795587936",
+      "durationMs": 491
+    },
+    {
+      "host": "github.com",
+      "actualNetwork": true,
+      "startedAt": "2026-11-25T06:21:20.509Z",
+      "bytes": 0,
+      "statusCode": 302,
+      "redirectHost": "release-assets.githubusercontent.com",
+      "durationMs": 888
+    },
+    {
+      "host": "release-assets.githubusercontent.com",
+      "actualNetwork": true,
+      "startedAt": "2026-11-25T06:21:21.397Z",
+      "bytes": 455,
+      "statusCode": 200,
+      "durationMs": 531
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "official-full",
+      "status": "passed",
+      "timeoutMs": 110000,
+      "startedAt": "2026-11-25T06:21:21.931Z",
+      "phase": "download",
+      "routes": [
+        {
+          "route": "official",
+          "host": "github.com",
+          "phase": "download",
+          "afterMs": 5,
+          "score": 0
+        }
+      ],
+      "requests": [
+        {
+          "host": "github.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 0,
+          "range": "",
+          "startedAfterMs": 11,
+          "statusCode": 302,
+          "redirectHost": "release-assets.githubusercontent.com"
+        },
+        {
+          "host": "release-assets.githubusercontent.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 146279644,
+          "range": "",
+          "startedAfterMs": 334,
+          "statusCode": 200,
+          "contentRange": "",
+          "contentLength": "146279644",
+          "durationMs": 7577
+        }
+      ],
+      "faultsInjected": [],
+      "verification": {
+        "size": 146279644,
+        "sha256": "2667ba753386fa53dff6672f2e2e9ba5739d1683accaa45bab6cea366f06898b",
+        "sha512": "c/cOMbzZy4/SRcN/TendaLzTlUN3U8L0ie7RV3YNRy3Tu1btiZ12A+CN0z2nqYsBm+R4fYRb/roJ8UtzFjIlgA==",
+        "matchesOfficialApiSha256": true,
+        "matchesOfficialManifestSha512": true
+      },
+      "completedRoute": "official",
+      "evidenceType": "genuine official public-network download",
+      "durationMs": 9670,
+      "networkBodyBytes": 146279644
+    },
+    {
+      "name": "proxy-after-injected-official-error",
+      "status": "passed",
+      "timeoutMs": 140000,
+      "startedAt": "2026-11-25T06:21:31.602Z",
+      "phase": "download",
+      "routes": [
+        {
+          "route": "official",
+          "host": "github.com",
+          "phase": "download",
+          "afterMs": 4,
+          "score": 0
+        },
+        {
+          "route": "proxy",
+          "host": "gh-proxy.org",
+          "phase": "download",
+          "afterMs": 1279,
+          "score": 56692
+        }
+      ],
+      "requests": [
+        {
+          "host": "github.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": false,
+          "bytes": 0,
+          "range": "",
+          "startedAfterMs": 11,
+          "error": {
+            "name": "Error",
+            "code": "ERR_VERIFY_INJECTED_OFFICIAL_CONNECTION",
+            "message": "Explicit verification injection: official connection unavailable."
+          }
+        },
+        {
+          "host": "gh-proxy.org",
+          "route": "proxy",
+          "purpose": "proxy-probe",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 65536,
+          "range": "bytes=0-65535",
+          "startedAfterMs": 123,
+          "statusCode": 206,
+          "contentRange": "bytes 0-65535/146279644",
+          "contentLength": "65536",
+          "durationMs": 1157
+        },
+        {
+          "host": "gh-proxy.org",
+          "route": "proxy",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 146279644,
+          "range": "",
+          "startedAfterMs": 1283,
+          "statusCode": 200,
+          "contentRange": "",
+          "contentLength": "146279644",
+          "durationMs": 9817
+        }
+      ],
+      "faultsInjected": [
+        {
+          "type": "official_connection_error",
+          "code": "ERR_VERIFY_INJECTED_OFFICIAL_CONNECTION",
+          "phase": "download"
+        }
+      ],
+      "verification": {
+        "size": 146279644,
+        "sha256": "2667ba753386fa53dff6672f2e2e9ba5739d1683accaa45bab6cea366f06898b",
+        "sha512": "c/cOMbzZy4/SRcN/TendaLzTlUN3U8L0ie7RV3YNRy3Tu1btiZ12A+CN0z2nqYsBm+R4fYRb/roJ8UtzFjIlgA==",
+        "matchesOfficialApiSha256": true,
+        "matchesOfficialManifestSha512": true
+      },
+      "completedRoute": "proxy",
+      "evidenceType": "hybrid: injected official connection failure; genuine proxy probe, download and checksum verification",
+      "durationMs": 12973,
+      "networkBodyBytes": 146345180
+    },
+    {
+      "name": "same-provider-backup-after-injected-official-and-primary-errors",
+      "status": "passed",
+      "timeoutMs": 140000,
+      "startedAt": "2026-11-25T06:21:44.576Z",
+      "phase": "download",
+      "routes": [
+        {
+          "route": "official",
+          "host": "github.com",
+          "phase": "download",
+          "afterMs": 4,
+          "score": 0
+        },
+        {
+          "route": "proxy",
+          "host": "gh-proxy.com",
+          "phase": "download",
+          "afterMs": 1001,
+          "score": 96376
+        }
+      ],
+      "requests": [
+        {
+          "host": "github.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": false,
+          "bytes": 0,
+          "range": "",
+          "startedAfterMs": 8,
+          "error": {
+            "name": "Error",
+            "code": "ERR_VERIFY_INJECTED_OFFICIAL_CONNECTION",
+            "message": "Explicit verification injection: official connection unavailable."
+          }
+        },
+        {
+          "host": "gh-proxy.org",
+          "route": "proxy",
+          "purpose": "proxy-probe",
+          "phase": "download",
+          "actualNetwork": false,
+          "bytes": 0,
+          "range": "bytes=0-65535",
+          "startedAfterMs": 117,
+          "error": {
+            "name": "Error",
+            "code": "ERR_VERIFY_INJECTED_PRIMARY_PROXY_CONNECTION",
+            "message": "Explicit verification injection: primary GH-Proxy endpoint unavailable."
+          }
+        },
+        {
+          "host": "gh-proxy.com",
+          "route": "proxy",
+          "purpose": "proxy-probe",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 65536,
+          "range": "bytes=0-65535",
+          "startedAfterMs": 321,
+          "statusCode": 206,
+          "contentRange": "bytes 0-65535/146279644",
+          "contentLength": "65536",
+          "durationMs": 680
+        },
+        {
+          "host": "gh-proxy.com",
+          "route": "proxy",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 146279644,
+          "range": "",
+          "startedAfterMs": 1005,
+          "statusCode": 200,
+          "contentRange": "",
+          "contentLength": "146279644",
+          "durationMs": 7655
+        }
+      ],
+      "faultsInjected": [
+        {
+          "type": "official_connection_error",
+          "code": "ERR_VERIFY_INJECTED_OFFICIAL_CONNECTION",
+          "phase": "download"
+        },
+        {
+          "type": "gh_proxy_org_connection_error",
+          "host": "gh-proxy.org",
+          "code": "ERR_VERIFY_INJECTED_PRIMARY_PROXY_CONNECTION",
+          "purpose": "proxy-probe",
+          "phase": "download"
+        }
+      ],
+      "verification": {
+        "size": 146279644,
+        "sha256": "2667ba753386fa53dff6672f2e2e9ba5739d1683accaa45bab6cea366f06898b",
+        "sha512": "c/cOMbzZy4/SRcN/TendaLzTlUN3U8L0ie7RV3YNRy3Tu1btiZ12A+CN0z2nqYsBm+R4fYRb/roJ8UtzFjIlgA==",
+        "matchesOfficialApiSha256": true,
+        "matchesOfficialManifestSha512": true
+      },
+      "completedRoute": "proxy",
+      "sameProviderBackupConfirmed": true,
+      "evidenceType": "hybrid: explicitly injected official and gh-proxy.org connection failures; genuine gh-proxy.com probe, full download and checksum verification",
+      "durationMs": 10330,
+      "networkBodyBytes": 146345180
+    },
+    {
+      "name": "official-interruption-resume",
+      "status": "passed",
+      "timeoutMs": 110000,
+      "startedAt": "2026-11-25T06:21:54.906Z",
+      "phase": "resume",
+      "routes": [
+        {
+          "route": "official",
+          "host": "github.com",
+          "phase": "download",
+          "afterMs": 3,
+          "score": 0
+        },
+        {
+          "route": "official",
+          "host": "github.com",
+          "phase": "resume",
+          "afterMs": 671,
+          "score": 0
+        }
+      ],
+      "requests": [
+        {
+          "host": "github.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 0,
+          "range": "",
+          "startedAfterMs": 10,
+          "statusCode": 302,
+          "redirectHost": "release-assets.githubusercontent.com"
+        },
+        {
+          "host": "release-assets.githubusercontent.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "download",
+          "actualNetwork": true,
+          "bytes": 2149925,
+          "range": "",
+          "startedAfterMs": 266,
+          "statusCode": 200,
+          "contentRange": "",
+          "contentLength": "146279644",
+          "durationMs": 401
+        },
+        {
+          "host": "github.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "resume",
+          "actualNetwork": true,
+          "bytes": 0,
+          "range": "bytes=2097152-",
+          "startedAfterMs": 672,
+          "statusCode": 302,
+          "redirectHost": "release-assets.githubusercontent.com"
+        },
+        {
+          "host": "release-assets.githubusercontent.com",
+          "route": "official",
+          "purpose": "installer",
+          "phase": "resume",
+          "actualNetwork": true,
+          "bytes": 144182492,
+          "range": "bytes=2097152-",
+          "startedAfterMs": 788,
+          "statusCode": 206,
+          "contentRange": "bytes 2097152-146279643/146279644",
+          "contentLength": "144182492",
+          "durationMs": 9662
+        }
+      ],
+      "faultsInjected": [
+        {
+          "type": "client_cancel_during_real_official_stream",
+          "receivedBytes": 2097152
+        }
+      ],
+      "partialBytesBeforeResume": 2097152,
+      "interruptionError": {
+        "name": "Error",
+        "code": "",
+        "message": "cancelled"
+      },
+      "rangeResumeConfirmed": true,
+      "verification": {
+        "size": 146279644,
+        "sha256": "2667ba753386fa53dff6672f2e2e9ba5739d1683accaa45bab6cea366f06898b",
+        "sha512": "c/cOMbzZy4/SRcN/TendaLzTlUN3U8L0ie7RV3YNRy3Tu1btiZ12A+CN0z2nqYsBm+R4fYRb/roJ8UtzFjIlgA==",
+        "matchesOfficialApiSha256": true,
+        "matchesOfficialManifestSha512": true
+      },
+      "completedRoute": "official",
+      "evidenceType": "genuine official network stream with explicit client interruption, then genuine HTTP Range resume",
+      "durationMs": 12081,
+      "networkBodyBytes": 146332417
+    }
+  ],
+  "sourceHashes": {
+    "harnessSha256": "d06796f02f355416173b465bd64b2ce0fcd9665d104d50848270074c252724da",
+    "routerSha256": "df2f2e0c87b577bd1ce96cf6a1ffe8de10e5bdd8c34580d24c3d0355d5a2ac1a"
+  },
+  "timeouts": {
+    "parentTotalMs": 590000,
+    "metadataTotalMs": 45000,
+    "scenarioTotalMs": 500000
+  },
+  "transferBudgetBytes": 593507184,
+  "totalNetworkBodyBytes": 585302421,
+  "finishedAt": "2026-11-25T06:22:06.988Z",
+  "durationMs": 47295
+}

@@ -11,7 +11,7 @@
 [![Release](https://img.shields.io/github/v/release/yuchen0x1/HongGuo-PC?style=flat-square&label=%E6%9C%80%E6%96%B0%E7%89%88%E6%9C%AC)](https://github.com/yuchen0x1/HongGuo-PC/releases/latest)
 [![Platform](https://img.shields.io/badge/Windows-x64-0078D6?style=flat-square&logo=windows&logoColor=white)](#-下载)
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue?style=flat-square)](LICENSE)
-[![Electron](https://img.shields.io/badge/Electron-44-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![Electron](https://img.shields.io/badge/Electron-45-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
 
 [下载](#-下载) · [界面](#-界面) · [功能](#-功能) · [常见问题](#-常见问题) · [开发](#-开发) · [声明](#-声明)
 
@@ -39,7 +39,7 @@
 
 ### 应用内更新
 
-Windows x64 NSIS 安装版检查 GitHub 正式版本。6.32 下载完成并核对官方文件大小、SHA-256 和 SHA-512 后，由你选择何时重启安装；旧客户端继续使用各自原有的更新流程。开发版、预览版和便携版可从 GitHub 发布页手动下载安装。详见 [应用内更新指南](docs/AUTO_UPDATE.md)。
+Windows x64 NSIS 安装版检查 GitHub 正式版本。自 6.32 起，下载完成并核对官方文件大小、SHA-256 和 SHA-512 后，由你选择何时重启安装；旧客户端继续使用各自原有的更新流程。开发版、预览版和便携版可从 GitHub 发布页手动下载安装。详见 [应用内更新指南](docs/AUTO_UPDATE.md)。
 
 6.32 已正式发布，增加更新安装包的 GH-Proxy 备用下载、断点续传与下载线路显示；GitHub 官方线路仍优先，元数据继续从官方获取。两个 GH-Proxy 域名属于同一服务，验证范围见 [6.32 发行记录](docs/release-6.32.md)。
 

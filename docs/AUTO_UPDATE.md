@@ -8,7 +8,7 @@
 
 | 方案 | 适配性 | 取舍 |
 |---|---|---|
-| electron-builder + electron-updater | 最高；项目已经依赖 `electron-updater@6.8.9`，发布元数据就是 GitHub Release 的 `latest.yml` | 依赖 NSIS 安装版；便携版不能安全覆盖自身；Windows 未签名时 SmartScreen 仍会提示未知发布者 |
+| electron-builder + electron-updater | 最高；项目已经依赖 `electron-updater@6.8.11`，发布元数据就是 GitHub Release 的 `latest.yml` | 依赖 NSIS 安装版；便携版不能安全覆盖自身；Windows 未签名时 SmartScreen 仍会提示未知发布者 |
 | Velopack | 更新体验和回滚能力强，适合重新设计安装/发布模型 | 需要替换当前 electron-builder/NSIS 产物与 CI，迁移成本大，不能复用现有 v6.x `latest.yml` 兼容链路 |
 | Squirrel.Windows | Electron 生态中成熟，支持 delta/安装更新 | 需要迁移安装包和 Release 资产命名，和当前 NSIS、历史客户端及 `latest.yml` 不兼容 |
 
@@ -43,14 +43,14 @@ GH-Proxy 使用已核实的公开 Release 资产地址转换形式：`https://gh
 
 ## 发布流程
 
-1. 在 `main` 完成代码、测试和版本检查，并在 `docs/releases/release-notes.md` 添加对应版本的简明更新清单，只写新增、优化、修复和影响使用的变更。
+1. 在 `main` 完成代码、测试和版本检查，并在 `docs/releases/release-notes.md` 添加对应版本的更新说明；自 6.33 起使用用户指定的更新模板，正文从「版本概述」开始，包含适用的改进、兼容性、下载与安装、升级与数据及实际验证结果，删除空栏目和占位文字。标题为「红果短剧 vX.Y」，不在正文重复。
 2. 创建 `vX.Y` 标签（包内版本为 `X.Y.0`）。
 3. Windows x64 release candidate 工作流构建 NSIS EXE，运行单元/平台/安装验收，并从最终 EXE 生成 `latest.yml`。
 4. 人工确认候选工件、提交 SHA、包大小、SHA-512、签名状态和许可证对应源码。
 5. 手动运行 `Publish validated Windows release`，传入标签、候选工作流 run ID、源码 Test run ID 和期望提交 SHA。
-6. 发布流水线从 `docs/releases/release-notes.md` 提取对应版本清单作为 Release 正文，缺少条目时停止发布；只上传安装 EXE 与 `latest.yml`，并在公开 Release 前再次核对版本、文件名、大小和 SHA-512。
+6. 发布流水线从 `docs/releases/release-notes.md` 提取对应版本正文，保留模板栏目、表格和链接，兼容历史列表；缺少或重复版本、空正文或空模板栏目时停止发布。只上传安装 EXE 与 `latest.yml`，并在公开 Release 前再次核对版本、文件名、大小和 SHA-512。
 
-应用内更新日志直接读取 Release 正文。测试命令、流水线记录、哈希、资产明细和验证限制保留在 `docs/release-X.Y.md`，不复制到更新清单；安装方式与平台说明见 README。
+应用内更新日志直接读取 Release 正文。正文中的验证结果仅写实际执行的范围与限制；详细测试命令、流水线回执和哈希保留在 `docs/release-X.Y.md`，安装方式与平台说明见 README。
 
 旧版 v6.2–v6.6 安装版仍依赖 `latest.yml`，所以不得从后续 Release 删除该文件。
 
